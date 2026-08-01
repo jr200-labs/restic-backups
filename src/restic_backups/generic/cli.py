@@ -39,7 +39,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
-            questionary.Choice("Delete a repository", "delete"),
+            questionary.Choice("Destroy a repository", "destroy"),
             questionary.Choice("Show managed data directory", "data-dir"),
             questionary.Choice("Run a restic command", "run"),
             questionary.Choice("Exit", "exit"),
@@ -49,8 +49,8 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
-    elif selected == "delete":
-        delete_command(None)
+    elif selected == "destroy":
+        destroy_command(None)
     elif selected == "data-dir":
         data_dir_command(None)
     elif selected == "run":
@@ -194,8 +194,8 @@ def init_command() -> None:
         error_console.print(Text(f"{store_id}: initialized", style="green"))
 
 
-@app.command("delete")
-def delete_command(
+@app.command("destroy")
+def destroy_command(
     repository_id: Annotated[
         str | None,
         typer.Argument(help="Repository ID; prompts when omitted."),
@@ -207,7 +207,7 @@ def delete_command(
     _, credentials, stores, _ = validated()
     if repository_id is None:
         selected = questionary.select(
-            "Repository to permanently delete:",
+            "Repository to permanently destroy:",
             choices=[
                 questionary.Choice(
                     f"{store_id}  ({store['endpoint']}/{store['bucket']}/{store['key_prefix']})",
@@ -228,23 +228,23 @@ def delete_command(
         f"{store['key_prefix'].strip('/')}"
     )
     confirmed = questionary.confirm(
-        f"Permanently delete '{repository_id}' and all data at {target}?",
+        f"Permanently destroy '{repository_id}' and all data at {target}?",
         default=False,
     ).ask()
     if confirmed is not True:
-        error_console.print(Text("Cancelled; nothing was deleted.", style="yellow"))
+        error_console.print(Text("Cancelled; nothing was destroyed.", style="yellow"))
         return
     typed = questionary.text(
         f"Type '{repository_id}' to confirm permanent deletion:"
     ).ask()
     if typed != repository_id:
-        fail("repository ID did not match; nothing was deleted")
+        fail("repository ID did not match; nothing was destroyed")
 
     credential = credentials[store["credentials-id"]]
     deleted = s3.delete_repository(store, credential)
     error_console.print(
         Text(
-            f"{repository_id}: permanently deleted {deleted} objects and versions",
+            f"{repository_id}: permanently destroyed {deleted} objects and versions",
             style="bold green",
         )
     )

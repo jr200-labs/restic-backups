@@ -24,7 +24,7 @@ class VoiceMemosCliTest(unittest.TestCase):
 
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
-        for command in ("list", "data-dir", "init", "delete", "run"):
+        for command in ("list", "data-dir", "init", "destroy", "run"):
             self.assertIn(command, generic.output)
 
     def test_help_exposes_workflows(self) -> None:

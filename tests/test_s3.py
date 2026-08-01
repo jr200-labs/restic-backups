@@ -47,7 +47,7 @@ class S3DeletionTest(unittest.TestCase):
             s3.delete_repository({"key_prefix": "/"}, {})
         client.assert_not_called()
 
-    def test_delete_requires_exact_repository_id(self) -> None:
+    def test_destroy_requires_exact_repository_id(self) -> None:
         store = {
             "id": "repository",
             "credentials-id": "credentials",
@@ -69,7 +69,7 @@ class S3DeletionTest(unittest.TestCase):
             text.return_value.ask.return_value = "wrong"
 
             with self.assertRaises(typer.Exit):
-                cli.delete_command("repository")
+                cli.destroy_command("repository")
 
         delete.assert_not_called()
 
