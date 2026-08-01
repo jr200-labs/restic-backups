@@ -2,12 +2,14 @@
 title: Storage Cost Comparison
 ---
 
-These estimates compare US list prices and monthly storage charges in US dollars
-as of 1 August 2026. AWS rates use US East (N. Virginia), and consumer plans use
-US pricing. The estimates exclude API requests, retrieval, egress, temporary
-restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.
+These estimates compare US list prices and monthly storage charges in US dollars.
+AWS rates use US East (N. Virginia), and consumer plans use US pricing. The
+estimates exclude API requests, retrieval, egress, temporary restore copies, tax,
+and discounts. The 1 TB comparison uses 1,000 GB.
 
 ## 100 GB
+
+**Prices as of 1 August 2026.**
 
 | Service | Monthly cost | Price used | Supported by this CLI |
 |---|---:|---|:---:|
