@@ -1,0 +1,65 @@
+---
+title: Restic Backups
+---
+
+Restic Backups is a YAML configuration and CLI layer for multiple restic
+repositories, with optional SOPS decryption. It supports reusable S3-compatible
+credentials, multiple buckets and key prefixes, managed private metadata
+directories, and a complete macOS Voice Memos workflow.
+
+## Install
+
+```sh
+make install-deps  # restic, sops, uv, ffmpeg, jq, coreutils
+make install       # uv sync, including development dependencies
+```
+
+After [configuring the CLI](configuration.qmd), `make init` initializes each
+enabled, referenced restic store once. It does not back up files.
+
+## Start here
+
+- [CLI](cli.qmd) covers repository selection, raw restic passthrough, and local
+  data directories.
+- [Configuration](configuration.qmd) describes credentials, stores, backup jobs,
+  and Glacier policy.
+- [Voice Memos](voice-memos.qmd) covers backup, transcription, recovery, and
+  diarization.
+
+## Architecture
+
+```text
+restic_backups/
+  cli.py                 root command wiring and global options
+  config.py              YAML loading and validation
+  generic/
+    cli.py               generic restic command definitions
+    sops.py              SOPS decryption
+    repository.py        repository resolution and managed paths
+    restic.py            restic execution and archive policy
+  voice_memos/
+    cli.py               Voice Memos command definitions
+    pipeline.py          transcription and diarization processing
+    workflow.py          backup, restore, and recording lookup
+    parallel.py          worker process orchestration
+    dashboard.py         live Textual dashboard
+```
+
+Command modules contain command definitions and option handling. Config, SOPS,
+repository, pipeline, workflow, and parallel modules perform the operational work.
+
+## Private data boundary
+
+Managed artifacts use:
+
+```text
+data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
+```
+
+This does not constrain backup sources; commands may pass absolute source paths
+outside the repository. Everything below `data/` is ignored.
+
+::: {.callout-warning}
+Commit `config.sops.yaml` only while encrypted. Never commit credentials,
+recordings, transcripts, summaries, caches, restores, or restic data.
+:::

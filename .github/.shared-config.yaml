@@ -1,0 +1,7 @@
+ref: shared-v0.1.35
+workflows:
+  - hygiene
+  - python
+  - quarto-docs
+  - wheel
+  - release

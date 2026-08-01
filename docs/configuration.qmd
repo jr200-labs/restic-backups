@@ -1,0 +1,148 @@
+---
+title: Configuration
+---
+
+Copy the template and replace its `CHANGE_ME` values:
+
+```sh
+cp config.template.yaml config.yaml
+uv run restic-backups --config config.yaml check-config
+```
+
+There is no default configuration path. Pass `--config` before the command, or
+set it once for the current shell:
+
+```sh
+export RESTIC_BACKUPS_CONFIG="$PWD/config.yaml"
+uv run restic-backups check-config
+```
+
+To use an encrypted configuration, encrypt it with SOPS and enable decryption
+with either `--sops` or `RESTIC_BACKUPS_SOPS=1`:
+
+```sh
+cp config.template.yaml config.sops.yaml
+sops config.sops.yaml
+uv run restic-backups --config config.sops.yaml --sops check-config
+
+export RESTIC_BACKUPS_CONFIG="$PWD/config.sops.yaml"
+export RESTIC_BACKUPS_SOPS=1
+```
+
+The values of `id` fields are user-defined names. They only need to be unique
+within their section; references in other sections must match them exactly.
+
+## `credentials`
+
+`credentials` contains reusable S3 authentication details. Backblaze application
+key IDs and application keys use the same fields as AWS access keys.
+
+```yaml
+credentials:
+  - id: b2-credentials
+    access-key-id: "..."
+    secret-access-key: "..."
+```
+
+One credential may be referenced by several stores.
+
+## `restic-stores`
+
+`restic-stores` describes each restic repository and links it to an entry in
+`credentials` through `credentials-id`.
+
+```yaml
+restic-stores:
+  - id: b2-store
+    credentials-id: b2-credentials
+    enabled: true
+    endpoint: https://s3.us-west-004.backblazeb2.com
+    region: us-west-004
+    bucket: example-bucket
+    key_prefix: voice-memos
+    password: "..."
+```
+
+All stores use restic's S3 backend. `endpoint` identifies the S3-compatible
+service, `region` configures request signing, and `bucket` plus `key_prefix`
+locate the repository. `password` encrypts the restic repository. Disabled
+stores are ignored by commands and may retain `CHANGE_ME` placeholders. An
+enabled store fails validation until its store values and credentials are
+complete.
+
+## `backups`
+
+`backups` names the jobs shown by the CLI. Each job selects a repository by
+matching `restic-store-id` to a `restic-stores.id` value.
+
+```yaml
+backups:
+  - id: voice-memos
+    restic-store-id: b2-store
+```
+
+Several backup jobs may share a restic store.
+
+## Optional archive policy
+
+AWS stores may add an `archive` policy. `storage-class` controls how new
+objects are stored, and `restore` defines retrieval behavior for cold storage:
+
+```yaml
+credentials:
+  - id: aws-credentials
+    access-key-id: "..."
+    secret-access-key: "..."
+
+restic-stores:
+  - id: aws-store
+    credentials-id: aws-credentials
+    enabled: false
+    endpoint: https://s3.us-east-1.amazonaws.com
+    region: us-east-1
+    bucket: example-bucket
+    key_prefix: backups
+    password: "..."
+    archive:
+      storage-class: GLACIER_IR
+      restore: null
+```
+
+Omit `archive` to use the storage provider's default class.
+
+Use `GLACIER_IR` for immediate restic access. It must not define a restore
+policy:
+
+```yaml
+archive:
+  storage-class: GLACIER_IR
+  restore: null
+```
+
+Cold classes require an explicit retrieval policy:
+
+```yaml
+archive:
+  storage-class: GLACIER
+  restore:
+    tier: Bulk
+    days: 7
+    timeout: 24h
+```
+
+`GLACIER` accepts `Standard`, `Bulk`, or `Expedited`; `DEEP_ARCHIVE` accepts
+`Standard` or `Bulk`. Retrieval commands also require an acknowledgement:
+
+```sh
+ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
+  --backup <backup-id> restore latest --target <dir>
+```
+
+Changing a storage class affects new objects only. Use a new `key_prefix`
+rather than mixing storage policies in one repository.
+
+## Validation rules
+
+`check-config` also rejects duplicate IDs, unknown credential or store
+references, missing S3 fields, and invalid Glacier retrieval tiers or
+durations. Managed-data resolution separately rejects unsafe path components.

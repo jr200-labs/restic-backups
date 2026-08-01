@@ -1,0 +1,23 @@
+# Canonical ruff config for all consumer Python repos.
+# Per-repo pyproject.toml should extend this:
+#   [tool.ruff]
+#   extend = ".shared/ruff.toml"
+
+line-length = 88
+target-version = "py312"
+
+[lint]
+extend-select = [
+    "B",      # flake8-bugbear (includes bare-except detection)
+    "E722",   # bare except (pycodestyle)
+    "F401",   # unused imports
+    "F841",   # unused variables
+    "G",      # flake8-logging-format
+    "S110",   # try-except-pass — don't swallow exceptions silently
+]
+
+[lint.per-file-ignores]
+"tests/**" = ["F401"]
+
+[format]
+quote-style = "double"

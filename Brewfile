@@ -1,0 +1,6 @@
+brew "restic"
+brew "jq"
+brew "coreutils"
+brew "ffmpeg"
+brew "uv"
+brew "sops"

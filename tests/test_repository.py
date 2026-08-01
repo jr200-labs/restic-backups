@@ -1,0 +1,86 @@
+"""Configuration loading regression checks."""
+
+import json
+import subprocess
+import tempfile
+import unittest
+from pathlib import Path
+from unittest.mock import patch
+
+from restic_backups import config
+from restic_backups.generic import restic
+
+
+class ConfigLoadingTest(unittest.TestCase):
+    def test_plain_yaml_and_sops_modes(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text("value: plain\n")
+            self.assertEqual(config.load_config(path, False), {"value": "plain"})
+
+            result = type("Result", (), {"stdout": json.dumps({"value": "sops"})})()
+            with patch("subprocess.run", return_value=result) as run:
+                self.assertEqual(config.load_config(path, True), {"value": "sops"})
+                run.assert_called_once_with(
+                    ["sops", "--decrypt", "--output-type", "json", path],
+                    check=True,
+                    capture_output=True,
+                    text=True,
+                )
+
+    def test_s3_store_without_archive_policy(self) -> None:
+        config_data = {
+            "credentials": [
+                {
+                    "id": "b2",
+                    "access-key-id": "key-id",
+                    "secret-access-key": "secret",
+                }
+            ],
+            "restic-stores": [
+                {
+                    "id": "store",
+                    "credentials-id": "b2",
+                    "enabled": True,
+                    "endpoint": "https://s3.us-west-004.backblazeb2.com",
+                    "region": "us-west-004",
+                    "bucket": "bucket",
+                    "key_prefix": "voice-memos",
+                    "password": "password",
+                }
+            ],
+            "backups": [{"id": "voice-memos", "restic-store-id": "store"}],
+        }
+        credentials, stores, backups = config.validate(config_data)
+        result: subprocess.CompletedProcess[bytes] = subprocess.CompletedProcess([], 0)
+        with patch("subprocess.run", return_value=result) as run:
+            self.assertEqual(
+                restic.command(
+                    "voice-memos", ["snapshots"], credentials, stores, backups
+                ),
+                0,
+            )
+        command = run.call_args.args[0]
+        environment = run.call_args.kwargs["env"]
+        self.assertEqual(
+            command, ["restic", "-o", "s3.region=us-west-004", "snapshots"]
+        )
+        self.assertEqual(
+            environment["RESTIC_REPOSITORY"],
+            "s3:https://s3.us-west-004.backblazeb2.com/bucket/voice-memos",
+        )
+
+        stores["store"]["archive"] = {
+            "storage-class": "GLACIER_IR",
+            "restore": None,
+        }
+        credentials, stores, backups = config.validate(config_data)
+        with patch("subprocess.run", return_value=result) as run:
+            restic.command(
+                "voice-memos", ["backup", "/tmp/source"], credentials, stores, backups
+            )
+        self.assertIn("s3.storage-class=GLACIER_IR", run.call_args.args[0])
+
+
+if __name__ == "__main__":
+    unittest.main()

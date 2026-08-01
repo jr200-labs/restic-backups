@@ -1,0 +1,34 @@
+# GENERATED/SHARED WORKFLOW: copied into consuming repos by sync-shared.
+# Do not edit in consuming repos; change jr200-labs/github-action-templates and sync.
+name: ci-python
+
+on:
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner pool
+        required: false
+        type: choice
+        default: configured
+        options:
+          - configured
+          - self-hosted
+          - github-hosted
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  ci:
+    uses: jr200-labs/github-action-templates/.github/workflows/ci_uv_python.yaml@master
+    with:
+      runner: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'self-hosted' && 'self-hosted' || github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'github-hosted' && 'ubuntu-latest' || fromJSON(vars.RUNNER_PROFILES)[vars.RUNNER_PROFILE].default }}
+    secrets:
+      # Always forwarded so `uv sync` can clone private git deps via
+      # an installation token. Reusable's `check-git-auth` step skips
+      # the auth setup gracefully if the secret is empty / absent —
+      # safe for repos with no private deps.
+      client_id: ${{ vars.INTEGRATION_CLIENT_ID }}
+      app_private_key: ${{ secrets.INTEGRATION_APP_PRIVATE_KEY }}

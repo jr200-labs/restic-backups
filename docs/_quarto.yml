@@ -1,0 +1,21 @@
+project:
+  type: website
+  output-dir: _site
+
+website:
+  title: Restic Backups
+  sidebar:
+    style: docked
+    contents:
+      - index.qmd
+      - cli.qmd
+      - configuration.qmd
+      - voice-memos.qmd
+
+format:
+  html:
+    theme: cosmo
+    toc: true
+
+execute:
+  enabled: false
