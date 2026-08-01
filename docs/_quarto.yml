@@ -12,6 +12,7 @@ website:
       - section: Setup
         contents:
           - configuration.qmd
+          - storage-costs.qmd
           - cli.qmd
       - section: Generic Backups
         contents:
