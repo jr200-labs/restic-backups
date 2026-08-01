@@ -2,23 +2,67 @@
 
 from __future__ import annotations
 
+import shlex
 import sys
 from typing import Annotated, Any, NoReturn
 
 import questionary
 import typer
+from rich import box
+from rich.console import Console
+from rich.table import Table
+from rich.text import Text
 
 from .. import config
 from ..errors import BackupError
 from . import repository, restic
 
 app = typer.Typer(
-    help="Generic configured restic repository commands.", no_args_is_help=True
+    help="Generic configured restic repository commands.",
+    invoke_without_command=True,
+    no_args_is_help=False,
 )
+console = Console()
+error_console = Console(stderr=True)
+
+
+@app.callback()
+def menu(context: typer.Context) -> None:
+    """Choose a generic backup operation when run interactively."""
+    if context.invoked_subcommand is not None:
+        return
+    if not sys.stdin.isatty():
+        typer.echo(context.get_help())
+        return
+    selected = questionary.select(
+        "Command:",
+        choices=[
+            questionary.Choice("List configuration", "list"),
+            questionary.Choice("Initialize repositories", "init"),
+            questionary.Choice("Show managed data directory", "data-dir"),
+            questionary.Choice("Run a restic command", "run"),
+            questionary.Choice("Exit", "exit"),
+        ],
+    ).ask()
+    if selected == "list":
+        list_command()
+    elif selected == "init":
+        init_command()
+    elif selected == "data-dir":
+        data_dir_command(None)
+    elif selected == "run":
+        command = questionary.text("Restic command and arguments:").ask()
+        if command:
+            try:
+                run_args(None, shlex.split(command))
+            except ValueError as exc:
+                fail(f"invalid command: {exc}")
+    elif selected is None:
+        raise typer.Abort()
 
 
 def fail(message: str) -> NoReturn:
-    typer.echo(f"restic-backups: {message}", err=True)
+    error_console.print(Text(f"restic-backups: {message}", style="bold red"))
     raise typer.Exit(1)
 
 
@@ -63,12 +107,39 @@ def choose_backup(
 
 @app.command("list")
 def list_command() -> None:
-    """List backup IDs and their configured restic stores."""
+    """Show configured repositories and backup jobs."""
     _, _, stores, backups = validated()
+
+    store_table = Table(title="Repositories", box=box.ROUNDED)
+    store_table.add_column("ID", style="cyan", no_wrap=True)
+    store_table.add_column("Description")
+    store_table.add_column("Endpoint")
+    store_table.add_column("State")
+    for store_id, store in stores.items():
+        state = "enabled" if store["enabled"] else "disabled"
+        store_table.add_row(
+            Text(store_id),
+            Text(str(store.get("description", "—"))),
+            Text(str(store["endpoint"])),
+            Text(state, style="green" if store["enabled"] else "yellow"),
+        )
+    console.print(store_table)
+
+    backup_table = Table(title="Backups", box=box.ROUNDED)
+    backup_table.add_column("ID", style="cyan", no_wrap=True)
+    backup_table.add_column("Description")
+    backup_table.add_column("Repository")
+    backup_table.add_column("State")
     for backup_id, backup in backups.items():
         store = stores[backup["restic-store-id"]]
         state = "enabled" if store["enabled"] else "disabled"
-        typer.echo(f"{backup_id}\t{store['id']}\t{store['endpoint']}\t{state}")
+        backup_table.add_row(
+            Text(backup_id),
+            Text(str(backup.get("description", "—"))),
+            Text(str(store["id"])),
+            Text(state, style="green" if store["enabled"] else "yellow"),
+        )
+    console.print(backup_table)
 
 
 @app.command("data-dir")
@@ -91,10 +162,10 @@ def init_command() -> None:
     _, credentials, stores, _ = validated()
     for store_id, store in stores.items():
         if not store["enabled"]:
-            typer.echo(f"{store_id}: disabled; skipping")
+            error_console.print(Text(f"{store_id}: disabled; skipping", style="yellow"))
             continue
         credential = credentials[store["credentials-id"]]
-        typer.echo(f"{store_id}: checking repository")
+        error_console.print(Text(f"{store_id}: checking repository", style="cyan"))
         try:
             code = restic.store_command(
                 store,
@@ -103,17 +174,21 @@ def init_command() -> None:
                 quiet=True,
             )
             if code == 0:
-                typer.echo(f"{store_id}: already initialized; skipping")
+                error_console.print(
+                    Text(f"{store_id}: already initialized; skipping", style="yellow")
+                )
                 continue
             if code != 10:
                 raise typer.Exit(code)
-            typer.echo(f"{store_id}: not initialized; initializing")
+            error_console.print(
+                Text(f"{store_id}: not initialized; initializing", style="cyan")
+            )
             code = restic.store_command(store, credential, ["init"])
         except BackupError as exc:
             fail(str(exc))
         if code:
             raise typer.Exit(code)
-        typer.echo(f"{store_id}: initialized")
+        error_console.print(Text(f"{store_id}: initialized", style="green"))
 
 
 @app.command(
@@ -128,13 +203,15 @@ def run_command(
     ] = None,
 ) -> None:
     """Run restic with all trailing arguments passed through unchanged."""
+    run_args(backup, list(context.args))
+
+
+def run_args(backup: str | None, args: list[str]) -> None:
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
-    if not context.args:
+    if not args:
         fail("a restic command is required after 'run'")
     try:
-        raise typer.Exit(
-            restic.command(backup_id, list(context.args), credentials, stores, backups)
-        )
+        raise typer.Exit(restic.command(backup_id, args, credentials, stores, backups))
     except BackupError as exc:
         fail(str(exc))

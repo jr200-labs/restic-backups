@@ -3,12 +3,13 @@
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import call, patch
+from unittest.mock import Mock, call, patch
 
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
+from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 
 
@@ -35,6 +36,16 @@ class VoiceMemosCliTest(unittest.TestCase):
     def test_voice_memos_help_does_not_require_config(self) -> None:
         result = CliRunner().invoke(app, ["voice-memos", "--help"])
         self.assertEqual(result.exit_code, 0, result.output)
+
+    @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
+    @patch("restic_backups.generic.cli.questionary.select")
+    @patch("restic_backups.generic.cli.list_command")
+    def test_generic_menu_selects_a_command(self, list_command, select, _) -> None:
+        select.return_value.ask.return_value = "list"
+
+        generic_menu(Mock(invoked_subcommand=None))
+
+        list_command.assert_called_once_with()
 
     def test_config_path_option_and_environment_variable(self) -> None:
         config = """\
@@ -77,18 +88,26 @@ backups:
                 "id": "existing",
                 "enabled": True,
                 "credentials-id": "credentials",
+                "endpoint": "https://existing.example.com",
             },
             "new": {
                 "id": "new",
                 "enabled": True,
                 "credentials-id": "credentials",
+                "endpoint": "https://new.example.com",
             },
         }
         backups = {"first": {"restic-store-id": "existing"}}
         validated.return_value = ({}, credentials, stores, backups)
         command.side_effect = [0, 10, 0]
+        runner = CliRunner()
 
-        result = CliRunner().invoke(app, ["generic", "init"])
+        listed = runner.invoke(app, ["generic", "list"])
+        self.assertEqual(listed.exit_code, 0, listed.output)
+        for text in ("Repositories", "Backups", "existing", "new", "first"):
+            self.assertIn(text, listed.output)
+
+        result = runner.invoke(app, ["generic", "init"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("existing: checking repository", result.output)

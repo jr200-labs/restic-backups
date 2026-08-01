@@ -12,13 +12,20 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 | Command | Purpose | Remote storage |
 |---|---|---|
-| `generic list` | Show backup IDs, stores, endpoints, and enabled state | No |
+| `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
 `data-dir` and `run` prompt for a backup when it is omitted in an interactive
 terminal. Non-interactive callers must provide the backup ID.
+
+Running `restic-backups generic` without a subcommand in an interactive terminal
+opens a command menu. Explicit subcommands remain available for scripts and
+scheduled jobs.
+
+`generic list` has separate **Repositories** and **Backups** tables, so enabled
+stores remain visible even when no backup job references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
