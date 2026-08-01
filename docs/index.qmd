@@ -7,24 +7,15 @@ repositories, with optional SOPS decryption. It supports reusable S3-compatible
 credentials, multiple buckets and key prefixes, managed private metadata
 directories, and a complete macOS Voice Memos workflow.
 
-## Install
-
-```sh
-make install-deps  # restic, sops, uv, ffmpeg, jq, coreutils
-make install       # uv sync, including development dependencies
-```
-
-After [configuring the CLI](configuration.qmd), `make init` initializes each
-enabled, referenced restic store once. It does not back up files.
-
 ## Start here
 
-- [CLI](cli.qmd) covers repository selection, raw restic passthrough, and local
-  data directories.
+- [Quick Start](quick-start.qmd) creates, validates, and restores a first backup.
 - [Configuration](configuration.qmd) describes credentials, stores, backup jobs,
   and Glacier policy.
-- [Voice Memos](voice-memos.qmd) covers backup, transcription, recovery, and
-  diarization.
+- [Generic Backups](generic.qmd) covers standard restic operations for any local
+  files or directories.
+- [Voice Memos Backups](voice-memos.qmd) covers backup, transcription, recovery,
+  and diarization on macOS.
 
 ## Architecture
 

@@ -89,5 +89,5 @@ make docs          # render docs/_site
 make docs-preview  # local preview server
 ```
 
-Start with [the Quarto guide](docs/index.qmd). Never commit decrypted SOPS
+Start with the [Quick Start](docs/quick-start.qmd). Never commit decrypted SOPS
 configuration or anything below `data/`.
