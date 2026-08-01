@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Restic Backups</title>
+<title>Generic Backups – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -25,6 +25,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -86,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Restic Backups</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -113,7 +148,7 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Restic Backups</span></a>
   </div>
 </li>
@@ -157,7 +192,7 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./generic.html" class="sidebar-item-text sidebar-link">
+  <a href="./generic.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Generic Backups</span></a>
   </div>
 </li>
@@ -190,18 +225,19 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#start-here" id="toc-start-here" class="nav-link active" data-scroll-target="#start-here">Start here</a></li>
-  <li><a href="#architecture" id="toc-architecture" class="nav-link" data-scroll-target="#architecture">Architecture</a></li>
-  <li><a href="#private-data-boundary" id="toc-private-data-boundary" class="nav-link" data-scroll-target="#private-data-boundary">Private data boundary</a></li>
+  <li><a href="#commands" id="toc-commands" class="nav-link active" data-scroll-target="#commands">Commands</a></li>
+  <li><a href="#common-operations" id="toc-common-operations" class="nav-link" data-scroll-target="#common-operations">Common operations</a></li>
+  <li><a href="#managed-data-directory" id="toc-managed-data-directory" class="nav-link" data-scroll-target="#managed-data-directory">Managed data directory</a></li>
+  <li><a href="#cold-s3-storage" id="toc-cold-s3-storage" class="nav-link" data-scroll-target="#cold-s3-storage">Cold S3 storage</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Restic Backups</h1>
+<h1 class="title">Generic Backups</h1>
 </div>
 
 
@@ -218,52 +254,73 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports reusable S3-compatible credentials, multiple buckets and key prefixes, managed private metadata directories, and a complete macOS Voice Memos workflow.</p>
-<section id="start-here" class="level2">
-<h2 class="anchored" data-anchor-id="start-here">Start here</h2>
-<ul>
-<li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
-<li><a href="./configuration.html">Configuration</a> describes credentials, stores, backup jobs, and Glacier policy.</li>
-<li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
-<li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
-</ul>
+<p>The <code>generic</code> subcommand runs standard restic operations against any configured backup. Backup sources may be files or directories anywhere on the machine.</p>
+<p>Set <code>RESTIC_BACKUPS_CONFIG</code> first, or pass <code>--config</code> before <code>generic</code>. See the <a href="./quick-start.html">Quick Start</a> for a complete first backup.</p>
+<section id="commands" class="level2">
+<h2 class="anchored" data-anchor-id="commands">Commands</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Command</th>
+<th>Purpose</th>
+<th>Remote storage</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td><code>generic list</code></td>
+<td>Show backup IDs, stores, endpoints, and enabled state</td>
+<td>No</td>
+</tr>
+<tr class="even">
+<td><code>generic data-dir [BACKUP]</code></td>
+<td>Print the managed private-data directory</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td><code>generic init</code></td>
+<td>Initialize each enabled referenced repository once</td>
+<td>Yes</td>
+</tr>
+<tr class="even">
+<td><code>generic run --backup ID ...</code></td>
+<td>Pass trailing arguments directly to restic</td>
+<td>Depends on restic command</td>
+</tr>
+</tbody>
+</table>
+<p><code>data-dir</code> and <code>run</code> prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.</p>
 </section>
-<section id="architecture" class="level2">
-<h2 class="anchored" data-anchor-id="architecture">Architecture</h2>
-<pre class="text"><code>restic_backups/
-  cli.py                 root command wiring and global options
-  config.py              YAML loading and validation
-  generic/
-    cli.py               generic restic command definitions
-    sops.py              SOPS decryption
-    repository.py        repository resolution and managed paths
-    restic.py            restic execution and archive policy
-  voice_memos/
-    cli.py               Voice Memos command definitions
-    pipeline.py          transcription and diarization processing
-    workflow.py          backup, restore, and recording lookup
-    parallel.py          worker process orchestration
-    dashboard.py         live Textual dashboard</code></pre>
-<p>Command modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.</p>
+<section id="common-operations" class="level2">
+<h2 class="anchored" data-anchor-id="common-operations">Common operations</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a snapshot</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents backup <span class="st">"</span><span class="va">$HOME</span><span class="st">/Documents"</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect and check the repository</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents snapshots</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents check</span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>  restore latest <span class="at">--target</span> /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them.</p>
 </section>
-<section id="private-data-boundary" class="level2">
-<h2 class="anchored" data-anchor-id="private-data-boundary">Private data boundary</h2>
-<p>Managed artifacts use:</p>
-<pre class="text"><code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code></pre>
-<p>This does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
-<div class="callout callout-style-default callout-warning callout-titled">
-<div class="callout-header d-flex align-content-center">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Warning
-</div>
-</div>
-<div class="callout-body-container callout-body">
-<p>Commit <code>config.sops.yaml</code> only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.</p>
-</div>
-</div>
+<section id="managed-data-directory" class="level2">
+<h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code>. It is for private generated metadata; generic backup sources do not need to live there.</p>
+</section>
+<section id="cold-s3-storage" class="level2">
+<h2 class="anchored" data-anchor-id="cold-s3-storage">Cold S3 storage</h2>
+<p><code>GLACIER_IR</code> supports immediate access. <code>GLACIER</code> and <code>DEEP_ARCHIVE</code> permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic run <span class="dt">\</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> archive restore latest <span class="at">--target</span> /tmp/archive-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Other restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See <a href="./configuration.html">Configuration</a> for the archive policy fields.</p>
 
 
 </section>

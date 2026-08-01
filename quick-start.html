@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Restic Backups</title>
+<title>Quick Start – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -25,6 +25,41 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
+}
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -86,7 +121,7 @@ ul.task-list li input[type="checkbox"] {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./index.html">Restic Backups</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./quick-start.html">Quick Start</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -113,13 +148,13 @@ ul.task-list li input[type="checkbox"] {
     <ul class="list-unstyled mt-1">
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./index.html" class="sidebar-item-text sidebar-link active">
+  <a href="./index.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Restic Backups</span></a>
   </div>
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./quick-start.html" class="sidebar-item-text sidebar-link">
+  <a href="./quick-start.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Quick Start</span></a>
   </div>
 </li>
@@ -190,9 +225,10 @@ ul.task-list li input[type="checkbox"] {
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#start-here" id="toc-start-here" class="nav-link active" data-scroll-target="#start-here">Start here</a></li>
-  <li><a href="#architecture" id="toc-architecture" class="nav-link" data-scroll-target="#architecture">Architecture</a></li>
-  <li><a href="#private-data-boundary" id="toc-private-data-boundary" class="nav-link" data-scroll-target="#private-data-boundary">Private data boundary</a></li>
+  <li><a href="#install" id="toc-install" class="nav-link active" data-scroll-target="#install">1. Install</a></li>
+  <li><a href="#configure-a-repository" id="toc-configure-a-repository" class="nav-link" data-scroll-target="#configure-a-repository">2. Configure a repository</a></li>
+  <li><a href="#initialize-and-back-up" id="toc-initialize-and-back-up" class="nav-link" data-scroll-target="#initialize-and-back-up">3. Initialize and back up</a></li>
+  <li><a href="#verify-a-restore" id="toc-verify-a-restore" class="nav-link" data-scroll-target="#verify-a-restore">4. Verify a restore</a></li>
   </ul>
 </nav>
     </div>
@@ -201,7 +237,7 @@ ul.task-list li input[type="checkbox"] {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">Restic Backups</h1>
+<h1 class="title">Quick Start</h1>
 </div>
 
 
@@ -218,39 +254,46 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports reusable S3-compatible credentials, multiple buckets and key prefixes, managed private metadata directories, and a complete macOS Voice Memos workflow.</p>
-<section id="start-here" class="level2">
-<h2 class="anchored" data-anchor-id="start-here">Start here</h2>
+<p>This guide creates one generic S3-compatible backup from a source checkout.</p>
+<section id="install" class="level2">
+<h2 class="anchored" data-anchor-id="install">1. Install</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> install-deps</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> install</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>make install-deps</code> installs the required Homebrew tools. <code>make install</code> creates the uv environment.</p>
+</section>
+<section id="configure-a-repository" class="level2">
+<h2 class="anchored" data-anchor-id="configure-a-repository">2. Configure a repository</h2>
+<p>Copy the commented template:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> config.template.yaml config.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Edit its first credential, store, and backup entries. For a generic backup:</p>
 <ul>
-<li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
-<li><a href="./configuration.html">Configuration</a> describes credentials, stores, backup jobs, and Glacier policy.</li>
-<li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
-<li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
+<li>replace every <code>CHANGE_ME</code> used by the enabled store;</li>
+<li>set the store endpoint, region, bucket, and <code>key_prefix</code>;</li>
+<li>give the backup a useful ID such as <code>documents</code>;</li>
+<li>make its <code>restic-store-id</code> match the enabled store ID;</li>
+<li>delete unused example entries if desired.</li>
 </ul>
+<p>Keep the repository password safe: restic cannot decrypt snapshots without it.</p>
+<p>Set the config path once for the shell and validate it:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_CONFIG</span><span class="op">=</span><span class="st">"</span><span class="va">$PWD</span><span class="st">/config.yaml"</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="architecture" class="level2">
-<h2 class="anchored" data-anchor-id="architecture">Architecture</h2>
-<pre class="text"><code>restic_backups/
-  cli.py                 root command wiring and global options
-  config.py              YAML loading and validation
-  generic/
-    cli.py               generic restic command definitions
-    sops.py              SOPS decryption
-    repository.py        repository resolution and managed paths
-    restic.py            restic execution and archive policy
-  voice_memos/
-    cli.py               Voice Memos command definitions
-    pipeline.py          transcription and diarization processing
-    workflow.py          backup, restore, and recording lookup
-    parallel.py          worker process orchestration
-    dashboard.py         live Textual dashboard</code></pre>
-<p>Command modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.</p>
+<section id="initialize-and-back-up" class="level2">
+<h2 class="anchored" data-anchor-id="initialize-and-back-up">3. Initialize and back up</h2>
+<p>Initialize a new repository once:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Then back up any local path. Replace <code>documents</code> with your backup ID:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents backup <span class="st">"</span><span class="va">$HOME</span><span class="st">/Documents"</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents snapshots</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Existing restic repositories do not need <code>generic init</code>.</p>
 </section>
-<section id="private-data-boundary" class="level2">
-<h2 class="anchored" data-anchor-id="private-data-boundary">Private data boundary</h2>
-<p>Managed artifacts use:</p>
-<pre class="text"><code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code></pre>
-<p>This does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
+<section id="verify-a-restore" class="level2">
+<h2 class="anchored" data-anchor-id="verify-a-restore">4. Verify a restore</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> /tmp/restic-restore-check</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a>  restore latest <span class="at">--target</span> /tmp/restic-restore-check</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Inspect the restored files before relying on the backup. Continue with <a href="./generic.html">Generic Backups</a> for repository commands or <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS workflow.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
@@ -261,7 +304,7 @@ Warning
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>Commit <code>config.sops.yaml</code> only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.</p>
+<p>Do not commit <code>config.yaml</code>, credentials, repository passwords, or restored data. Use <a href="./configuration.html">SOPS configuration</a> before committing a config.</p>
 </div>
 </div>
 

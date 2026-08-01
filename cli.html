@@ -121,7 +121,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -154,22 +154,67 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
         <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./cli.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">CLI</span></a>
+  <a href="./quick-start.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Quick Start</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true">
+ <span class="menu-text">Setup</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-1" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-1" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./configuration.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Configuration</span></a>
   </div>
 </li>
-        <li class="sidebar-item">
+          <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./voice-memos.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Voice Memos</span></a>
+  <a href="./cli.html" class="sidebar-item-text sidebar-link active">
+ <span class="menu-text">CLI</span></a>
   </div>
 </li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
+ <span class="menu-text">Generic Backups</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./generic.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Generic Backups</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
+        <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
+ <span class="menu-text">Voice Memos Backups</span></a>
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./voice-memos.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Voice Memos Backups</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
     </ul>
     </div>
 </nav>
@@ -181,17 +226,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
    
   <ul>
   <li><a href="#root-commands" id="toc-root-commands" class="nav-link active" data-scroll-target="#root-commands">Root commands</a></li>
-  <li><a href="#generic-commands" id="toc-generic-commands" class="nav-link" data-scroll-target="#generic-commands">Generic commands</a></li>
-  <li><a href="#restic-passthrough" id="toc-restic-passthrough" class="nav-link" data-scroll-target="#restic-passthrough">Restic passthrough</a></li>
-  <li><a href="#managed-data-directory" id="toc-managed-data-directory" class="nav-link" data-scroll-target="#managed-data-directory">Managed data directory</a></li>
-  <li><a href="#cold-s3-guard" id="toc-cold-s3-guard" class="nav-link" data-scroll-target="#cold-s3-guard">Cold S3 guard</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default">
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">CLI</h1>
 </div>
@@ -249,64 +290,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-</section>
-<section id="generic-commands" class="level2">
-<h2 class="anchored" data-anchor-id="generic-commands">Generic commands</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Command</th>
-<th>Purpose</th>
-<th>Remote storage</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>generic list</code></td>
-<td>Show backup IDs, stores, endpoints, and enabled state</td>
-<td>No</td>
-</tr>
-<tr class="even">
-<td><code>generic data-dir [BACKUP]</code></td>
-<td>Print the managed private-data directory</td>
-<td>No</td>
-</tr>
-<tr class="odd">
-<td><code>generic init</code></td>
-<td>Initialize each enabled referenced repository once</td>
-<td>Yes</td>
-</tr>
-<tr class="even">
-<td><code>generic run --backup ID ...</code></td>
-<td>Pass trailing arguments directly to restic</td>
-<td>Depends on restic command</td>
-</tr>
-</tbody>
-</table>
-<p><code>generic data-dir</code> and <code>generic run</code> prompt with Questionary when the backup is omitted from an interactive terminal. Non-interactive callers must provide the ID.</p>
-</section>
-<section id="restic-passthrough" class="level2">
-<h2 class="anchored" data-anchor-id="restic-passthrough">Restic passthrough</h2>
-<p>Use <code>generic run</code> for any repository operation not represented by a higher-level workflow command:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> voice-memos snapshots</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> voice-memos check</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> voice-memos restore latest <span class="at">--target</span> /tmp/restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The CLI loads the selected store, exports credentials and restic repository settings only to the child process, and does not print them.</p>
-</section>
-<section id="managed-data-directory" class="level2">
-<h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic data-dir voice-memos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code>. It is intended for private generated metadata, not as a required root for backup source files.</p>
-</section>
-<section id="cold-s3-guard" class="level2">
-<h2 class="anchored" data-anchor-id="cold-s3-guard">Cold S3 guard</h2>
-<p><code>GLACIER_IR</code> behaves as immediate storage. For <code>GLACIER</code> or <code>DEEP_ARCHIVE</code>, the CLI permits uploads but blocks retrieval-related work unless both the restore policy is valid and <code>ALLOW_ARCHIVE_RETRIEVAL=1</code> is set. The configured tier, days, and timeout are then passed to restic’s S3 restore support.</p>
-<p>Commands outside the explicitly guarded cold-storage set are rejected. Use <code>GLACIER_IR</code> for repositories requiring normal interactive restic access.</p>
+<p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
+<p>Run subcommand help without loading a configuration:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
