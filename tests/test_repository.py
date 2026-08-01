@@ -51,8 +51,8 @@ Additional Commands:
                     / "data/store/bucket/private/voice-memos/voice-memos",
                 )
                 self.assertEqual(
-                    repository.cache_dir({"cache-dir": "cache/store"}),
-                    Path(directory).resolve() / "cache/store",
+                    repository.cache_dir({"cache-dir": "restic-cache/store"}),
+                    Path(directory).resolve() / "restic-cache/store",
                 )
 
     def test_plain_yaml_and_sops_modes(self) -> None:
