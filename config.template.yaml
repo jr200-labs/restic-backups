@@ -26,7 +26,7 @@ restic-stores:
       region: CHANGE_ME
       bucket: CHANGE_ME
       # Object-key prefix for the restic repository inside the bucket.
-      key_prefix: voice-memos
+      key_prefix: restic
       # Restic repository encryption password, not the provider password.
       password: CHANGE_ME
 
@@ -46,8 +46,16 @@ restic-stores:
 
 # Configured backups. restic-store-id must match a store ID above.
 backups:
-    - id: voice-memos
-      description: Back up macOS Voice Memos.
+    - id: documents
+      description: Back up local documents.
       restic-store-id: b2-store
-      # Restic tag applied to every snapshot created for this backup.
-      tag: voice-memos
+      # Files and directories used by `generic backup`; ~ is expanded.
+      paths:
+          - ~/Documents
+      # Optional restic tag; defaults to the backup ID.
+      # tag: documents
+
+    - id: voice-memos
+      description: Back up macOS Voice Memos with the specialized subcommand.
+      restic-store-id: b2-store
+      # The specialized workflow discovers its own source paths.

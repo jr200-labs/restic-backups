@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shlex
 import sys
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -40,6 +41,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
+            questionary.Choice("Back up configured paths", "backup"),
             questionary.Choice("Forget a snapshot", "forget"),
             questionary.Choice("Destroy a repository", "destroy"),
             questionary.Choice("Show managed data directory", "data-dir"),
@@ -51,6 +53,8 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
+    elif selected == "backup":
+        backup_command(None)
     elif selected == "forget":
         forget_command(None)
     elif selected == "destroy":
@@ -151,6 +155,7 @@ def list_command() -> None:
     backup_table.add_column("ID", style="cyan", no_wrap=True)
     backup_table.add_column("Description")
     backup_table.add_column("Repository")
+    backup_table.add_column("Paths")
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
@@ -160,10 +165,46 @@ def list_command() -> None:
             Text(backup_id),
             Text(str(backup.get("description", "—"))),
             Text(str(store["id"])),
+            Text("\n".join(backup.get("paths", [])) or "—"),
             Text(str(backup.get("tag", backup_id))),
             Text(state, style="green" if store["enabled"] else "yellow"),
         )
     console.print(backup_table)
+
+
+@app.command("backup")
+def backup_command(
+    backup: Annotated[
+        str | None,
+        typer.Argument(help="Backup ID; prompts when omitted."),
+    ] = None,
+) -> None:
+    """Create a snapshot from a backup's configured paths."""
+    _, credentials, stores, backups = validated()
+    backup_id = choose_backup(backup, stores, backups)
+    paths = backups[backup_id].get("paths")
+    if not paths:
+        fail(f"backup '{backup_id}' has no configured paths")
+    expanded_paths = [str(Path(path).expanduser()) for path in paths]
+    error_console.print(
+        Text(
+            f"{backup_id}: backing up {len(expanded_paths)} configured path(s)",
+            style="cyan",
+        )
+    )
+    try:
+        code = restic.command(
+            backup_id,
+            ["backup", *expanded_paths],
+            credentials,
+            stores,
+            backups,
+        )
+    except BackupError as exc:
+        fail(str(exc))
+    if code:
+        raise typer.Exit(code)
+    error_console.print(Text(f"{backup_id}: snapshot created", style="bold green"))
 
 
 @app.command("data-dir")

@@ -27,7 +27,8 @@ Edit its first credential, store, and backup entries. For a generic backup:
 - replace every `CHANGE_ME` used by the enabled store;
 - set the store endpoint, region, bucket, and `key_prefix`;
 - give the backup a useful ID such as `documents`;
-- set its restic `tag`, normally to the same value as its ID;
+- list the local files or directories under its `paths` field;
+- omit `tag` unless it should differ from the backup ID;
 - make its `restic-store-id` match the enabled store ID;
 - delete unused example entries if desired.
 
@@ -53,16 +54,16 @@ Initialize a new repository once:
 uv run restic-backups generic init
 ```
 
-Then back up any local path. Replace `documents` with your backup ID:
+Then create a snapshot from the paths configured for `documents`:
 
 ```sh
-uv run restic-backups generic run --backup documents backup "$HOME/Documents"
+uv run restic-backups generic backup documents
 uv run restic-backups generic run --backup documents snapshots
 ```
 
 Running `generic init` again is safe: existing repositories are detected and
-skipped. Initialization covers every enabled repository; `generic run` uses a
-configured backup to select which repository receives the command.
+skipped. Initialization covers every enabled repository; `generic backup` uses
+the selected backup's repository, paths, and default or configured tag.
 
 ## 4. Verify a restore
 

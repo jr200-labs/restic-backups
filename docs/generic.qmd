@@ -15,12 +15,13 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
+| `generic backup [BACKUP]` | Create a snapshot from configured paths | Yes |
 | `generic forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
 | `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
-`data-dir` and `run` prompt for a backup when it is omitted in an interactive
-terminal. Non-interactive callers must provide the backup ID.
+`backup`, `data-dir`, and `run` prompt for a backup when it is omitted in an
+interactive terminal. Non-interactive callers must provide the backup ID.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
 opens a command menu. Explicit subcommands remain available for scripts and
@@ -33,6 +34,28 @@ stores remain visible even when no configured backup references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
+
+## Create a snapshot
+
+Configure the local source paths once, then select the backup by its ID:
+
+```yaml
+backups:
+  - id: documents
+    restic-store-id: personal-store
+    paths:
+      - ~/Documents
+      - ~/Desktop
+```
+
+```sh
+uv run restic-backups generic backup documents
+```
+
+The command expands `~`, passes the paths to `restic backup`, and applies the
+backup ID as the restic tag unless `tag` is explicitly configured. Every run
+creates a snapshot of the complete source state while restic uploads only new
+or changed file data.
 
 ## Forget one snapshot
 
@@ -73,9 +96,6 @@ them.
 ## Common operations
 
 ```sh
-# Create a snapshot
-uv run restic-backups generic run --backup documents backup "$HOME/Documents"
-
 # Inspect and check the repository
 uv run restic-backups generic run --backup documents snapshots --tag documents
 uv run restic-backups generic run --backup documents check

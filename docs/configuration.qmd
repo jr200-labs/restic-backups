@@ -76,7 +76,7 @@ complete.
 
 Every store appears in the `generic list` repository table. `generic init`
 initializes enabled stores even when no backup references them; a backup entry
-is required before using that store with `generic run`.
+is required before using that store with `generic backup` or `generic run`.
 
 ## `backups`
 
@@ -86,19 +86,43 @@ value.
 
 ```yaml
 backups:
-  - id: voice-memos
-    description: Back up macOS Voice Memos.
+  - id: documents
+    description: Back up local documents.
     restic-store-id: b2-store
-    tag: voice-memos
+    paths:
+      - ~/Documents
+      - ~/Desktop
+    # Optional; defaults to the backup ID.
+    # tag: documents
 ```
 
-`id` names the configured backup for CLI selection. `tag` is restic metadata
-applied automatically to every snapshot created through that backup. Restic
-generates the snapshot ID after each successful backup; it is not configured.
-If `tag` is omitted, it defaults to `id` for compatibility.
+`id` is the stable name used to select the configured backup in commands and
+menus. `paths` is the non-empty list of local files or directories passed to
+`restic backup`; `~` is expanded to the current user's home directory. Relative
+paths remain relative to the directory where the command is run.
+
+`tag` is optional restic metadata applied automatically to every snapshot
+created through that backup. It defaults to `id`, so it normally does not need
+to be configured. Restic generates a unique snapshot ID after each successful
+backup; a snapshot ID is not a configuration value.
+
+Run the configured backup with:
+
+```sh
+uv run restic-backups generic backup documents
+```
+
+Restic scans the configured paths and creates a new snapshot. It stores only
+new or changed file data, while the snapshot still represents the complete
+state of those paths at that time.
 
 Several backups may share a restic store. Their tags distinguish their snapshots
 inside the shared repository.
+
+Specialized workflows may discover their own sources and omit `paths`. For
+example, the `voice-memos` subcommand locates the macOS recording store itself.
+`generic backup` reports an error if the selected backup has no configured
+paths.
 
 ## Optional archive policy
 
@@ -163,5 +187,6 @@ rather than mixing storage policies in one repository.
 ## Validation rules
 
 `check-config` also rejects duplicate IDs, unknown credential or store
-references, missing S3 fields, and invalid Glacier retrieval tiers or
-durations. Managed-data resolution separately rejects unsafe path components.
+references, missing S3 fields, empty or invalid `paths`, and invalid Glacier
+retrieval tiers or durations. Managed-data resolution separately rejects unsafe
+path components.

@@ -29,7 +29,15 @@ class VoiceMemosCliTest(unittest.TestCase):
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
         generic_help = unstyle(generic.output)
-        for command in ("list", "data-dir", "init", "forget", "destroy", "run"):
+        for command in (
+            "list",
+            "backup",
+            "data-dir",
+            "init",
+            "forget",
+            "destroy",
+            "run",
+        ):
             self.assertIn(command, generic_help)
 
     def test_help_exposes_workflows(self) -> None:
@@ -128,6 +136,35 @@ backups:
         command.assert_called_once_with(
             "backup",
             ["forget", snapshot_id, "--prune"],
+            credentials,
+            stores,
+            backups,
+        )
+
+    def test_generic_backup_uses_configured_paths(self) -> None:
+        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        stores = {"store": {"enabled": True}}
+        backups = {
+            "documents": {
+                "restic-store-id": "store",
+                "paths": ["~/Documents", "/tmp/example"],
+            }
+        }
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, credentials, stores, backups),
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.command", return_value=0
+            ) as command,
+        ):
+            result = CliRunner().invoke(app, ["generic", "backup", "documents"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        command.assert_called_once_with(
+            "documents",
+            ["backup", str(Path("~/Documents").expanduser()), "/tmp/example"],
             credentials,
             stores,
             backups,

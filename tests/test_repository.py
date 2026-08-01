@@ -142,6 +142,11 @@ Additional Commands:
         with self.assertRaisesRegex(config.ConfigError, "voice-memos.tag"):
             config.validate(config_data)
 
+        config_data["backups"][0]["tag"] = "voice-memos"
+        config_data["backups"][0]["paths"] = []
+        with self.assertRaisesRegex(config.ConfigError, "voice-memos.paths"):
+            config.validate(config_data)
+
 
 if __name__ == "__main__":
     unittest.main()

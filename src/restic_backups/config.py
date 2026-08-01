@@ -133,6 +133,13 @@ def validate(
         store_id = required_text(backup, "restic-store-id", backup_id)
         if "tag" in backup:
             required_text(backup, "tag", backup_id)
+        paths = backup.get("paths")
+        if paths is not None and (
+            not isinstance(paths, list)
+            or not paths
+            or any(not isinstance(path, str) or not path for path in paths)
+        ):
+            raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
         if store_id not in stores:
             raise ConfigError(
                 f"{backup_id} references unknown restic store '{store_id}'"
