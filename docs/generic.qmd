@@ -15,6 +15,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
+| `generic prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
 | `generic backup [BACKUP]` | Create a snapshot from configured paths | Yes |
 | `generic forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
 | `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
@@ -34,6 +35,11 @@ stores remain visible even when no configured backup references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
+
+`generic prime-cache` runs `restic check --with-cache` for one repository. It
+downloads repository indexes, snapshots, and tree metadata into the configured
+cache while also validating repository structure. It does not download backed-up
+file contents; restic only does that when `--read-data` is requested explicitly.
 
 ## Create a snapshot
 

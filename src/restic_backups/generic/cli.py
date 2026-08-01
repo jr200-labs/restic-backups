@@ -41,6 +41,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
+            questionary.Choice("Prime a repository cache", "prime-cache"),
             questionary.Choice("Back up configured paths", "backup"),
             questionary.Choice("Forget a snapshot", "forget"),
             questionary.Choice("Destroy a repository", "destroy"),
@@ -53,6 +54,8 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
+    elif selected == "prime-cache":
+        prime_cache_command(None)
     elif selected == "backup":
         backup_command(None)
     elif selected == "forget":
@@ -254,6 +257,49 @@ def init_command() -> None:
         if code:
             raise typer.Exit(code)
         error_console.print(Text(f"{store_id}: initialized", style="green"))
+
+
+@app.command("prime-cache")
+def prime_cache_command(
+    repository_id: Annotated[
+        str | None,
+        typer.Argument(help="Repository ID; prompts when omitted."),
+    ] = None,
+) -> None:
+    """Download and validate repository metadata into its local cache."""
+    _, credentials, stores, _ = validated()
+    if repository_id is None:
+        if not sys.stdin.isatty():
+            fail("repository ID is required when stdin is not interactive")
+        selected = questionary.select(
+            "Repository cache to prime:",
+            choices=[
+                questionary.Choice(store_id, store_id)
+                for store_id, store in stores.items()
+                if store["enabled"]
+            ],
+        ).ask()
+        if selected is None:
+            raise typer.Abort()
+        repository_id = str(selected)
+    store = stores.get(repository_id)
+    if store is None:
+        fail(f"repository '{repository_id}' not found in {config.config_path()}")
+    if not store["enabled"]:
+        fail(f"restic store '{repository_id}' is disabled")
+
+    error_console.print(Text(f"{repository_id}: priming local cache", style="cyan"))
+    try:
+        code = restic.store_command(
+            store,
+            credentials[store["credentials-id"]],
+            ["check", "--with-cache"],
+        )
+    except BackupError as exc:
+        fail(str(exc))
+    if code:
+        raise typer.Exit(code)
+    error_console.print(Text(f"{repository_id}: cache primed", style="bold green"))
 
 
 @app.command("forget")

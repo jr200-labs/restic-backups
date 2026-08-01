@@ -38,3 +38,8 @@ def data_dir(backup_id: str, store: dict[str, Any]) -> Path:
         fail("unsafe key prefix for managed data")
     root = config_path().resolve().parent
     return root / "data" / components[0] / components[1] / Path(*parts) / backup_id
+
+
+def cache_dir(store: dict[str, Any]) -> Path:
+    path = Path(store["cache-dir"]).expanduser()
+    return path if path.is_absolute() else config_path().resolve().parent / path

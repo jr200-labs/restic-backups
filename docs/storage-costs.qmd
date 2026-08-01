@@ -42,6 +42,16 @@ uv run restic-backups generic run --backup <backup-id> ls <snapshot-id>
 The command downloads repository indexes, snapshot records, directory trees,
 and other required metadata. Commands such as `restore` and `dump` download file
 data. Restic's local cache can reduce metadata reads on subsequent commands.
+Set `cache-dir` on a `restic-stores` entry to give each repository a stable,
+separate cache location; see [Configuration](configuration.qmd).
+
+Prime that cache with repository metadata before browsing snapshots:
+
+```sh
+uv run restic-backups generic prime-cache <repository-id>
+```
+
+This runs `restic check --with-cache`; it does not download backed-up file data.
 
 | Provider | Metadata-read charges | Typical cost |
 |---|---|---:|

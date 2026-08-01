@@ -98,6 +98,8 @@ def validate(
             required_text(store, field, store_id)
             for field in ("endpoint", "region", "bucket", "key_prefix", "password")
         ]
+        if "cache-dir" in store:
+            required_text(store, "cache-dir", store_id)
         if store["enabled"] and PLACEHOLDER in required:
             raise ConfigError(f"{store_id} is enabled but contains placeholders")
         if store["enabled"] and any(

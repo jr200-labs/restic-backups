@@ -34,6 +34,7 @@ class VoiceMemosCliTest(unittest.TestCase):
             "backup",
             "data-dir",
             "init",
+            "prime-cache",
             "forget",
             "destroy",
             "run",
@@ -169,6 +170,28 @@ backups:
             stores,
             backups,
         )
+
+    @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
+    @patch("restic_backups.generic.cli.validated")
+    def test_prime_cache_checks_repository_with_cache(self, validated, command) -> None:
+        credential = {"id": "credentials"}
+        store = {
+            "id": "store",
+            "enabled": True,
+            "credentials-id": "credentials",
+        }
+        validated.return_value = (
+            {},
+            {"credentials": credential},
+            {"store": store},
+            {},
+        )
+
+        result = CliRunner().invoke(app, ["generic", "prime-cache", "store"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("store: cache primed", result.output)
+        command.assert_called_once_with(store, credential, ["check", "--with-cache"])
 
     @patch("restic_backups.generic.cli.restic.store_command")
     @patch("restic_backups.generic.cli.validated")
