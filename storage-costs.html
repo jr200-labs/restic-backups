@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Generic Backups – Restic Backups</title>
+<title>Storage Cost Comparison – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -25,41 +25,6 @@ ul.task-list li input[type="checkbox"] {
   width: 0.8em;
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
-}
-/* CSS for syntax highlighting */
-html { -webkit-text-size-adjust: 100%; }
-pre > code.sourceCode { white-space: pre; position: relative; }
-pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
-pre > code.sourceCode > span:empty { height: 1.2em; }
-.sourceCode { overflow: visible; }
-code.sourceCode > span { color: inherit; text-decoration: inherit; }
-div.sourceCode { margin: 1em 0; }
-pre.sourceCode { margin: 0; }
-@media screen {
-div.sourceCode { overflow: auto; }
-}
-@media print {
-pre > code.sourceCode { white-space: pre-wrap; }
-pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
-}
-pre.numberSource code
-  { counter-reset: source-line 0; }
-pre.numberSource code > span
-  { position: relative; left: -4em; counter-increment: source-line; }
-pre.numberSource code > span > a:first-child::before
-  { content: counter(source-line);
-    position: relative; left: -1em; text-align: right; vertical-align: baseline;
-    border: none; display: inline-block;
-    -webkit-touch-callout: none; -webkit-user-select: none;
-    -khtml-user-select: none; -moz-user-select: none;
-    -ms-user-select: none; user-select: none;
-    padding: 0 4px; width: 4em;
-  }
-pre.numberSource { margin-left: 3em;  padding-left: 4px; }
-div.sourceCode
-  {   }
-@media screen {
-pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
 }
 </style>
 
@@ -121,7 +86,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./generic.html">Commands</a></li><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -175,7 +140,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link">
+  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Storage Cost Comparison</span></a>
   </div>
 </li>
@@ -198,7 +163,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./generic.html" class="sidebar-item-text sidebar-link active">
+  <a href="./generic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Generic Backups</span></a>
   </div>
 </li>
@@ -220,22 +185,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#commands" id="toc-commands" class="nav-link active" data-scroll-target="#commands">Commands</a></li>
-  <li><a href="#create-a-snapshot" id="toc-create-a-snapshot" class="nav-link" data-scroll-target="#create-a-snapshot">Create a snapshot</a></li>
-  <li><a href="#forget-one-snapshot" id="toc-forget-one-snapshot" class="nav-link" data-scroll-target="#forget-one-snapshot">Forget one snapshot</a></li>
-  <li><a href="#permanently-destroy-a-repository" id="toc-permanently-destroy-a-repository" class="nav-link" data-scroll-target="#permanently-destroy-a-repository">Permanently destroy a repository</a></li>
-  <li><a href="#common-operations" id="toc-common-operations" class="nav-link" data-scroll-target="#common-operations">Common operations</a></li>
-  <li><a href="#managed-data-directory" id="toc-managed-data-directory" class="nav-link" data-scroll-target="#managed-data-directory">Managed data directory</a></li>
-  <li><a href="#cold-s3-storage" id="toc-cold-s3-storage" class="nav-link" data-scroll-target="#cold-s3-storage">Cold S3 storage</a></li>
+  <li><a href="#gb" id="toc-gb" class="nav-link active" data-scroll-target="#gb">100 GB</a></li>
+  <li><a href="#tb" id="toc-tb" class="nav-link" data-scroll-target="#tb">1 TB</a></li>
+  <li><a href="#important-differences" id="toc-important-differences" class="nav-link" data-scroll-target="#important-differences">Important differences</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./generic.html">Commands</a></li><li class="breadcrumb-item"><a href="./generic.html">Generic Backups</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Generic Backups</h1>
+<h1 class="title">Storage Cost Comparison</h1>
 </div>
 
 
@@ -252,115 +213,135 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>The <code>generic</code> subcommand runs standard restic operations against any configured backup. Backup sources may be files or directories anywhere on the machine.</p>
-<p>Set <code>RESTIC_BACKUPS_CONFIG</code> first, or pass <code>--config</code> before <code>generic</code>. See the <a href="./quick-start.html">Quick Start</a> for a complete first backup.</p>
-<section id="commands" class="level2">
-<h2 class="anchored" data-anchor-id="commands">Commands</h2>
+<p>These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.</p>
+<section id="gb" class="level2">
+<h2 class="anchored" data-anchor-id="gb">100 GB</h2>
+<p><strong>Prices as of 1 August 2026.</strong></p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
+<col style="width: 20%">
+<col style="width: 26%">
+<col style="width: 20%">
 <col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Command</th>
-<th>Purpose</th>
-<th>Remote storage</th>
+<th>Service</th>
+<th style="text-align: right;">Monthly cost</th>
+<th>Price used</th>
+<th style="text-align: center;">Supported by this CLI</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>generic list</code></td>
-<td>Show repository and backup tables</td>
-<td>No</td>
+<td>AWS S3 Glacier Instant Retrieval</td>
+<td style="text-align: right;"><strong>$0.40</strong></td>
+<td>$0.004/GB-month</td>
+<td style="text-align: center;">Yes</td>
 </tr>
 <tr class="even">
-<td><code>generic data-dir [BACKUP]</code></td>
-<td>Print the managed private-data directory</td>
-<td>No</td>
+<td>AWS S3 Glacier Flexible Retrieval</td>
+<td style="text-align: right;"><strong>$0.36</strong></td>
+<td>$0.0036/GB-month</td>
+<td style="text-align: center;">Yes; restore required</td>
 </tr>
 <tr class="odd">
-<td><code>generic init</code></td>
-<td>Initialize each new enabled repository</td>
-<td>Yes</td>
+<td>AWS S3 Standard</td>
+<td style="text-align: right;"><strong>$2.30</strong></td>
+<td>$0.023/GB-month</td>
+<td style="text-align: center;">Yes</td>
 </tr>
 <tr class="even">
-<td><code>generic backup [BACKUP]</code></td>
-<td>Create a snapshot from configured paths</td>
-<td>Yes</td>
+<td>Backblaze B2</td>
+<td style="text-align: right;"><strong>$0.63</strong></td>
+<td>$0.00695/GB-month after the first 10 GB free</td>
+<td style="text-align: center;">Yes</td>
 </tr>
 <tr class="odd">
-<td><code>generic forget [BACKUP]</code></td>
-<td>Forget one tagged snapshot and prune</td>
-<td>Yes</td>
+<td>Google Drive</td>
+<td style="text-align: right;"><strong>$1.99</strong></td>
+<td>Google One Basic 100 GB plan</td>
+<td style="text-align: center;">No</td>
 </tr>
 <tr class="even">
-<td><code>generic destroy [REPOSITORY]</code></td>
-<td>Permanently erase one repository</td>
-<td>Yes</td>
-</tr>
-<tr class="odd">
-<td><code>generic run --backup ID ...</code></td>
-<td>Pass trailing arguments directly to restic</td>
-<td>Depends on restic command</td>
+<td>OneDrive</td>
+<td style="text-align: right;"><strong>$1.99</strong></td>
+<td>Microsoft 365 Basic 100 GB plan</td>
+<td style="text-align: center;">No</td>
 </tr>
 </tbody>
 </table>
-<p><code>backup</code>, <code>data-dir</code>, and <code>run</code> prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.</p>
-<p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a command menu. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Run a restic command</strong> reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter <code>--help</code> at that prompt to see the selected command’s options.</p>
-<p><code>generic list</code> has separate <strong>Repositories</strong> and <strong>Backups</strong> tables, so enabled stores remain visible even when no configured backup references them.</p>
-<p><code>generic init</code> reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.</p>
 </section>
-<section id="create-a-snapshot" class="level2">
-<h2 class="anchored" data-anchor-id="create-a-snapshot">Create a snapshot</h2>
-<p>Configure the local source paths once, then select the backup by its ID:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> documents</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-store-id</span><span class="kw">:</span><span class="at"> personal-store</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The command expands <code>~</code>, passes the paths to <code>restic backup</code>, and applies the backup ID as the restic tag unless <code>tag</code> is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.</p>
+<section id="tb" class="level2">
+<h2 class="anchored" data-anchor-id="tb">1 TB</h2>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 20%">
+<col style="width: 26%">
+<col style="width: 20%">
+<col style="width: 33%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Service</th>
+<th style="text-align: right;">Monthly cost</th>
+<th>Price used</th>
+<th style="text-align: center;">Supported by this CLI</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>AWS S3 Glacier Instant Retrieval</td>
+<td style="text-align: right;"><strong>$4.00</strong></td>
+<td>1,000 GB at $0.004/GB-month</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr class="even">
+<td>AWS S3 Glacier Flexible Retrieval</td>
+<td style="text-align: right;"><strong>$3.60</strong></td>
+<td>1,000 GB at $0.0036/GB-month</td>
+<td style="text-align: center;">Yes; restore required</td>
+</tr>
+<tr class="odd">
+<td>AWS S3 Standard</td>
+<td style="text-align: right;"><strong>$23.00</strong></td>
+<td>1,000 GB at $0.023/GB-month</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr class="even">
+<td>Backblaze B2</td>
+<td style="text-align: right;"><strong>$6.88</strong></td>
+<td>990 billable GB after the first 10 GB free</td>
+<td style="text-align: center;">Yes</td>
+</tr>
+<tr class="odd">
+<td>Google Drive</td>
+<td style="text-align: right;"><strong>$9.99</strong></td>
+<td>Cheapest plan covering 1 TB is the 2 TB plan</td>
+<td style="text-align: center;">No</td>
+</tr>
+<tr class="even">
+<td>OneDrive</td>
+<td style="text-align: right;"><strong>$9.99</strong></td>
+<td>Microsoft 365 Personal 1 TB plan</td>
+<td style="text-align: center;">No</td>
+</tr>
+</tbody>
+</table>
 </section>
-<section id="forget-one-snapshot" class="level2">
-<h2 class="anchored" data-anchor-id="forget-one-snapshot">Forget one snapshot</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic forget</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Forgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs <code>restic forget --prune</code>, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.</p>
-<p>When several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.</p>
-</section>
-<section id="permanently-destroy-a-repository" class="level2">
-<h2 class="anchored" data-anchor-id="permanently-destroy-a-repository">Permanently destroy a repository</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic destroy</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Destruction is interactive-only. The CLI shows the full S3 target, asks for a yes/no confirmation, then requires the exact repository ID. It deletes every object, object version, and delete marker below the configured <code>bucket</code> and <code>key_prefix</code>. It does not delete the bucket or change the YAML configuration.</p>
-<p>The provider credentials need permission to list objects and versions and to delete objects and versions. An empty <code>key_prefix</code> is always rejected to prevent accidental bucket deletion.</p>
-<div class="callout-danger">
-<p>Repository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.</p>
-</div>
-</section>
-<section id="common-operations" class="level2">
-<h2 class="anchored" data-anchor-id="common-operations">Common operations</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect and check the repository</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents snapshots <span class="at">--tag</span> documents</span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents check</span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the <code>backup</code> command, it also adds the configured restic tag automatically; additional <code>--tag</code> arguments remain supported.</p>
-</section>
-<section id="managed-data-directory" class="level2">
-<h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code> beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.</p>
-</section>
-<section id="cold-s3-storage" class="level2">
-<h2 class="anchored" data-anchor-id="cold-s3-storage">Cold S3 storage</h2>
-<p><code>GLACIER_IR</code> supports immediate access. <code>GLACIER</code> and <code>DEEP_ARCHIVE</code> permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic run <span class="dt">\</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> archive restore latest <span class="at">--target</span> /tmp/archive-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Other restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See <a href="./configuration.html">Configuration</a> for the archive policy fields.</p>
+<section id="important-differences" class="level2">
+<h2 class="anchored" data-anchor-id="important-differences">Important differences</h2>
+<p>AWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project currently supports S3-compatible storage only, so Google Drive and OneDrive cannot be selected as <code>restic-stores</code>.</p>
+<p>Both Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.</p>
+<p>For Flexible Retrieval, configure a <code>restore</code> policy and set <code>ALLOW_ARCHIVE_RETRIEVAL=1</code> when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.</p>
+<p>Prices vary by country and can change. Check the current official pages before choosing a provider:</p>
+<ul>
+<li><a href="https://aws.amazon.com/s3/pricing/">Amazon S3 pricing</a></li>
+<li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html">AWS archive retrieval options</a></li>
+<li><a href="https://www.backblaze.com/cloud-storage/pricing">Backblaze B2 pricing</a></li>
+<li><a href="https://one.google.com/about/plans?hl=en_US">Google One plans</a></li>
+<li><a href="https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us">Microsoft OneDrive plans</a></li>
+</ul>
 
 
 </section>

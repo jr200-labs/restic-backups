@@ -48,7 +48,7 @@
     "href": "configuration.html#optional-archive-policy",
     "title": "Configuration",
     "section": "Optional archive policy",
-    "text": "Optional archive policy\nAWS stores may add an archive policy. storage-class controls how new objects are stored, and restore defines retrieval behavior for cold storage:\ncredentials:\n  - id: aws-credentials\n    description: AWS S3 access credentials.\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\n\nrestic-stores:\n  - id: aws-store\n    description: AWS S3 restic repository.\n    credentials-id: aws-credentials\n    enabled: false\n    endpoint: https://s3.us-east-1.amazonaws.com\n    region: us-east-1\n    bucket: example-bucket\n    key_prefix: backups\n    password: \"...\"\n    archive:\n      storage-class: GLACIER_IR\n      restore: null\nOmit archive to use the storage provider’s default class.\nUse GLACIER_IR for immediate restic access. It must not define a restore policy:\narchive:\n  storage-class: GLACIER_IR\n  restore: null\nCold classes require an explicit retrieval policy:\narchive:\n  storage-class: GLACIER\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 24h\nGLACIER accepts Standard, Bulk, or Expedited; DEEP_ARCHIVE accepts Standard or Bulk. Retrieval commands also require an acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup &lt;backup-id&gt; restore latest --target &lt;dir&gt;\nChanging a storage class affects new objects only. Use a new key_prefix rather than mixing storage policies in one repository.",
+    "text": "Optional archive policy\nAWS stores may add an archive policy. storage-class controls how new objects are stored, and restore defines retrieval behavior for cold storage:\ncredentials:\n  - id: aws-credentials\n    description: AWS S3 access credentials.\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\n\nrestic-stores:\n  - id: aws-store\n    description: AWS S3 restic repository.\n    credentials-id: aws-credentials\n    enabled: false\n    endpoint: https://s3.us-east-1.amazonaws.com\n    region: us-east-1\n    bucket: example-bucket\n    key_prefix: backups\n    password: \"...\"\n    archive:\n      storage-class: GLACIER_IR\n      restore: null\nOmit archive to use the storage provider’s default class.\n\nS3 Glacier Instant Retrieval (GLACIER_IR)\nS3 Glacier Instant Retrieval is for rarely accessed data that must remain readable within milliseconds. Restic can access it normally, so it must not define a restore policy:\narchive:\n  storage-class: GLACIER_IR\n  restore: null\n\n90-day minimum: Each uploaded object is billed for at least 90 days. If restic deletes or replaces it after 30 days, AWS still charges the remaining 60 days.\n128 KB minimum: A 10 KB object is billed as 128 KB. This matters when a repository contains many small objects.\nRetrieval charges: Data is available immediately, but AWS charges when restic reads it, in addition to request and possible internet-transfer fees.\n\n\n\nS3 Glacier Flexible Retrieval (GLACIER)\nS3 Glacier Flexible Retrieval is for backups read roughly once or twice per year. Objects require an archive restore before restic can read them. Expedited retrieval usually takes 1–5 minutes, Standard takes 3–5 hours, and Bulk takes 5–12 hours. Objects have a 90-day minimum storage duration and 40 KB of billable metadata overhead each.\nConfigure the retrieval tier, the number of days to retain the temporary restored copy, and the maximum wait time:\narchive:\n  storage-class: GLACIER\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 24h\ntier accepts Standard, Bulk, or Expedited.\n\n\nS3 Glacier Deep Archive (DEEP_ARCHIVE)\nS3 Glacier Deep Archive is the lowest-cost option for data read less than once per year. It has a 180-day minimum storage duration and 40 KB of billable metadata overhead per object. Standard retrieval typically completes within 12 hours; Bulk can take up to 48 hours.\narchive:\n  storage-class: DEEP_ARCHIVE\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 48h\ntier accepts Standard or Bulk.\nFlexible Retrieval and Deep Archive commands that read repository data require an acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup &lt;backup-id&gt; restore latest --target &lt;dir&gt;\nChanging a storage class affects new objects only. Use a new key_prefix rather than mixing storage policies in one repository.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -116,171 +116,6 @@
     ]
   },
   {
-    "objectID": "generic.html",
-    "href": "generic.html",
-    "title": "Generic Backups",
-    "section": "",
-    "text": "The generic subcommand runs standard restic operations against any configured backup. Backup sources may be files or directories anywhere on the machine.\nSet RESTIC_BACKUPS_CONFIG first, or pass --config before generic. See the Quick Start for a complete first backup.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#commands",
-    "href": "generic.html#commands",
-    "title": "Generic Backups",
-    "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ngeneric list\nShow repository and backup tables\nNo\n\n\ngeneric data-dir [BACKUP]\nPrint the managed private-data directory\nNo\n\n\ngeneric init\nInitialize each new enabled repository\nYes\n\n\ngeneric backup [BACKUP]\nCreate a snapshot from configured paths\nYes\n\n\ngeneric forget [BACKUP]\nForget one tagged snapshot and prune\nYes\n\n\ngeneric destroy [REPOSITORY]\nPermanently erase one repository\nYes\n\n\ngeneric run --backup ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\nbackup, data-dir, and run prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.\nRunning restic-backups generic without a subcommand in an interactive terminal opens a command menu. Explicit subcommands remain available for scripts and scheduled jobs. Run a restic command reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter --help at that prompt to see the selected command’s options.\ngeneric list has separate Repositories and Backups tables, so enabled stores remain visible even when no configured backup references them.\ngeneric init reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#create-a-snapshot",
-    "href": "generic.html#create-a-snapshot",
-    "title": "Generic Backups",
-    "section": "Create a snapshot",
-    "text": "Create a snapshot\nConfigure the local source paths once, then select the backup by its ID:\nbackups:\n  - id: documents\n    restic-store-id: personal-store\n    paths:\n      - ~/Documents\n      - ~/Desktop\nuv run restic-backups generic backup documents\nThe command expands ~, passes the paths to restic backup, and applies the backup ID as the restic tag unless tag is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#forget-one-snapshot",
-    "href": "generic.html#forget-one-snapshot",
-    "title": "Generic Backups",
-    "section": "Forget one snapshot",
-    "text": "Forget one snapshot\nuv run restic-backups generic forget\nForgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs restic forget --prune, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.\nWhen several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#permanently-destroy-a-repository",
-    "href": "generic.html#permanently-destroy-a-repository",
-    "title": "Generic Backups",
-    "section": "Permanently destroy a repository",
-    "text": "Permanently destroy a repository\nuv run restic-backups generic destroy\nDestruction is interactive-only. The CLI shows the full S3 target, asks for a yes/no confirmation, then requires the exact repository ID. It deletes every object, object version, and delete marker below the configured bucket and key_prefix. It does not delete the bucket or change the YAML configuration.\nThe provider credentials need permission to list objects and versions and to delete objects and versions. An empty key_prefix is always rejected to prevent accidental bucket deletion.\n\nRepository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#common-operations",
-    "href": "generic.html#common-operations",
-    "title": "Generic Backups",
-    "section": "Common operations",
-    "text": "Common operations\n# Inspect and check the repository\nuv run restic-backups generic run --backup documents snapshots --tag documents\nuv run restic-backups generic run --backup documents check\n\n# Restore a snapshot\nuv run restic-backups generic run --backup documents \\\n  restore &lt;snapshot-id&gt; --target /tmp/documents-restore\nArguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the backup command, it also adds the configured restic tag automatically; additional --tag arguments remain supported.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#managed-data-directory",
-    "href": "generic.html#managed-data-directory",
-    "title": "Generic Backups",
-    "section": "Managed data directory",
-    "text": "Managed data directory\nuv run restic-backups generic data-dir documents\nThe result follows data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/ beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "generic.html#cold-s3-storage",
-    "href": "generic.html#cold-s3-storage",
-    "title": "Generic Backups",
-    "section": "Cold S3 storage",
-    "text": "Cold S3 storage\nGLACIER_IR supports immediate access. GLACIER and DEEP_ARCHIVE permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup archive restore latest --target /tmp/archive-restore\nOther restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See Configuration for the archive policy fields.",
-    "crumbs": [
-      "Generic Backups",
-      "Generic Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html",
-    "href": "voice-memos.html",
-    "title": "Voice Memos Backups",
-    "section": "",
-    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#requirements",
-    "href": "voice-memos.html#requirements",
-    "title": "Voice Memos Backups",
-    "section": "Requirements",
-    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#safe-routine",
-    "href": "voice-memos.html#safe-routine",
-    "title": "Voice Memos Backups",
-    "section": "Safe routine",
-    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#commands",
-    "href": "voice-memos.html#commands",
-    "title": "Voice Memos Backups",
-    "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#transcription-variants",
-    "href": "voice-memos.html#transcription-variants",
-    "title": "Voice Memos Backups",
-    "section": "Transcription variants",
-    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#parallel-diarization",
-    "href": "voice-memos.html#parallel-diarization",
-    "title": "Voice Memos Backups",
-    "section": "Parallel diarization",
-    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#generated-data",
-    "href": "voice-memos.html#generated-data",
-    "title": "Voice Memos Backups",
-    "section": "Generated data",
-    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
-    "crumbs": [
-      "Voice Memos Backups",
-      "Voice Memos Backups"
-    ]
-  },
-  {
     "objectID": "index.html",
     "href": "index.html",
     "title": "Restic Backups",
@@ -318,6 +153,215 @@
     "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
     "crumbs": [
       "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html",
+    "href": "voice-memos.html",
+    "title": "Voice Memos Backups",
+    "section": "",
+    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#requirements",
+    "href": "voice-memos.html#requirements",
+    "title": "Voice Memos Backups",
+    "section": "Requirements",
+    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#safe-routine",
+    "href": "voice-memos.html#safe-routine",
+    "title": "Voice Memos Backups",
+    "section": "Safe routine",
+    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#commands",
+    "href": "voice-memos.html#commands",
+    "title": "Voice Memos Backups",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#transcription-variants",
+    "href": "voice-memos.html#transcription-variants",
+    "title": "Voice Memos Backups",
+    "section": "Transcription variants",
+    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#parallel-diarization",
+    "href": "voice-memos.html#parallel-diarization",
+    "title": "Voice Memos Backups",
+    "section": "Parallel diarization",
+    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#generated-data",
+    "href": "voice-memos.html#generated-data",
+    "title": "Voice Memos Backups",
+    "section": "Generated data",
+    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html",
+    "href": "generic.html",
+    "title": "Generic Backups",
+    "section": "",
+    "text": "The generic subcommand runs standard restic operations against any configured backup. Backup sources may be files or directories anywhere on the machine.\nSet RESTIC_BACKUPS_CONFIG first, or pass --config before generic. See the Quick Start for a complete first backup.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#commands",
+    "href": "generic.html#commands",
+    "title": "Generic Backups",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ngeneric list\nShow repository and backup tables\nNo\n\n\ngeneric data-dir [BACKUP]\nPrint the managed private-data directory\nNo\n\n\ngeneric init\nInitialize each new enabled repository\nYes\n\n\ngeneric backup [BACKUP]\nCreate a snapshot from configured paths\nYes\n\n\ngeneric forget [BACKUP]\nForget one tagged snapshot and prune\nYes\n\n\ngeneric destroy [REPOSITORY]\nPermanently erase one repository\nYes\n\n\ngeneric run --backup ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\nbackup, data-dir, and run prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.\nRunning restic-backups generic without a subcommand in an interactive terminal opens a command menu. Explicit subcommands remain available for scripts and scheduled jobs. Run a restic command reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter --help at that prompt to see the selected command’s options.\ngeneric list has separate Repositories and Backups tables, so enabled stores remain visible even when no configured backup references them.\ngeneric init reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#create-a-snapshot",
+    "href": "generic.html#create-a-snapshot",
+    "title": "Generic Backups",
+    "section": "Create a snapshot",
+    "text": "Create a snapshot\nConfigure the local source paths once, then select the backup by its ID:\nbackups:\n  - id: documents\n    restic-store-id: personal-store\n    paths:\n      - ~/Documents\n      - ~/Desktop\nuv run restic-backups generic backup documents\nThe command expands ~, passes the paths to restic backup, and applies the backup ID as the restic tag unless tag is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#forget-one-snapshot",
+    "href": "generic.html#forget-one-snapshot",
+    "title": "Generic Backups",
+    "section": "Forget one snapshot",
+    "text": "Forget one snapshot\nuv run restic-backups generic forget\nForgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs restic forget --prune, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.\nWhen several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#permanently-destroy-a-repository",
+    "href": "generic.html#permanently-destroy-a-repository",
+    "title": "Generic Backups",
+    "section": "Permanently destroy a repository",
+    "text": "Permanently destroy a repository\nuv run restic-backups generic destroy\nDestruction is interactive-only. The CLI shows the full S3 target, asks for a yes/no confirmation, then requires the exact repository ID. It deletes every object, object version, and delete marker below the configured bucket and key_prefix. It does not delete the bucket or change the YAML configuration.\nThe provider credentials need permission to list objects and versions and to delete objects and versions. An empty key_prefix is always rejected to prevent accidental bucket deletion.\n\nRepository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#common-operations",
+    "href": "generic.html#common-operations",
+    "title": "Generic Backups",
+    "section": "Common operations",
+    "text": "Common operations\n# Inspect and check the repository\nuv run restic-backups generic run --backup documents snapshots --tag documents\nuv run restic-backups generic run --backup documents check\n\n# Restore a snapshot\nuv run restic-backups generic run --backup documents \\\n  restore &lt;snapshot-id&gt; --target /tmp/documents-restore\nArguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the backup command, it also adds the configured restic tag automatically; additional --tag arguments remain supported.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#managed-data-directory",
+    "href": "generic.html#managed-data-directory",
+    "title": "Generic Backups",
+    "section": "Managed data directory",
+    "text": "Managed data directory\nuv run restic-backups generic data-dir documents\nThe result follows data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/ beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#cold-s3-storage",
+    "href": "generic.html#cold-s3-storage",
+    "title": "Generic Backups",
+    "section": "Cold S3 storage",
+    "text": "Cold S3 storage\nGLACIER_IR supports immediate access. GLACIER and DEEP_ARCHIVE permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup archive restore latest --target /tmp/archive-restore\nOther restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See Configuration for the archive policy fields.",
+    "crumbs": [
+      "Commands",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "storage-costs.html",
+    "href": "storage-costs.html",
+    "title": "Storage Cost Comparison",
+    "section": "",
+    "text": "These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.",
+    "crumbs": [
+      "Setup",
+      "Storage Cost Comparison"
+    ]
+  },
+  {
+    "objectID": "storage-costs.html#gb",
+    "href": "storage-costs.html#gb",
+    "title": "Storage Cost Comparison",
+    "section": "100 GB",
+    "text": "100 GB\nPrices as of 1 August 2026.\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$0.40\n$0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$0.36\n$0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$2.30\n$0.023/GB-month\nYes\n\n\nBackblaze B2\n$0.63\n$0.00695/GB-month after the first 10 GB free\nYes\n\n\nGoogle Drive\n$1.99\nGoogle One Basic 100 GB plan\nNo\n\n\nOneDrive\n$1.99\nMicrosoft 365 Basic 100 GB plan\nNo",
+    "crumbs": [
+      "Setup",
+      "Storage Cost Comparison"
+    ]
+  },
+  {
+    "objectID": "storage-costs.html#tb",
+    "href": "storage-costs.html#tb",
+    "title": "Storage Cost Comparison",
+    "section": "1 TB",
+    "text": "1 TB\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$4.00\n1,000 GB at $0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$3.60\n1,000 GB at $0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$23.00\n1,000 GB at $0.023/GB-month\nYes\n\n\nBackblaze B2\n$6.88\n990 billable GB after the first 10 GB free\nYes\n\n\nGoogle Drive\n$9.99\nCheapest plan covering 1 TB is the 2 TB plan\nNo\n\n\nOneDrive\n$9.99\nMicrosoft 365 Personal 1 TB plan\nNo",
+    "crumbs": [
+      "Setup",
+      "Storage Cost Comparison"
+    ]
+  },
+  {
+    "objectID": "storage-costs.html#important-differences",
+    "href": "storage-costs.html#important-differences",
+    "title": "Storage Cost Comparison",
+    "section": "Important differences",
+    "text": "Important differences\nAWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project currently supports S3-compatible storage only, so Google Drive and OneDrive cannot be selected as restic-stores.\nBoth Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.\nFor Flexible Retrieval, configure a restore policy and set ALLOW_ARCHIVE_RETRIEVAL=1 when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.\nPrices vary by country and can change. Check the current official pages before choosing a provider:\n\nAmazon S3 pricing\nAWS archive retrieval options\nBackblaze B2 pricing\nGoogle One plans\nMicrosoft OneDrive plans",
+    "crumbs": [
+      "Setup",
+      "Storage Cost Comparison"
     ]
   },
   {

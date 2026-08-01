@@ -175,6 +175,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Storage Cost Comparison</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./cli.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">CLI</span></a>
   </div>
@@ -184,7 +190,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
         <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
             <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true">
- <span class="menu-text">Generic Backups</span></a>
+ <span class="menu-text">Commands</span></a>
           <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-2" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
@@ -196,17 +202,6 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Generic Backups</span></a>
   </div>
 </li>
-      </ul>
-  </li>
-        <li class="sidebar-item sidebar-item-section">
-      <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
- <span class="menu-text">Voice Memos Backups</span></a>
-          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
-            <i class="bi bi-chevron-right ms-2"></i>
-          </a> 
-      </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./voice-memos.html" class="sidebar-item-text sidebar-link">
@@ -228,7 +223,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#credentials" id="toc-credentials" class="nav-link active" data-scroll-target="#credentials"><code>credentials</code></a></li>
   <li><a href="#restic-stores" id="toc-restic-stores" class="nav-link" data-scroll-target="#restic-stores"><code>restic-stores</code></a></li>
   <li><a href="#backups" id="toc-backups" class="nav-link" data-scroll-target="#backups"><code>backups</code></a></li>
-  <li><a href="#optional-archive-policy" id="toc-optional-archive-policy" class="nav-link" data-scroll-target="#optional-archive-policy">Optional archive policy</a></li>
+  <li><a href="#optional-archive-policy" id="toc-optional-archive-policy" class="nav-link" data-scroll-target="#optional-archive-policy">Optional archive policy</a>
+  <ul class="collapse">
+  <li><a href="#s3-glacier-instant-retrieval-glacier_ir" id="toc-s3-glacier-instant-retrieval-glacier_ir" class="nav-link" data-scroll-target="#s3-glacier-instant-retrieval-glacier_ir">S3 Glacier Instant Retrieval (<code>GLACIER_IR</code>)</a></li>
+  <li><a href="#s3-glacier-flexible-retrieval-glacier" id="toc-s3-glacier-flexible-retrieval-glacier" class="nav-link" data-scroll-target="#s3-glacier-flexible-retrieval-glacier">S3 Glacier Flexible Retrieval (<code>GLACIER</code>)</a></li>
+  <li><a href="#s3-glacier-deep-archive-deep_archive" id="toc-s3-glacier-deep-archive-deep_archive" class="nav-link" data-scroll-target="#s3-glacier-deep-archive-deep_archive">S3 Glacier Deep Archive (<code>DEEP_ARCHIVE</code>)</a></li>
+  </ul></li>
   <li><a href="#validation-rules" id="toc-validation-rules" class="nav-link" data-scroll-target="#validation-rules">Validation rules</a></li>
   </ul>
 </nav>
@@ -338,21 +338,45 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
 <span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Omit <code>archive</code> to use the storage provider’s default class.</p>
-<p>Use <code>GLACIER_IR</code> for immediate restic access. It must not define a restore policy:</p>
+<section id="s3-glacier-instant-retrieval-glacier_ir" class="level3">
+<h3 class="anchored" data-anchor-id="s3-glacier-instant-retrieval-glacier_ir">S3 Glacier Instant Retrieval (<code>GLACIER_IR</code>)</h3>
+<p><a href="https://aws.amazon.com/s3/storage-classes/glacier/instant-retrieval/">S3 Glacier Instant Retrieval</a> is for rarely accessed data that must remain readable within milliseconds. Restic can access it normally, so it must not define a restore policy:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
 <span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
 <span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Cold classes require an explicit retrieval policy:</p>
+<ul>
+<li><strong>90-day minimum:</strong> Each uploaded object is billed for at least 90 days. If restic deletes or replaces it after 30 days, AWS still charges the remaining 60 days.</li>
+<li><strong>128 KB minimum:</strong> A 10 KB object is billed as 128 KB. This matters when a repository contains many small objects.</li>
+<li><strong>Retrieval charges:</strong> Data is available immediately, but AWS charges when restic reads it, in addition to request and possible internet-transfer fees.</li>
+</ul>
+</section>
+<section id="s3-glacier-flexible-retrieval-glacier" class="level3">
+<h3 class="anchored" data-anchor-id="s3-glacier-flexible-retrieval-glacier">S3 Glacier Flexible Retrieval (<code>GLACIER</code>)</h3>
+<p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Flexible Retrieval</a> is for backups read roughly once or twice per year. Objects require an archive restore before restic can read them. Expedited retrieval usually takes 1–5 minutes, Standard takes 3–5 hours, and Bulk takes 5–12 hours. Objects have a 90-day minimum storage duration and 40 KB of billable metadata overhead each.</p>
+<p>Configure the retrieval tier, the number of days to retain the temporary restored copy, and the maximum wait time:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER</span></span>
 <span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
 <span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
 <span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
 <span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 24h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>GLACIER</code> accepts <code>Standard</code>, <code>Bulk</code>, or <code>Expedited</code>; <code>DEEP_ARCHIVE</code> accepts <code>Standard</code> or <code>Bulk</code>. Retrieval commands also require an acknowledgement:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic run <span class="dt">\</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>backup-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>tier</code> accepts <code>Standard</code>, <code>Bulk</code>, or <code>Expedited</code>.</p>
+</section>
+<section id="s3-glacier-deep-archive-deep_archive" class="level3">
+<h3 class="anchored" data-anchor-id="s3-glacier-deep-archive-deep_archive">S3 Glacier Deep Archive (<code>DEEP_ARCHIVE</code>)</h3>
+<p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Deep Archive</a> is the lowest-cost option for data read less than once per year. It has a 180-day minimum storage duration and 40 KB of billable metadata overhead per object. Standard retrieval typically completes within 12 hours; Bulk can take up to 48 hours.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> DEEP_ARCHIVE</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 48h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>tier</code> accepts <code>Standard</code> or <code>Bulk</code>.</p>
+<p>Flexible Retrieval and Deep Archive commands that read repository data require an acknowledgement:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic run <span class="dt">\</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>backup-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Changing a storage class affects new objects only. Use a new <code>key_prefix</code> rather than mixing storage policies in one repository.</p>
+</section>
 </section>
 <section id="validation-rules" class="level2">
 <h2 class="anchored" data-anchor-id="validation-rules">Validation rules</h2>
