@@ -51,7 +51,7 @@ backups:
     - id: documents
       description: Back up local documents.
       restic-store-id: b2-store
-      # Files and directories used by `generic backup`; ~ is expanded.
+      # Files and directories used by `generic backup run`; ~ is expanded.
       paths:
           - ~/Documents
       # Optional restic tag; defaults to the backup ID.

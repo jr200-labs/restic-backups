@@ -27,7 +27,7 @@ install-deps:
 
 init:
 	@echo ">> init: initialize each enabled restic store that does not exist"
-	@uv run --quiet restic-backups generic init
+	@uv run --quiet restic-backups generic repository init
 
 config-check:
 	@uv run --quiet restic-backups check-config

@@ -99,7 +99,7 @@ uv run restic-backups voice-memos dashboard
 The CLI derives the summary directory from the configured `voice-memos` backup:
 
 ```sh
-uv run restic-backups generic data-dir voice-memos
+uv run restic-backups generic backup data-dir voice-memos
 ```
 
 All generated JSON and indexes remain beneath that ignored private directory.

@@ -67,7 +67,7 @@ may back up absolute paths anywhere on the machine. Resolve a managed directory
 without exposing credentials with:
 
 ```sh
-uv run restic-backups generic data-dir voice-memos
+uv run restic-backups generic backup data-dir voice-memos
 ```
 
 ## AWS Glacier
@@ -77,7 +77,7 @@ Use `GLACIER_IR` with `restore: null` for normal immediate restic access. Cold
 and timeout. Retrieval must also be acknowledged at runtime:
 
 ```sh
-ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
+ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \
   --backup <backup-id> restore latest --target <dir>
 ```
 

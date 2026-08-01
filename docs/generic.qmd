@@ -10,36 +10,40 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 ## Commands
 
-| Command | Purpose | Remote storage |
-|---|---|---|
-| `generic list` | Show repository and backup tables | No |
-| `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
-| `generic init` | Initialize each new enabled repository | Yes |
-| `generic prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
-| `generic backup [BACKUP]` | Create a snapshot from configured paths | Yes |
-| `generic forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
-| `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
-| `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
+| Group | Command | Purpose | Remote storage |
+|---|---|---|---|
+| Repository | `generic repository list` | Show configured repositories | No |
+| Repository | `generic repository init` | Initialize each new enabled repository | Yes |
+| Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
+| Repository | `generic repository destroy [REPOSITORY]` | Permanently erase one repository | Yes |
+| Backup | `generic backup list` | Show configured backup jobs | No |
+| Backup | `generic backup run [BACKUP]` | Create a snapshot from configured paths | Yes |
+| Backup | `generic backup data-dir [BACKUP]` | Print the managed private-data directory | No |
+| Snapshot | `generic snapshot list [BACKUP]` | List snapshots for a configured backup | Yes |
+| Snapshot | `generic snapshot forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
+| Restic | `generic restic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
-`backup`, `data-dir`, and `run` prompt for a backup when it is omitted in an
-interactive terminal. Non-interactive callers must provide the backup ID.
+Commands that accept `[BACKUP]` prompt when it is omitted in an interactive
+terminal. Non-interactive callers must provide the backup ID.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
-opens a command menu. Explicit subcommands remain available for scripts and
-scheduled jobs. **Run a restic command** reads the installed restic version's
-command list and descriptions, lets you select one, then prompts only for its
-arguments. Enter `--help` at that prompt to see the selected command's options.
+opens a section menu for repositories, backups, snapshots, and advanced restic
+commands. Explicit subcommands remain available for scripts and scheduled jobs.
+**Advanced restic** reads the installed restic version's command list and
+descriptions, lets you select one, then prompts only for its arguments. Enter
+`--help` at that prompt to see the selected command's options.
 
-`generic list` has separate **Repositories** and **Backups** tables, so enabled
-stores remain visible even when no configured backup references them.
+`generic repository list` shows every store, even when no configured backup
+references it. `generic backup list` shows the configured backup jobs.
 
-`generic init` reports each configured store, skips disabled or already
-initialized stores, and initializes every enabled store that is missing.
+`generic repository init` reports each configured store, skips disabled or
+already initialized stores, and initializes every enabled store that is missing.
 
-`generic prime-cache` runs `restic check --with-cache` for one repository. It
-downloads repository indexes, snapshots, and tree metadata into the configured
-cache while also validating repository structure. It does not download backed-up
-file contents; restic only does that when `--read-data` is requested explicitly.
+`generic repository prime-cache` runs `restic check --with-cache` for one
+repository. It downloads repository indexes, snapshots, and tree metadata into
+the configured cache while also validating repository structure. It does not
+download backed-up file contents; restic only does that when `--read-data` is
+requested explicitly.
 
 ## Create a snapshot
 
@@ -55,7 +59,7 @@ backups:
 ```
 
 ```sh
-uv run restic-backups generic backup documents
+uv run restic-backups generic backup run documents
 ```
 
 The command expands `~`, passes the paths to `restic backup`, and applies the
@@ -63,10 +67,20 @@ backup ID as the restic tag unless `tag` is explicitly configured. Every run
 creates a snapshot of the complete source state while restic uploads only new
 or changed file data.
 
+## List snapshots
+
+List snapshots with the configured backup tag:
+
+```sh
+uv run restic-backups generic snapshot list documents
+```
+
+The table shows each snapshot's short restic ID, timestamp, host, paths, and tags.
+
 ## Forget one snapshot
 
 ```sh
-uv run restic-backups generic forget
+uv run restic-backups generic snapshot forget
 ```
 
 Forgetting is interactive-only. Select a configured backup, select one snapshot
@@ -81,7 +95,7 @@ snapshots distinct in the picker.
 ## Permanently destroy a repository
 
 ```sh
-uv run restic-backups generic destroy
+uv run restic-backups generic repository destroy
 ```
 
 Destruction is interactive-only. The CLI shows the full S3 target, asks for a
@@ -103,11 +117,11 @@ them.
 
 ```sh
 # Inspect and check the repository
-uv run restic-backups generic run --backup documents snapshots --tag documents
-uv run restic-backups generic run --backup documents check
+uv run restic-backups generic snapshot list documents
+uv run restic-backups generic restic run --backup documents check
 
 # Restore a snapshot
-uv run restic-backups generic run --backup documents \
+uv run restic-backups generic restic run --backup documents \
   restore <snapshot-id> --target /tmp/documents-restore
 ```
 
@@ -119,7 +133,7 @@ tag automatically; additional `--tag` arguments remain supported.
 ## Managed data directory
 
 ```sh
-uv run restic-backups generic data-dir documents
+uv run restic-backups generic backup data-dir documents
 ```
 
 The result follows
@@ -134,7 +148,7 @@ uploads, but retrieval-related commands require the configured restore policy
 and an explicit acknowledgement:
 
 ```sh
-ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
+ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \
   --backup archive restore latest --target /tmp/archive-restore
 ```
 
