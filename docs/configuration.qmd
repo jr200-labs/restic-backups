@@ -80,9 +80,10 @@ expanded, and a relative path is resolved beside the selected config file. If
 omitted, restic uses its operating-system default. A store-specific value takes
 precedence over `RESTIC_CACHE_DIR` from the process environment.
 
-Every store appears in the `generic list` repository table. `generic init`
-initializes enabled stores even when no backup references them; a backup entry
-is required before using that store with `generic backup` or `generic run`.
+Every store appears in the `generic repository list` table.
+`generic repository init` initializes enabled stores even when no backup
+references them; a backup entry is required before using that store with
+`generic backup run` or `generic restic run`.
 
 ## `backups`
 
@@ -115,7 +116,7 @@ backup; a snapshot ID is not a configuration value.
 Run the configured backup with:
 
 ```sh
-uv run restic-backups generic backup documents
+uv run restic-backups generic backup run documents
 ```
 
 Restic scans the configured paths and creates a new snapshot. It stores only
@@ -127,7 +128,7 @@ inside the shared repository.
 
 Specialized workflows may discover their own sources and omit `paths`. For
 example, the `voice-memos` subcommand locates the macOS recording store itself.
-`generic backup` reports an error if the selected backup has no configured
+`generic backup run` reports an error if the selected backup has no configured
 paths.
 
 ## Optional archive policy
@@ -224,7 +225,7 @@ Flexible Retrieval and Deep Archive commands that read repository data require
 an acknowledgement:
 
 ```sh
-ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
+ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \
   --backup <backup-id> restore latest --target <dir>
 ```
 

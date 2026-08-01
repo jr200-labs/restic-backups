@@ -24,6 +24,14 @@ app = typer.Typer(
     invoke_without_command=True,
     no_args_is_help=False,
 )
+repository_app = typer.Typer(help="Manage configured restic repositories.")
+backup_app = typer.Typer(help="Manage configured backup jobs.")
+snapshot_app = typer.Typer(help="List and forget restic snapshots.")
+restic_app = typer.Typer(help="Run advanced restic commands.")
+app.add_typer(repository_app, name="repository")
+app.add_typer(backup_app, name="backup")
+app.add_typer(snapshot_app, name="snapshot")
+app.add_typer(restic_app, name="restic")
 console = Console()
 error_console = Console(stderr=True)
 
@@ -36,61 +44,95 @@ def menu(context: typer.Context) -> None:
     if not sys.stdin.isatty():
         typer.echo(context.get_help())
         return
-    selected = questionary.select(
-        "Command:",
+    section = questionary.select(
+        "Section:",
         choices=[
-            questionary.Choice("List configuration", "list"),
-            questionary.Choice("Initialize repositories", "init"),
-            questionary.Choice("Prime a repository cache", "prime-cache"),
-            questionary.Choice("Back up configured paths", "backup"),
-            questionary.Choice("List snapshots", "snapshots"),
-            questionary.Choice("Forget a snapshot", "forget"),
-            questionary.Choice("Destroy a repository", "destroy"),
-            questionary.Choice("Show managed data directory", "data-dir"),
-            questionary.Choice("Run a restic command", "run"),
+            questionary.Choice("Repositories", "repository"),
+            questionary.Choice("Backups", "backup"),
+            questionary.Choice("Snapshots", "snapshot"),
+            questionary.Choice("Advanced restic", "restic"),
             questionary.Choice("Exit", "exit"),
         ],
     ).ask()
-    if selected == "list":
-        list_command()
-    elif selected == "init":
-        init_command()
-    elif selected == "prime-cache":
-        prime_cache_command(None)
-    elif selected == "backup":
-        backup_command(None)
-    elif selected == "snapshots":
-        snapshots_command(None)
-    elif selected == "forget":
-        forget_command(None)
-    elif selected == "destroy":
-        destroy_command(None)
-    elif selected == "data-dir":
-        data_dir_command(None)
-    elif selected == "run":
-        try:
-            commands = restic.available_commands()
-        except BackupError as exc:
-            fail(str(exc))
-        command = questionary.select(
-            "Restic command:",
+    if section == "repository":
+        selected = questionary.select(
+            "Repository command:",
             choices=[
-                questionary.Choice(f"{name:<12} {description}", name)
-                for name, description in commands
+                questionary.Choice("List repositories", "list"),
+                questionary.Choice("Initialize repositories", "init"),
+                questionary.Choice("Prime a repository cache", "prime-cache"),
+                questionary.Choice("Destroy a repository", "destroy"),
             ],
         ).ask()
-        if command is None:
+        if selected is None:
             raise typer.Abort()
-        arguments = questionary.text(
-            f"Arguments for 'restic {command}' (optional; use --help for options):"
+        if selected == "list":
+            repository_list_command()
+        elif selected == "init":
+            init_command()
+        elif selected == "prime-cache":
+            prime_cache_command(None)
+        elif selected == "destroy":
+            destroy_command(None)
+    elif section == "backup":
+        selected = questionary.select(
+            "Backup command:",
+            choices=[
+                questionary.Choice("List configured backups", "list"),
+                questionary.Choice("Run a configured backup", "run"),
+                questionary.Choice("Show managed data directory", "data-dir"),
+            ],
         ).ask()
-        if arguments is not None:
-            try:
-                run_args(None, [str(command), *shlex.split(arguments)])
-            except ValueError as exc:
-                fail(f"invalid arguments: {exc}")
-    elif selected is None:
+        if selected is None:
+            raise typer.Abort()
+        if selected == "list":
+            backup_list_command()
+        elif selected == "run":
+            backup_command(None)
+        elif selected == "data-dir":
+            data_dir_command(None)
+    elif section == "snapshot":
+        selected = questionary.select(
+            "Snapshot command:",
+            choices=[
+                questionary.Choice("List snapshots", "list"),
+                questionary.Choice("Forget a snapshot", "forget"),
+            ],
+        ).ask()
+        if selected is None:
+            raise typer.Abort()
+        if selected == "list":
+            snapshots_command(None)
+        elif selected == "forget":
+            forget_command(None)
+    elif section == "restic":
+        restic_menu()
+    elif section is None:
         raise typer.Abort()
+
+
+def restic_menu() -> None:
+    try:
+        commands = restic.available_commands()
+    except BackupError as exc:
+        fail(str(exc))
+    command = questionary.select(
+        "Restic command:",
+        choices=[
+            questionary.Choice(f"{name:<12} {description}", name)
+            for name, description in commands
+        ],
+    ).ask()
+    if command is None:
+        raise typer.Abort()
+    arguments = questionary.text(
+        f"Arguments for 'restic {command}' (optional; use --help for options):"
+    ).ask()
+    if arguments is not None:
+        try:
+            run_args(None, [str(command), *shlex.split(arguments)])
+        except ValueError as exc:
+            fail(f"invalid arguments: {exc}")
 
 
 def fail(message: str) -> NoReturn:
@@ -137,11 +179,7 @@ def choose_backup(
     return str(selected)
 
 
-@app.command("list")
-def list_command() -> None:
-    """Show configured repositories and backups."""
-    _, _, stores, backups = validated()
-
+def show_repositories(stores: dict[str, dict[str, Any]]) -> None:
     store_table = Table(title="Repositories", box=box.ROUNDED)
     store_table.add_column("ID", style="cyan", no_wrap=True)
     store_table.add_column("Description")
@@ -157,6 +195,10 @@ def list_command() -> None:
         )
     console.print(store_table)
 
+
+def show_backups(
+    stores: dict[str, dict[str, Any]], backups: dict[str, dict[str, Any]]
+) -> None:
     backup_table = Table(title="Backups", box=box.ROUNDED)
     backup_table.add_column("ID", style="cyan", no_wrap=True)
     backup_table.add_column("Description")
@@ -178,7 +220,30 @@ def list_command() -> None:
     console.print(backup_table)
 
 
-@app.command("backup")
+@repository_app.command("list")
+def repository_list_command() -> None:
+    """Show configured restic repositories."""
+    _, _, stores, _ = validated()
+    show_repositories(stores)
+
+
+@backup_app.command("list")
+def backup_list_command() -> None:
+    """Show configured backup jobs."""
+    _, _, stores, backups = validated()
+    show_backups(stores, backups)
+
+
+@app.command("list", hidden=True)
+def list_command() -> None:
+    """Show configured repositories and backups."""
+    _, _, stores, backups = validated()
+    show_repositories(stores)
+    show_backups(stores, backups)
+
+
+@backup_app.command("run")
+@app.command("backup", hidden=True)
 def backup_command(
     backup: Annotated[
         str | None,
@@ -213,7 +278,8 @@ def backup_command(
     error_console.print(Text(f"{backup_id}: snapshot created", style="bold green"))
 
 
-@app.command("data-dir")
+@backup_app.command("data-dir")
+@app.command("data-dir", hidden=True)
 def data_dir_command(
     backup: str | None = typer.Argument(None, help="Backup ID; prompts when omitted."),
 ) -> None:
@@ -227,7 +293,8 @@ def data_dir_command(
         fail(str(exc))
 
 
-@app.command("init")
+@repository_app.command("init")
+@app.command("init", hidden=True)
 def init_command() -> None:
     """Initialize every enabled restic store that does not already exist."""
     _, credentials, stores, _ = validated()
@@ -262,7 +329,8 @@ def init_command() -> None:
         error_console.print(Text(f"{store_id}: initialized", style="green"))
 
 
-@app.command("prime-cache")
+@repository_app.command("prime-cache")
+@app.command("prime-cache", hidden=True)
 def prime_cache_command(
     repository_id: Annotated[
         str | None,
@@ -332,7 +400,8 @@ def load_snapshots(
     return tag, loaded
 
 
-@app.command("snapshots")
+@snapshot_app.command("list")
+@app.command("snapshots", hidden=True)
 def snapshots_command(
     backup: Annotated[
         str | None,
@@ -371,7 +440,8 @@ def snapshots_command(
     console.print(table)
 
 
-@app.command("forget")
+@snapshot_app.command("forget")
+@app.command("forget", hidden=True)
 def forget_command(
     backup: Annotated[
         str | None,
@@ -437,7 +507,8 @@ def forget_command(
     )
 
 
-@app.command("destroy")
+@repository_app.command("destroy")
+@app.command("destroy", hidden=True)
 def destroy_command(
     repository_id: Annotated[
         str | None,
@@ -493,8 +564,13 @@ def destroy_command(
     )
 
 
+@restic_app.command(
+    "run",
+    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
+)
 @app.command(
     "run",
+    hidden=True,
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def run_command(

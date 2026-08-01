@@ -12,8 +12,8 @@ Commands that use a repository require a configuration file. Pass the global
 options before the command:
 
 ```sh
-uv run restic-backups --config config.yaml generic list
-uv run restic-backups --config config.sops.yaml --sops generic list
+uv run restic-backups --config config.yaml generic repository list
+uv run restic-backups --config config.sops.yaml --sops generic backup list
 ```
 
 The equivalent environment variables are `RESTIC_BACKUPS_CONFIG` and
@@ -25,7 +25,7 @@ progress. Add `--verbose` before the command, or set
 credentials or repository passwords:
 
 ```sh
-uv run restic-backups --verbose generic init
+uv run restic-backups --verbose generic repository init
 ```
 
 ## Root commands

@@ -29,18 +29,19 @@ class VoiceMemosCliTest(unittest.TestCase):
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
         generic_help = unstyle(generic.output)
-        for command in (
-            "list",
-            "backup",
-            "data-dir",
-            "init",
-            "prime-cache",
-            "snapshots",
-            "forget",
-            "destroy",
-            "run",
-        ):
+        for command in ("repository", "backup", "snapshot", "restic"):
             self.assertIn(command, generic_help)
+        for group, commands in {
+            "repository": ("list", "init", "prime-cache", "destroy"),
+            "backup": ("list", "run", "data-dir"),
+            "snapshot": ("list", "forget"),
+            "restic": ("run",),
+        }.items():
+            result = runner.invoke(app, ["generic", group, "--help"])
+            self.assertEqual(result.exit_code, 0, result.output)
+            help_text = unstyle(result.output)
+            for command in commands:
+                self.assertIn(command, help_text)
 
     def test_help_exposes_workflows(self) -> None:
         result = ClickCliRunner().invoke(voice_memos_cli, ["--help"])
@@ -54,9 +55,9 @@ class VoiceMemosCliTest(unittest.TestCase):
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.questionary.select")
-    @patch("restic_backups.generic.cli.list_command")
+    @patch("restic_backups.generic.cli.repository_list_command")
     def test_generic_menu_selects_a_command(self, list_command, select, _) -> None:
-        select.return_value.ask.return_value = "list"
+        select.return_value.ask.side_effect = ["repository", "list"]
 
         generic_menu(Mock(invoked_subcommand=None))
 
@@ -168,7 +169,9 @@ backups:
                 ),
             ) as command_output,
         ):
-            result = CliRunner().invoke(app, ["generic", "snapshots", "documents"])
+            result = CliRunner().invoke(
+                app, ["generic", "snapshot", "list", "documents"]
+            )
 
         self.assertEqual(result.exit_code, 0, result.output)
         for value in ("Snapshots: documents", "aaaaaaaa", "laptop", "files"):
@@ -199,7 +202,7 @@ backups:
                 "restic_backups.generic.cli.restic.command", return_value=0
             ) as command,
         ):
-            result = CliRunner().invoke(app, ["generic", "backup", "documents"])
+            result = CliRunner().invoke(app, ["generic", "backup", "run", "documents"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         command.assert_called_once_with(
@@ -226,7 +229,9 @@ backups:
             {},
         )
 
-        result = CliRunner().invoke(app, ["generic", "prime-cache", "store"])
+        result = CliRunner().invoke(
+            app, ["generic", "repository", "prime-cache", "store"]
+        )
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("store: cache primed", result.output)
@@ -257,12 +262,22 @@ backups:
         command.side_effect = [0, 10, 0]
         runner = CliRunner()
 
-        listed = runner.invoke(app, ["generic", "list"])
-        self.assertEqual(listed.exit_code, 0, listed.output)
-        for text in ("Repositories", "Backups", "existing", "new", "first"):
-            self.assertIn(text, listed.output)
+        repositories = runner.invoke(app, ["generic", "repository", "list"])
+        self.assertEqual(repositories.exit_code, 0, repositories.output)
+        for text in ("Repositories", "existing", "new"):
+            self.assertIn(text, repositories.output)
 
-        result = runner.invoke(app, ["generic", "init"])
+        configured_backups = runner.invoke(app, ["generic", "backup", "list"])
+        self.assertEqual(configured_backups.exit_code, 0, configured_backups.output)
+        for text in ("Backups", "first"):
+            self.assertIn(text, configured_backups.output)
+
+        legacy_list = runner.invoke(app, ["generic", "list"])
+        self.assertEqual(legacy_list.exit_code, 0, legacy_list.output)
+        for text in ("Repositories", "Backups"):
+            self.assertIn(text, legacy_list.output)
+
+        result = runner.invoke(app, ["generic", "repository", "init"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("existing: checking repository", result.output)

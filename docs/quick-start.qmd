@@ -39,7 +39,8 @@ Set the config path once for the shell and validate it:
 ```sh
 export RESTIC_BACKUPS_CONFIG="$PWD/config.yaml"
 uv run restic-backups check-config
-uv run restic-backups generic list
+uv run restic-backups generic repository list
+uv run restic-backups generic backup list
 ```
 
 The list output separates **Repositories** from **Backups**. Every configured
@@ -51,25 +52,26 @@ it.
 Initialize a new repository once:
 
 ```sh
-uv run restic-backups generic init
+uv run restic-backups generic repository init
 ```
 
 Then create a snapshot from the paths configured for `documents`:
 
 ```sh
-uv run restic-backups generic backup documents
-uv run restic-backups generic run --backup documents snapshots
+uv run restic-backups generic backup run documents
+uv run restic-backups generic snapshot list documents
 ```
 
-Running `generic init` again is safe: existing repositories are detected and
-skipped. Initialization covers every enabled repository; `generic backup` uses
-the selected backup's repository, paths, and default or configured tag.
+Running `generic repository init` again is safe: existing repositories are
+detected and skipped. Initialization covers every enabled repository;
+`generic backup run` uses the selected backup's repository, paths, and default
+or configured tag.
 
 ## 4. Verify a restore
 
 ```sh
 mkdir -p /tmp/restic-restore-check
-uv run restic-backups generic run --backup documents \
+uv run restic-backups generic restic run --backup documents \
   restore latest --target /tmp/restic-restore-check
 ```
 
