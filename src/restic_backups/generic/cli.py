@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import shlex
 import sys
 from typing import Annotated, Any, NoReturn
@@ -39,6 +40,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
+            questionary.Choice("Delete a backup snapshot", "delete"),
             questionary.Choice("Destroy a repository", "destroy"),
             questionary.Choice("Show managed data directory", "data-dir"),
             questionary.Choice("Run a restic command", "run"),
@@ -49,17 +51,34 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
+    elif selected == "delete":
+        delete_command(None)
     elif selected == "destroy":
         destroy_command(None)
     elif selected == "data-dir":
         data_dir_command(None)
     elif selected == "run":
-        command = questionary.text("Restic command and arguments:").ask()
-        if command:
+        try:
+            commands = restic.available_commands()
+        except BackupError as exc:
+            fail(str(exc))
+        command = questionary.select(
+            "Restic command:",
+            choices=[
+                questionary.Choice(f"{name:<12} {description}", name)
+                for name, description in commands
+            ],
+        ).ask()
+        if command is None:
+            raise typer.Abort()
+        arguments = questionary.text(
+            f"Arguments for 'restic {command}' (optional; use --help for options):"
+        ).ask()
+        if arguments is not None:
             try:
-                run_args(None, shlex.split(command))
+                run_args(None, [str(command), *shlex.split(arguments)])
             except ValueError as exc:
-                fail(f"invalid command: {exc}")
+                fail(f"invalid arguments: {exc}")
     elif selected is None:
         raise typer.Abort()
 
@@ -194,6 +213,80 @@ def init_command() -> None:
         error_console.print(Text(f"{store_id}: initialized", style="green"))
 
 
+@app.command("delete")
+def delete_command(
+    backup: Annotated[
+        str | None,
+        typer.Argument(help="Backup ID; prompts when omitted."),
+    ] = None,
+) -> None:
+    """Permanently delete one snapshot from a backup repository."""
+    if not sys.stdin.isatty():
+        fail("delete requires an interactive terminal")
+    _, credentials, stores, backups = validated()
+    backup_id = choose_backup(backup, stores, backups)
+    try:
+        output = restic.command_output(
+            backup_id, ["snapshots", "--json"], credentials, stores, backups
+        )
+        snapshots = json.loads(output)
+    except (BackupError, json.JSONDecodeError) as exc:
+        fail(str(exc))
+    if not isinstance(snapshots, list):
+        fail("restic snapshots returned invalid JSON")
+    if not snapshots:
+        error_console.print(Text(f"{backup_id}: no snapshots", style="yellow"))
+        return
+
+    choices: list[questionary.Choice] = []
+    snapshot_by_id: dict[str, dict[str, Any]] = {}
+    for snapshot in snapshots:
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("id"), str):
+            fail("restic snapshots returned invalid JSON")
+        snapshot_id = snapshot["id"]
+        snapshot_by_id[snapshot_id] = snapshot
+        timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]
+        short_id = str(snapshot.get("short_id", snapshot_id[:8]))
+        hostname = str(snapshot.get("hostname", "unknown host"))
+        snapshot_paths = snapshot.get("paths", [])
+        if not isinstance(snapshot_paths, list):
+            fail("restic snapshots returned invalid JSON")
+        paths = ", ".join(str(path) for path in snapshot_paths)
+        choices.append(
+            questionary.Choice(
+                f"{timestamp}  {short_id}  {hostname}  {paths}", snapshot_id
+            )
+        )
+
+    selected = questionary.select("Snapshot to permanently delete:", choices).ask()
+    if selected is None:
+        raise typer.Abort()
+    snapshot_id = str(selected)
+    short_id = str(snapshot_by_id[snapshot_id].get("short_id", snapshot_id[:8]))
+    confirmed = questionary.confirm(
+        f"Permanently delete snapshot '{short_id}' from '{backup_id}'?",
+        default=False,
+    ).ask()
+    if confirmed is not True:
+        error_console.print(Text("Cancelled; nothing was deleted.", style="yellow"))
+        return
+    try:
+        code = restic.command(
+            backup_id,
+            ["forget", snapshot_id, "--prune"],
+            credentials,
+            stores,
+            backups,
+        )
+    except BackupError as exc:
+        fail(str(exc))
+    if code:
+        raise typer.Exit(code)
+    error_console.print(
+        Text(f"{backup_id}: deleted snapshot {short_id}", style="bold green")
+    )
+
+
 @app.command("destroy")
 def destroy_command(
     repository_id: Annotated[
@@ -203,7 +296,7 @@ def destroy_command(
 ) -> None:
     """Permanently erase a configured repository from S3."""
     if not sys.stdin.isatty():
-        fail("delete requires an interactive terminal")
+        fail("destroy requires an interactive terminal")
     _, credentials, stores, _ = validated()
     if repository_id is None:
         selected = questionary.select(
@@ -235,7 +328,7 @@ def destroy_command(
         error_console.print(Text("Cancelled; nothing was destroyed.", style="yellow"))
         return
     typed = questionary.text(
-        f"Type '{repository_id}' to confirm permanent deletion:"
+        f"Type '{repository_id}' to confirm permanent destruction:"
     ).ask()
     if typed != repository_id:
         fail("repository ID did not match; nothing was destroyed")

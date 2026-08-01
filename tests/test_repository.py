@@ -13,6 +13,28 @@ from restic_backups.generic import repository, restic
 
 
 class ConfigLoadingTest(unittest.TestCase):
+    def test_available_commands_come_from_restic_help(self) -> None:
+        result = subprocess.CompletedProcess(
+            [],
+            0,
+            stdout="""Available Commands:
+  backup        Create a new backup
+  snapshots     List all snapshots
+
+Additional Commands:
+  version       Print version
+""",
+            stderr="",
+        )
+        with patch("subprocess.run", return_value=result):
+            self.assertEqual(
+                restic.available_commands(),
+                [
+                    ("backup", "Create a new backup"),
+                    ("snapshots", "List all snapshots"),
+                ],
+            )
+
     def test_data_dir_is_relative_to_config_not_installed_package(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "config.yaml"
@@ -68,7 +90,7 @@ class ConfigLoadingTest(unittest.TestCase):
             "backups": [{"id": "voice-memos", "restic-store-id": "store"}],
         }
         credentials, stores, backups = config.validate(config_data)
-        result: subprocess.CompletedProcess[bytes] = subprocess.CompletedProcess([], 0)
+        result: subprocess.CompletedProcess[str] = subprocess.CompletedProcess([], 0)
         with patch("subprocess.run", return_value=result) as run:
             self.assertEqual(
                 restic.command(
@@ -85,6 +107,20 @@ class ConfigLoadingTest(unittest.TestCase):
             environment["RESTIC_REPOSITORY"],
             "s3:https://s3.us-west-004.backblazeb2.com/bucket/voice-memos",
         )
+
+        result.stdout = "[]"
+        with patch("subprocess.run", return_value=result) as run:
+            self.assertEqual(
+                restic.command_output(
+                    "voice-memos",
+                    ["snapshots", "--json"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+                "[]",
+            )
+        self.assertEqual(run.call_args.kwargs["stdout"], subprocess.PIPE)
 
         stores["store"]["archive"] = {
             "storage-class": "GLACIER_IR",

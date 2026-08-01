@@ -19,6 +19,38 @@ def fail(message: str) -> NoReturn:
     raise BackupError(message)
 
 
+def available_commands() -> list[tuple[str, str]]:
+    """Read command names and descriptions from the installed restic."""
+    try:
+        result = subprocess.run(
+            ["restic", "help"], check=True, capture_output=True, text=True
+        )
+    except FileNotFoundError:
+        fail("restic is not installed")
+    except subprocess.CalledProcessError as exc:
+        fail(exc.stderr.strip() or "could not read restic help")
+
+    commands: list[tuple[str, str]] = []
+    reading = False
+    for line in result.stdout.splitlines():
+        if line == "Available Commands:":
+            reading = True
+            continue
+        if not reading:
+            continue
+        if not line.strip():
+            if commands:
+                break
+            continue
+        parts = line.split(maxsplit=1)
+        if not line.startswith("  ") or len(parts) != 2:
+            break
+        commands.append((parts[0], parts[1]))
+    if not commands:
+        fail("could not parse restic help")
+    return commands
+
+
 def command(
     backup_id: str,
     args: list[str],
@@ -39,6 +71,32 @@ def store_command(
     *,
     quiet: bool = False,
 ) -> int:
+    code, _ = store_run(store, credential, args, quiet=quiet)
+    return code
+
+
+def command_output(
+    backup_id: str,
+    args: list[str],
+    credentials: dict[str, dict[str, Any]],
+    stores: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+) -> str:
+    store, credential = repository.resolve(backup_id, credentials, stores, backups)
+    code, output = store_run(store, credential, args, quiet=True, capture=True)
+    if code:
+        fail(f"restic {args[0]} failed with exit code {code}")
+    return output
+
+
+def store_run(
+    store: dict[str, Any],
+    credential: dict[str, Any],
+    args: list[str],
+    *,
+    quiet: bool = False,
+    capture: bool = False,
+) -> tuple[int, str]:
     if not args:
         fail("restic command required")
     logger.debug("%s: running restic %s", store["id"], args[0])
@@ -61,7 +119,14 @@ def store_command(
         if storage_class != "GLACIER_IR":
             if args[0] in {"init", "backup"}:
                 pass
-            elif args[0] in {"check", "copy", "prune", "restore"}:
+            elif args[0] in {
+                "check",
+                "copy",
+                "forget",
+                "prune",
+                "restore",
+                "snapshots",
+            }:
                 if os.environ.get("ALLOW_ARCHIVE_RETRIEVAL") != "1":
                     fail(
                         f"set ALLOW_ARCHIVE_RETRIEVAL=1 to permit {storage_class} retrieval"
@@ -90,13 +155,17 @@ def store_command(
                 fail(f"restic command '{args[0]}' is not supported for cold S3 storage")
 
     try:
+        output_target = subprocess.PIPE if capture else None
+        if quiet and not capture:
+            output_target = subprocess.DEVNULL
         with tempfile.TemporaryFile(mode="w+") as errors:
             result = subprocess.run(
                 ["restic", *options, *args],
                 env=env,
-                stdout=subprocess.DEVNULL if quiet else None,
+                stdout=output_target,
                 stderr=errors,
                 check=False,
+                text=True,
             )
             errors.seek(0)
             error_text = errors.read()
@@ -110,4 +179,4 @@ def store_command(
             "quit it fully, reopen it, and retry.",
             file=sys.stderr,
         )
-    return result.returncode
+    return result.returncode, result.stdout or ""

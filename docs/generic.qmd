@@ -15,6 +15,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
+| `generic delete [BACKUP]` | Permanently delete one snapshot | Yes |
 | `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
@@ -23,13 +24,29 @@ terminal. Non-interactive callers must provide the backup ID.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
 opens a command menu. Explicit subcommands remain available for scripts and
-scheduled jobs.
+scheduled jobs. **Run a restic command** reads the installed restic version's
+command list and descriptions, lets you select one, then prompts only for its
+arguments. Enter `--help` at that prompt to see the selected command's options.
 
 `generic list` has separate **Repositories** and **Backups** tables, so enabled
 stores remain visible even when no backup job references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
+
+## Delete one backup snapshot
+
+```sh
+uv run restic-backups generic delete
+```
+
+Deletion is interactive-only. Select a backup job, select one snapshot from its
+repository, and confirm the deletion. The CLI runs `restic forget --prune`, so
+the snapshot and data no longer referenced by any other snapshot are permanently
+removed. The configured backup job and repository remain available.
+
+When several backup jobs share a repository, the snapshot picker shows every
+snapshot in that repository.
 
 ## Permanently destroy a repository
 
