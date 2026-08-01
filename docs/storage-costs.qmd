@@ -31,6 +31,38 @@ and discounts. The 1 TB comparison uses 1,000 GB.
 | Google Drive | **$9.99** | Cheapest plan covering 1 TB is the 2 TB plan | No |
 | OneDrive | **$9.99** | Microsoft 365 Personal 1 TB plan | No |
 
+## Cost of listing files in a snapshot
+
+Restic can list a snapshot without downloading the backed-up file contents:
+
+```sh
+uv run restic-backups generic run --backup <backup-id> ls <snapshot-id>
+```
+
+The command downloads repository indexes, snapshot records, directory trees,
+and other required metadata. Commands such as `restore` and `dump` download file
+data. Restic's local cache can reduce metadata reads on subsequent commands.
+
+| Provider | Metadata-read charges | Typical cost |
+|---|---|---:|
+| Backblaze B2 | GET and LIST transactions are free; egress is free up to 3× average monthly storage | **$0** within the free egress allowance |
+| AWS S3 Glacier Instant Retrieval, US East | $0.03/GB retrieved plus about $0.01 per 1,000 GET requests | Usually **less than $0.01** |
+
+Glacier Instant Retrieval examples below show retrieval charges only; request
+charges are additional:
+
+| Metadata downloaded | Retrieval charge |
+|---:|---:|
+| 10 MB | ~$0.0003 |
+| 100 MB | ~$0.003 |
+| 1 GB | $0.03 |
+
+AWS currently includes the first 100 GB per month of internet data transfer out,
+aggregated across AWS services and regions. Backblaze charges $0.01/GB only for
+egress beyond its free allowance. Exact costs depend on the repository's
+metadata size, object count, local cache, and other usage during the billing
+month.
+
 ## Important differences
 
 AWS and Backblaze prices are metered object-storage charges. Google Drive and
@@ -57,5 +89,6 @@ choosing a provider:
 - [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/)
 - [AWS archive retrieval options](https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html)
 - [Backblaze B2 pricing](https://www.backblaze.com/cloud-storage/pricing)
+- [Backblaze B2 transaction pricing](https://www.backblaze.com/cloud-storage/transaction-pricing)
 - [Google One plans](https://one.google.com/about/plans?hl=en_US)
 - [Microsoft OneDrive plans](https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us)
