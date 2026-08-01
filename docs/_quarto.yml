@@ -12,12 +12,11 @@ website:
       - section: Setup
         contents:
           - configuration.qmd
+          - storage-costs.qmd
           - cli.qmd
-      - section: Generic Backups
+      - section: Commands
         contents:
           - generic.qmd
-      - section: Voice Memos Backups
-        contents:
           - voice-memos.qmd
 
 format:
