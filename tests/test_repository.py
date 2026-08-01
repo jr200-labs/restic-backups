@@ -1,6 +1,7 @@
 """Configuration loading regression checks."""
 
 import json
+import os
 import subprocess
 import tempfile
 import unittest
@@ -8,10 +9,25 @@ from pathlib import Path
 from unittest.mock import patch
 
 from restic_backups import config
-from restic_backups.generic import restic
+from restic_backups.generic import repository, restic
 
 
 class ConfigLoadingTest(unittest.TestCase):
+    def test_data_dir_is_relative_to_config_not_installed_package(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config_path = Path(directory) / "config.yaml"
+            store = {
+                "id": "store",
+                "bucket": "bucket",
+                "key_prefix": "private/voice-memos",
+            }
+            with patch.dict(os.environ, {config.CONFIG_ENV: str(config_path)}):
+                self.assertEqual(
+                    repository.data_dir("voice-memos", store),
+                    Path(directory).resolve()
+                    / "data/store/bucket/private/voice-memos/voice-memos",
+                )
+
     def test_plain_yaml_and_sops_modes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yaml"

@@ -47,8 +47,9 @@ Managed artifacts use:
 data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
 ```
 
-This does not constrain backup sources; commands may pass absolute source paths
-outside the repository. Everything below `data/` is ignored.
+This path is relative to the selected configuration file. It does not constrain
+backup sources; commands may pass absolute source paths outside the repository.
+Everything below `data/` is ignored.
 
 ::: {.callout-warning}
 Commit `config.sops.yaml` only while encrypted. Never commit credentials,

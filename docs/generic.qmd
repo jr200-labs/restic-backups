@@ -46,8 +46,9 @@ uv run restic-backups generic data-dir documents
 ```
 
 The result follows
-`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/`. It is for private generated
-metadata; generic backup sources do not need to live there.
+`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/` beside the selected config
+file. It is for private generated metadata; generic backup sources do not need
+to live there.
 
 ## Cold S3 storage
 

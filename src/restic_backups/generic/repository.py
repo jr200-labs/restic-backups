@@ -8,8 +8,6 @@ from typing import Any, NoReturn
 from ..config import config_path
 from ..errors import BackupError
 
-ROOT = Path(__file__).resolve().parents[3]
-
 
 def fail(message: str) -> NoReturn:
     raise BackupError(message)
@@ -38,4 +36,5 @@ def data_dir(backup_id: str, store: dict[str, Any]) -> Path:
     parts = key_prefix.split("/")
     if any(not part or part in {".", ".."} for part in parts):
         fail("unsafe key prefix for managed data")
-    return ROOT / "data" / components[0] / components[1] / Path(*parts) / backup_id
+    root = config_path().resolve().parent
+    return root / "data" / components[0] / components[1] / Path(*parts) / backup_id

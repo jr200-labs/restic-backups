@@ -60,9 +60,10 @@ Managed local artifacts use:
 data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
 ```
 
-This is metadata/workspace organization, not a restriction on backup sources.
-Restic may back up absolute paths anywhere on the machine. Resolve a managed
-directory without exposing credentials with:
+This directory is created beside the selected configuration file. It is
+metadata/workspace organization, not a restriction on backup sources. Restic
+may back up absolute paths anywhere on the machine. Resolve a managed directory
+without exposing credentials with:
 
 ```sh
 uv run restic-backups generic data-dir voice-memos
