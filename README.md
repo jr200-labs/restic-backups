@@ -15,9 +15,9 @@ make install-deps  # Homebrew: restic, sops, uv, ffmpeg, jq, coreutils
 make install       # uv sync, including the dev group and Quarto
 ```
 
-`make init` loads the selected configuration, deduplicates enabled
-stores referenced by a backup, and runs `restic init` once per repository. It
-does not back up files and is unnecessary for an existing repository.
+`make init` loads the selected configuration and initializes each enabled store
+that does not already exist. It reports and skips disabled or initialized
+stores, and does not back up files.
 
 ## CLI
 
@@ -46,7 +46,8 @@ The configuration separates:
 - `credentials`: reusable S3-compatible authentication;
 - `restic-stores`: endpoint, region, bucket, key prefix/password, and optional
   archive policy;
-- `backups`: jobs linked to a store by `restic-store-id`.
+- `backups`: CLI selections linked to a store, local source paths, and an
+  optional restic snapshot tag (defaulting to the backup ID).
 
 One credential may serve many stores, and multiple backups may share a store.
 Disabled stores may contain `CHANGE_ME`; all placeholders must be replaced
@@ -60,9 +61,10 @@ Managed local artifacts use:
 data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
 ```
 
-This is metadata/workspace organization, not a restriction on backup sources.
-Restic may back up absolute paths anywhere on the machine. Resolve a managed
-directory without exposing credentials with:
+This directory is created beside the selected configuration file. It is
+metadata/workspace organization, not a restriction on backup sources. Restic
+may back up absolute paths anywhere on the machine. Resolve a managed directory
+without exposing credentials with:
 
 ```sh
 uv run restic-backups generic data-dir voice-memos

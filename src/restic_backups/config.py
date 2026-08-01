@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, NoReturn
@@ -13,6 +14,7 @@ from .generic import sops
 
 CONFIG_ENV = "RESTIC_BACKUPS_CONFIG"
 PLACEHOLDER = "CHANGE_ME"
+logger = logging.getLogger(__name__)
 
 
 class ConfigError(Exception):
@@ -129,6 +131,15 @@ def validate(
 
     for backup_id, backup in backups.items():
         store_id = required_text(backup, "restic-store-id", backup_id)
+        if "tag" in backup:
+            required_text(backup, "tag", backup_id)
+        paths = backup.get("paths")
+        if paths is not None and (
+            not isinstance(paths, list)
+            or not paths
+            or any(not isinstance(path, str) or not path for path in paths)
+        ):
+            raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
         if store_id not in stores:
             raise ConfigError(
                 f"{backup_id} references unknown restic store '{store_id}'"
@@ -144,9 +155,17 @@ def load_validated() -> tuple[
     dict[str, dict[str, Any]],
 ]:
     path = config_path()
-    loaded = load_config(path, os.environ.get(sops.SOPS_ENV) == "1")
+    use_sops = os.environ.get(sops.SOPS_ENV) == "1"
+    logger.info("Loading configuration: %s%s", path, " (SOPS)" if use_sops else "")
+    loaded = load_config(path, use_sops)
     try:
         credentials, stores, backups = validate(loaded)
     except ConfigError as exc:
         fail(f"invalid config in {path}: {exc}")
+    logger.debug(
+        "Configuration loaded: credentials=%d stores=%d backups=%d",
+        len(credentials),
+        len(stores),
+        len(backups),
+    )
     return loaded, credentials, stores, backups

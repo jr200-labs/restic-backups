@@ -12,32 +12,103 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 | Command | Purpose | Remote storage |
 |---|---|---|
-| `generic list` | Show backup IDs, stores, endpoints, and enabled state | No |
+| `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
-| `generic init` | Initialize each enabled referenced repository once | Yes |
+| `generic init` | Initialize each new enabled repository | Yes |
+| `generic backup [BACKUP]` | Create a snapshot from configured paths | Yes |
+| `generic forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
+| `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
-`data-dir` and `run` prompt for a backup when it is omitted in an interactive
-terminal. Non-interactive callers must provide the backup ID.
+`backup`, `data-dir`, and `run` prompt for a backup when it is omitted in an
+interactive terminal. Non-interactive callers must provide the backup ID.
+
+Running `restic-backups generic` without a subcommand in an interactive terminal
+opens a command menu. Explicit subcommands remain available for scripts and
+scheduled jobs. **Run a restic command** reads the installed restic version's
+command list and descriptions, lets you select one, then prompts only for its
+arguments. Enter `--help` at that prompt to see the selected command's options.
+
+`generic list` has separate **Repositories** and **Backups** tables, so enabled
+stores remain visible even when no configured backup references them.
+
+`generic init` reports each configured store, skips disabled or already
+initialized stores, and initializes every enabled store that is missing.
+
+## Create a snapshot
+
+Configure the local source paths once, then select the backup by its ID:
+
+```yaml
+backups:
+  - id: documents
+    restic-store-id: personal-store
+    paths:
+      - ~/Documents
+      - ~/Desktop
+```
+
+```sh
+uv run restic-backups generic backup documents
+```
+
+The command expands `~`, passes the paths to `restic backup`, and applies the
+backup ID as the restic tag unless `tag` is explicitly configured. Every run
+creates a snapshot of the complete source state while restic uploads only new
+or changed file data.
+
+## Forget one snapshot
+
+```sh
+uv run restic-backups generic forget
+```
+
+Forgetting is interactive-only. Select a configured backup, select one snapshot
+with its configured restic tag, and confirm. The CLI runs
+`restic forget --prune`, so the snapshot and data no longer referenced by any
+other snapshot are permanently removed. The configured backup and repository
+remain available.
+
+When several configured backups share a repository, their restic tags keep their
+snapshots distinct in the picker.
+
+## Permanently destroy a repository
+
+```sh
+uv run restic-backups generic destroy
+```
+
+Destruction is interactive-only. The CLI shows the full S3 target, asks for a
+yes/no confirmation, then requires the exact repository ID. It deletes every
+object, object version, and delete marker below the configured `bucket` and
+`key_prefix`. It does not delete the bucket or change the YAML configuration.
+
+The provider credentials need permission to list objects and versions and to
+delete objects and versions. An empty `key_prefix` is always rejected to prevent
+accidental bucket deletion.
+
+::: {.callout-danger}
+Repository deletion is irreversible. Snapshots, indexes, repository keys, and
+encrypted data are all erased. The configured restic password cannot recover
+them.
+:::
 
 ## Common operations
 
 ```sh
-# Create a snapshot
-uv run restic-backups generic run --backup documents backup "$HOME/Documents"
-
 # Inspect and check the repository
-uv run restic-backups generic run --backup documents snapshots
+uv run restic-backups generic run --backup documents snapshots --tag documents
 uv run restic-backups generic run --backup documents check
 
 # Restore a snapshot
 uv run restic-backups generic run --backup documents \
-  restore latest --target /tmp/documents-restore
+  restore <snapshot-id> --target /tmp/documents-restore
 ```
 
 Arguments after the backup selection are passed to restic unchanged. The CLI
 exports the selected repository and credentials only to the child process and
-does not print them.
+does not print them. For the `backup` command, it also adds the configured restic
+tag automatically; additional `--tag` arguments remain supported.
 
 ## Managed data directory
 
@@ -46,8 +117,9 @@ uv run restic-backups generic data-dir documents
 ```
 
 The result follows
-`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/`. It is for private generated
-metadata; generic backup sources do not need to live there.
+`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/` beside the selected config
+file. It is for private generated metadata; generic backup sources do not need
+to live there.
 
 ## Cold S3 storage
 

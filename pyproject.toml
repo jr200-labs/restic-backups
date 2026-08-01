@@ -5,12 +5,14 @@ description = "Restic backup CLI with optional SOPS configuration."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
+    "boto3>=1.35",
     "click>=8.1",
     "mlx-whisper>=0.4.0; platform_system == 'Darwin' and platform_machine == 'arm64'",
     "pyannote.audio>=3.1",
     "pyyaml>=6.0.3",
     "questionary>=2.1.1",
     "requests>=2.32",
+    "rich>=13.9",
     "textual>=0.80",
     "torch>=2.0",
     "torchaudio>=2.0",

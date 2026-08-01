@@ -31,6 +31,8 @@ export RESTIC_BACKUPS_SOPS=1
 
 The values of `id` fields are user-defined names. They only need to be unique
 within their section; references in other sections must match them exactly.
+Every item may also have an optional `description` for user notes. Descriptions
+do not affect backup behavior.
 
 ## `credentials`
 
@@ -40,6 +42,7 @@ key IDs and application keys use the same fields as AWS access keys.
 ```yaml
 credentials:
   - id: b2-credentials
+    description: Backblaze B2 application credentials.
     access-key-id: "..."
     secret-access-key: "..."
 ```
@@ -54,6 +57,7 @@ One credential may be referenced by several stores.
 ```yaml
 restic-stores:
   - id: b2-store
+    description: Backblaze B2 restic repository.
     credentials-id: b2-credentials
     enabled: true
     endpoint: https://s3.us-west-004.backblazeb2.com
@@ -70,18 +74,55 @@ stores are ignored by commands and may retain `CHANGE_ME` placeholders. An
 enabled store fails validation until its store values and credentials are
 complete.
 
+Every store appears in the `generic list` repository table. `generic init`
+initializes enabled stores even when no backup references them; a backup entry
+is required before using that store with `generic backup` or `generic run`.
+
 ## `backups`
 
-`backups` names the jobs shown by the CLI. Each job selects a repository by
-matching `restic-store-id` to a `restic-stores.id` value.
+`backups` defines the entries shown in the CLI's **Backups** table. Each entry
+selects a repository by matching `restic-store-id` to a `restic-stores.id`
+value.
 
 ```yaml
 backups:
-  - id: voice-memos
+  - id: documents
+    description: Back up local documents.
     restic-store-id: b2-store
+    paths:
+      - ~/Documents
+      - ~/Desktop
+    # Optional; defaults to the backup ID.
+    # tag: documents
 ```
 
-Several backup jobs may share a restic store.
+`id` is the stable name used to select the configured backup in commands and
+menus. `paths` is the non-empty list of local files or directories passed to
+`restic backup`; `~` is expanded to the current user's home directory. Relative
+paths remain relative to the directory where the command is run.
+
+`tag` is optional restic metadata applied automatically to every snapshot
+created through that backup. It defaults to `id`, so it normally does not need
+to be configured. Restic generates a unique snapshot ID after each successful
+backup; a snapshot ID is not a configuration value.
+
+Run the configured backup with:
+
+```sh
+uv run restic-backups generic backup documents
+```
+
+Restic scans the configured paths and creates a new snapshot. It stores only
+new or changed file data, while the snapshot still represents the complete
+state of those paths at that time.
+
+Several backups may share a restic store. Their tags distinguish their snapshots
+inside the shared repository.
+
+Specialized workflows may discover their own sources and omit `paths`. For
+example, the `voice-memos` subcommand locates the macOS recording store itself.
+`generic backup` reports an error if the selected backup has no configured
+paths.
 
 ## Optional archive policy
 
@@ -91,11 +132,13 @@ objects are stored, and `restore` defines retrieval behavior for cold storage:
 ```yaml
 credentials:
   - id: aws-credentials
+    description: AWS S3 access credentials.
     access-key-id: "..."
     secret-access-key: "..."
 
 restic-stores:
   - id: aws-store
+    description: AWS S3 restic repository.
     credentials-id: aws-credentials
     enabled: false
     endpoint: https://s3.us-east-1.amazonaws.com
@@ -144,5 +187,6 @@ rather than mixing storage policies in one repository.
 ## Validation rules
 
 `check-config` also rejects duplicate IDs, unknown credential or store
-references, missing S3 fields, and invalid Glacier retrieval tiers or
-durations. Managed-data resolution separately rejects unsafe path components.
+references, missing S3 fields, empty or invalid `paths`, and invalid Glacier
+retrieval tiers or durations. Managed-data resolution separately rejects unsafe
+path components.

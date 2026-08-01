@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import typer
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.text import Text
 
 from . import config as config_module
 from .errors import BackupError
@@ -18,7 +22,14 @@ app = typer.Typer(
     help="Configured backup commands.",
     no_args_is_help=True,
 )
-app.add_typer(generic_cli.app, name="generic")
+app.add_typer(
+    generic_cli.app,
+    name="generic",
+    invoke_without_command=True,
+    no_args_is_help=False,
+)
+VERBOSE_ENV = "RESTIC_BACKUPS_VERBOSE"
+error_console = Console(stderr=True)
 
 
 @app.callback()
@@ -40,15 +51,39 @@ def configure(
             help=f"Decrypt the configuration with SOPS. Env: {sops_module.SOPS_ENV}.",
         ),
     ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            envvar=VERBOSE_ENV,
+            help=f"Show command details. Env: {VERBOSE_ENV}.",
+        ),
+    ] = False,
 ) -> None:
     """Configure storage before running a command."""
+    logging.basicConfig(
+        level=logging.WARNING,
+        format="%(message)s",
+        handlers=[
+            RichHandler(
+                console=error_console,
+                show_path=False,
+                show_time=False,
+            )
+        ],
+        force=True,
+    )
+    logging.getLogger("restic_backups").setLevel(
+        logging.DEBUG if verbose else logging.INFO
+    )
     if config_file is not None:
         os.environ[config_module.CONFIG_ENV] = str(config_file)
     os.environ[sops_module.SOPS_ENV] = "1" if use_sops else "0"
 
 
 def fail(message: str) -> NoReturn:
-    typer.echo(f"restic-backups: {message}", err=True)
+    error_console.print(Text(f"restic-backups: {message}", style="bold red"))
     raise typer.Exit(1)
 
 

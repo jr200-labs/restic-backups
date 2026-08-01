@@ -10,7 +10,7 @@ directories, and a complete macOS Voice Memos workflow.
 ## Start here
 
 - [Quick Start](quick-start.qmd) creates, validates, and restores a first backup.
-- [Configuration](configuration.qmd) describes credentials, stores, backup jobs,
+- [Configuration](configuration.qmd) describes credentials, stores, backups,
   and Glacier policy.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
@@ -28,6 +28,7 @@ restic_backups/
     sops.py              SOPS decryption
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
+    s3.py                permanent repository destruction
   voice_memos/
     cli.py               Voice Memos command definitions
     pipeline.py          transcription and diarization processing
@@ -47,8 +48,9 @@ Managed artifacts use:
 data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
 ```
 
-This does not constrain backup sources; commands may pass absolute source paths
-outside the repository. Everything below `data/` is ignored.
+This path is relative to the selected configuration file. It does not constrain
+backup sources; commands may pass absolute source paths outside the repository.
+Everything below `data/` is ignored.
 
 ::: {.callout-warning}
 Commit `config.sops.yaml` only while encrypted. Never commit credentials,
