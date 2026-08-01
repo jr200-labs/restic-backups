@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Any, NoReturn
@@ -13,6 +14,7 @@ from .generic import sops
 
 CONFIG_ENV = "RESTIC_BACKUPS_CONFIG"
 PLACEHOLDER = "CHANGE_ME"
+logger = logging.getLogger(__name__)
 
 
 class ConfigError(Exception):
@@ -144,9 +146,17 @@ def load_validated() -> tuple[
     dict[str, dict[str, Any]],
 ]:
     path = config_path()
-    loaded = load_config(path, os.environ.get(sops.SOPS_ENV) == "1")
+    use_sops = os.environ.get(sops.SOPS_ENV) == "1"
+    logger.info("Loading configuration: %s%s", path, " (SOPS)" if use_sops else "")
+    loaded = load_config(path, use_sops)
     try:
         credentials, stores, backups = validate(loaded)
     except ConfigError as exc:
         fail(f"invalid config in {path}: {exc}")
+    logger.debug(
+        "Configuration loaded: credentials=%d stores=%d backups=%d",
+        len(credentials),
+        len(stores),
+        len(backups),
+    )
     return loaded, credentials, stores, backups

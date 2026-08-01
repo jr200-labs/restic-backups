@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 import subprocess
 import sys
@@ -10,6 +11,8 @@ from typing import Any, NoReturn
 
 from ..errors import BackupError
 from . import repository
+
+logger = logging.getLogger(__name__)
 
 
 def fail(message: str) -> NoReturn:
@@ -25,9 +28,20 @@ def command(
     *,
     quiet: bool = False,
 ) -> int:
+    store, credential = repository.resolve(backup_id, credentials, stores, backups)
+    return store_command(store, credential, args, quiet=quiet)
+
+
+def store_command(
+    store: dict[str, Any],
+    credential: dict[str, Any],
+    args: list[str],
+    *,
+    quiet: bool = False,
+) -> int:
     if not args:
         fail("restic command required")
-    store, credential = repository.resolve(backup_id, credentials, stores, backups)
+    logger.debug("%s: running restic %s", store["id"], args[0])
 
     env = os.environ.copy()
     endpoint = store["endpoint"].rstrip("/")

@@ -19,6 +19,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(root.exit_code, 0, root.output)
         self.assertIn("generic", root.output)
         self.assertIn("voice-memos", root.output)
+        self.assertIn("--verbose", root.output)
 
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
@@ -65,45 +66,51 @@ backups:
                 result = runner.invoke(app, args, env=env)
                 self.assertEqual(result.exit_code, 0, result.output)
 
-    @patch("restic_backups.generic.cli.restic.command")
+    @patch("restic_backups.generic.cli.restic.store_command")
     @patch("restic_backups.generic.cli.validated")
     def test_init_skips_existing_repositories(self, validated, command) -> None:
-        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        credentials: dict[str, dict[str, object]] = {
+            "credentials": {"id": "credentials"}
+        }
         stores = {
-            "existing": {"enabled": True},
-            "new": {"enabled": True},
+            "existing": {
+                "id": "existing",
+                "enabled": True,
+                "credentials-id": "credentials",
+            },
+            "new": {
+                "id": "new",
+                "enabled": True,
+                "credentials-id": "credentials",
+            },
         }
-        backups = {
-            "first": {"restic-store-id": "existing"},
-            "second": {"restic-store-id": "new"},
-        }
+        backups = {"first": {"restic-store-id": "existing"}}
         validated.return_value = ({}, credentials, stores, backups)
         command.side_effect = [0, 10, 0]
 
         result = CliRunner().invoke(app, ["generic", "init"])
 
         self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("existing: checking repository", result.output)
         self.assertIn("existing: already initialized; skipping", result.output)
+        self.assertIn("new: not initialized; initializing", result.output)
+        self.assertIn("new: initialized", result.output)
         self.assertEqual(
             command.call_args_list,
             [
                 call(
-                    "first",
+                    stores["existing"],
+                    credentials["credentials"],
                     ["cat", "config"],
-                    credentials,
-                    stores,
-                    backups,
                     quiet=True,
                 ),
                 call(
-                    "second",
+                    stores["new"],
+                    credentials["credentials"],
                     ["cat", "config"],
-                    credentials,
-                    stores,
-                    backups,
                     quiet=True,
                 ),
-                call("second", ["init"], credentials, stores, backups),
+                call(stores["new"], credentials["credentials"], ["init"]),
             ],
         )
 

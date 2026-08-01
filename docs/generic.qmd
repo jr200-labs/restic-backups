@@ -14,14 +14,14 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 |---|---|---|
 | `generic list` | Show backup IDs, stores, endpoints, and enabled state | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
-| `generic init` | Initialize each new enabled referenced repository | Yes |
+| `generic init` | Initialize each new enabled repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
 `data-dir` and `run` prompt for a backup when it is omitted in an interactive
 terminal. Non-interactive callers must provide the backup ID.
 
-`generic init` checks every enabled referenced repository first and skips those
-that are already initialized.
+`generic init` reports each configured store, skips disabled or already
+initialized stores, and initializes every enabled store that is missing.
 
 ## Common operations
 

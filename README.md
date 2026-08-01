@@ -15,9 +15,9 @@ make install-deps  # Homebrew: restic, sops, uv, ffmpeg, jq, coreutils
 make install       # uv sync, including the dev group and Quarto
 ```
 
-`make init` loads the selected configuration, deduplicates enabled
-stores referenced by a backup, and runs `restic init` once per repository. It
-does not back up files and is unnecessary for an existing repository.
+`make init` loads the selected configuration and initializes each enabled store
+that does not already exist. It reports and skips disabled or initialized
+stores, and does not back up files.
 
 ## CLI
 

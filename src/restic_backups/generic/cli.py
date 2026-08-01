@@ -87,32 +87,33 @@ def data_dir_command(
 
 @app.command("init")
 def init_command() -> None:
-    """Initialize every enabled restic store referenced by a backup, once."""
-    _, credentials, stores, backups = validated()
-    seen: set[str] = set()
-    for backup_id, backup in backups.items():
-        store_id = backup["restic-store-id"]
-        if store_id not in seen and stores[store_id]["enabled"]:
-            seen.add(store_id)
-            try:
-                code = restic.command(
-                    backup_id,
-                    ["cat", "config"],
-                    credentials,
-                    stores,
-                    backups,
-                    quiet=True,
-                )
-                if code == 0:
-                    typer.echo(f"{store_id}: already initialized; skipping")
-                    continue
-                if code != 10:
-                    raise typer.Exit(code)
-                code = restic.command(backup_id, ["init"], credentials, stores, backups)
-            except BackupError as exc:
-                fail(str(exc))
-            if code:
+    """Initialize every enabled restic store that does not already exist."""
+    _, credentials, stores, _ = validated()
+    for store_id, store in stores.items():
+        if not store["enabled"]:
+            typer.echo(f"{store_id}: disabled; skipping")
+            continue
+        credential = credentials[store["credentials-id"]]
+        typer.echo(f"{store_id}: checking repository")
+        try:
+            code = restic.store_command(
+                store,
+                credential,
+                ["cat", "config"],
+                quiet=True,
+            )
+            if code == 0:
+                typer.echo(f"{store_id}: already initialized; skipping")
+                continue
+            if code != 10:
                 raise typer.Exit(code)
+            typer.echo(f"{store_id}: not initialized; initializing")
+            code = restic.store_command(store, credential, ["init"])
+        except BackupError as exc:
+            fail(str(exc))
+        if code:
+            raise typer.Exit(code)
+        typer.echo(f"{store_id}: initialized")
 
 
 @app.command(

@@ -1,6 +1,7 @@
 """Decrypt SOPS configuration files."""
 
 import json
+import logging
 import subprocess
 from pathlib import Path
 from typing import Any
@@ -8,9 +9,11 @@ from typing import Any
 from ..errors import BackupError
 
 SOPS_ENV = "RESTIC_BACKUPS_SOPS"
+logger = logging.getLogger(__name__)
 
 
 def decrypt(path: Path) -> dict[str, Any]:
+    logger.debug("Decrypting configuration with SOPS: %s", path)
     try:
         result = subprocess.run(
             ["sops", "--decrypt", "--output-type", "json", path],

@@ -19,6 +19,14 @@ uv run restic-backups --config config.sops.yaml --sops generic list
 The equivalent environment variables are `RESTIC_BACKUPS_CONFIG` and
 `RESTIC_BACKUPS_SOPS=1`. See [Configuration](configuration.qmd) for setup.
 
+Commands log configuration and operation progress to stderr. Add `--verbose`
+before the command, or set `RESTIC_BACKUPS_VERBOSE=1`, to include command-level
+details without printing credentials or repository passwords:
+
+```sh
+uv run restic-backups --verbose generic init
+```
+
 ## Root commands
 
 | Command | Purpose | Remote storage |

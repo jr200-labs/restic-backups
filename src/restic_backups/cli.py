@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import os
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
@@ -19,6 +20,7 @@ app = typer.Typer(
     no_args_is_help=True,
 )
 app.add_typer(generic_cli.app, name="generic")
+VERBOSE_ENV = "RESTIC_BACKUPS_VERBOSE"
 
 
 @app.callback()
@@ -40,8 +42,21 @@ def configure(
             help=f"Decrypt the configuration with SOPS. Env: {sops_module.SOPS_ENV}.",
         ),
     ] = False,
+    verbose: Annotated[
+        bool,
+        typer.Option(
+            "--verbose",
+            "-v",
+            envvar=VERBOSE_ENV,
+            help=f"Show command details. Env: {VERBOSE_ENV}.",
+        ),
+    ] = False,
 ) -> None:
     """Configure storage before running a command."""
+    logging.basicConfig(level=logging.WARNING, format="%(message)s")
+    logging.getLogger("restic_backups").setLevel(
+        logging.DEBUG if verbose else logging.INFO
+    )
     if config_file is not None:
         os.environ[config_module.CONFIG_ENV] = str(config_file)
     os.environ[sops_module.SOPS_ENV] = "1" if use_sops else "0"
