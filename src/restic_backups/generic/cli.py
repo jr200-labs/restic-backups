@@ -43,6 +43,7 @@ def menu(context: typer.Context) -> None:
             questionary.Choice("Initialize repositories", "init"),
             questionary.Choice("Prime a repository cache", "prime-cache"),
             questionary.Choice("Back up configured paths", "backup"),
+            questionary.Choice("List snapshots", "snapshots"),
             questionary.Choice("Forget a snapshot", "forget"),
             questionary.Choice("Destroy a repository", "destroy"),
             questionary.Choice("Show managed data directory", "data-dir"),
@@ -58,6 +59,8 @@ def menu(context: typer.Context) -> None:
         prime_cache_command(None)
     elif selected == "backup":
         backup_command(None)
+    elif selected == "snapshots":
+        snapshots_command(None)
     elif selected == "forget":
         forget_command(None)
     elif selected == "destroy":
@@ -117,7 +120,7 @@ def choose_backup(
             fail(f"backup '{backup_id}' not found in {config.config_path()}")
         return backup_id
     if not sys.stdin.isatty():
-        fail("--backup is required when stdin is not interactive")
+        fail("backup ID is required when stdin is not interactive")
     choices = [
         questionary.Choice(
             f"{item_id}  ({stores[item['restic-store-id']]['endpoint']})",
@@ -302,6 +305,72 @@ def prime_cache_command(
     error_console.print(Text(f"{repository_id}: cache primed", style="bold green"))
 
 
+def load_snapshots(
+    backup_id: str,
+    credentials: dict[str, dict[str, Any]],
+    stores: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+) -> tuple[str, list[dict[str, Any]]]:
+    tag = str(backups[backup_id].get("tag", backup_id))
+    try:
+        loaded = json.loads(
+            restic.command_output(
+                backup_id,
+                ["snapshots", "--tag", tag, "--json"],
+                credentials,
+                stores,
+                backups,
+            )
+        )
+    except (BackupError, json.JSONDecodeError) as exc:
+        fail(str(exc))
+    if not isinstance(loaded, list) or any(
+        not isinstance(snapshot, dict) or not isinstance(snapshot.get("id"), str)
+        for snapshot in loaded
+    ):
+        fail("restic snapshots returned invalid JSON")
+    return tag, loaded
+
+
+@app.command("snapshots")
+def snapshots_command(
+    backup: Annotated[
+        str | None,
+        typer.Argument(help="Backup ID; prompts when omitted."),
+    ] = None,
+) -> None:
+    """List snapshots for a configured backup."""
+    _, credentials, stores, backups = validated()
+    backup_id = choose_backup(backup, stores, backups)
+    tag, snapshots = load_snapshots(backup_id, credentials, stores, backups)
+    if not snapshots:
+        error_console.print(
+            Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
+        )
+        return
+
+    table = Table(title=f"Snapshots: {backup_id}", box=box.ROUNDED)
+    table.add_column("Snapshot", style="cyan", no_wrap=True)
+    table.add_column("Time", no_wrap=True)
+    table.add_column("Host")
+    table.add_column("Paths")
+    table.add_column("Tags")
+    for snapshot in snapshots:
+        snapshot_id = snapshot["id"]
+        paths = snapshot.get("paths", [])
+        tags = snapshot.get("tags", [])
+        if not isinstance(paths, list) or not isinstance(tags, list):
+            fail("restic snapshots returned invalid JSON")
+        table.add_row(
+            str(snapshot.get("short_id", snapshot_id[:8])),
+            str(snapshot.get("time", "unknown")).replace("T", " ")[:19],
+            str(snapshot.get("hostname", "—")),
+            "\n".join(str(path) for path in paths) or "—",
+            ", ".join(str(tag) for tag in tags) or "—",
+        )
+    console.print(table)
+
+
 @app.command("forget")
 def forget_command(
     backup: Annotated[
@@ -314,20 +383,7 @@ def forget_command(
         fail("forget requires an interactive terminal")
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
-    tag = str(backups[backup_id].get("tag", backup_id))
-    try:
-        output = restic.command_output(
-            backup_id,
-            ["snapshots", "--tag", tag, "--json"],
-            credentials,
-            stores,
-            backups,
-        )
-        snapshots = json.loads(output)
-    except (BackupError, json.JSONDecodeError) as exc:
-        fail(str(exc))
-    if not isinstance(snapshots, list):
-        fail("restic snapshots returned invalid JSON")
+    tag, snapshots = load_snapshots(backup_id, credentials, stores, backups)
     if not snapshots:
         error_console.print(
             Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
@@ -337,8 +393,6 @@ def forget_command(
     choices: list[questionary.Choice] = []
     snapshot_by_id: dict[str, dict[str, Any]] = {}
     for snapshot in snapshots:
-        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("id"), str):
-            fail("restic snapshots returned invalid JSON")
         snapshot_id = snapshot["id"]
         snapshot_by_id[snapshot_id] = snapshot
         timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]

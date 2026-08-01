@@ -35,6 +35,7 @@ class VoiceMemosCliTest(unittest.TestCase):
             "data-dir",
             "init",
             "prime-cache",
+            "snapshots",
             "forget",
             "destroy",
             "run",
@@ -137,6 +138,44 @@ backups:
         command.assert_called_once_with(
             "backup",
             ["forget", snapshot_id, "--prune"],
+            credentials,
+            stores,
+            backups,
+        )
+
+    def test_snapshots_lists_configured_tag_as_table(self) -> None:
+        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        stores = {"store": {"enabled": True}}
+        backups = {"documents": {"restic-store-id": "store", "tag": "files"}}
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, credentials, stores, backups),
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.command_output",
+                return_value=json.dumps(
+                    [
+                        {
+                            "id": "a" * 64,
+                            "short_id": "aaaaaaaa",
+                            "time": "2026-08-02T12:00:00Z",
+                            "hostname": "laptop",
+                            "paths": ["/data/documents"],
+                            "tags": ["files"],
+                        }
+                    ]
+                ),
+            ) as command_output,
+        ):
+            result = CliRunner().invoke(app, ["generic", "snapshots", "documents"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        for value in ("Snapshots: documents", "aaaaaaaa", "laptop", "files"):
+            self.assertIn(value, result.output)
+        command_output.assert_called_once_with(
+            "documents",
+            ["snapshots", "--tag", "files", "--json"],
             credentials,
             stores,
             backups,
