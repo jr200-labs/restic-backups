@@ -153,8 +153,11 @@ restic-stores:
 
 Omit `archive` to use the storage provider's default class.
 
-Use `GLACIER_IR` for immediate restic access. It must not define a restore
-policy:
+### S3 Glacier Instant Retrieval (`GLACIER_IR`)
+
+[S3 Glacier Instant Retrieval](https://aws.amazon.com/s3/storage-classes/glacier/instant-retrieval/)
+is for rarely accessed data that must remain readable within milliseconds.
+Restic can access it normally, so it must not define a restore policy:
 
 ```yaml
 archive:
@@ -162,7 +165,24 @@ archive:
   restore: null
 ```
 
-Cold classes require an explicit retrieval policy:
+- **90-day minimum:** Each uploaded object is billed for at least 90 days. If
+  restic deletes or replaces it after 30 days, AWS still charges the remaining
+  60 days.
+- **128 KB minimum:** A 10 KB object is billed as 128 KB. This matters when a
+  repository contains many small objects.
+- **Retrieval charges:** Data is available immediately, but AWS charges when
+  restic reads it, in addition to request and possible internet-transfer fees.
+
+### S3 Glacier Flexible Retrieval (`GLACIER`)
+
+[S3 Glacier Flexible Retrieval](https://aws.amazon.com/s3/storage-classes/glacier/)
+is for backups read roughly once or twice per year. Objects require an archive
+restore before restic can read them. Expedited retrieval usually takes 1–5
+minutes, Standard takes 3–5 hours, and Bulk takes 5–12 hours. Objects have a
+90-day minimum storage duration and 40 KB of billable metadata overhead each.
+
+Configure the retrieval tier, the number of days to retain the temporary
+restored copy, and the maximum wait time:
 
 ```yaml
 archive:
@@ -173,8 +193,29 @@ archive:
     timeout: 24h
 ```
 
-`GLACIER` accepts `Standard`, `Bulk`, or `Expedited`; `DEEP_ARCHIVE` accepts
-`Standard` or `Bulk`. Retrieval commands also require an acknowledgement:
+`tier` accepts `Standard`, `Bulk`, or `Expedited`.
+
+### S3 Glacier Deep Archive (`DEEP_ARCHIVE`)
+
+[S3 Glacier Deep Archive](https://aws.amazon.com/s3/storage-classes/glacier/)
+is the lowest-cost option for data read less than once per year. It has a
+180-day minimum storage duration and 40 KB of billable metadata overhead per
+object. Standard retrieval typically completes within 12 hours; Bulk can take
+up to 48 hours.
+
+```yaml
+archive:
+  storage-class: DEEP_ARCHIVE
+  restore:
+    tier: Bulk
+    days: 7
+    timeout: 48h
+```
+
+`tier` accepts `Standard` or `Bulk`.
+
+Flexible Retrieval and Deep Archive commands that read repository data require
+an acknowledgement:
 
 ```sh
 ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
