@@ -286,21 +286,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Yes</td>
 </tr>
 <tr class="even">
+<td><code>generic prime-cache [REPOSITORY]</code></td>
+<td>Cache and validate repository metadata</td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
 <td><code>generic backup [BACKUP]</code></td>
 <td>Create a snapshot from configured paths</td>
 <td>Yes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>generic forget [BACKUP]</code></td>
 <td>Forget one tagged snapshot and prune</td>
 <td>Yes</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td><code>generic destroy [REPOSITORY]</code></td>
 <td>Permanently erase one repository</td>
 <td>Yes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>generic run --backup ID ...</code></td>
 <td>Pass trailing arguments directly to restic</td>
 <td>Depends on restic command</td>
@@ -311,6 +316,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a command menu. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Run a restic command</strong> reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter <code>--help</code> at that prompt to see the selected command’s options.</p>
 <p><code>generic list</code> has separate <strong>Repositories</strong> and <strong>Backups</strong> tables, so enabled stores remain visible even when no configured backup references them.</p>
 <p><code>generic init</code> reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.</p>
+<p><code>generic prime-cache</code> runs <code>restic check --with-cache</code> for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when <code>--read-data</code> is requested explicitly.</p>
 </section>
 <section id="create-a-snapshot" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-snapshot">Create a snapshot</h2>

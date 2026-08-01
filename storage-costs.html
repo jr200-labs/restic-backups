@@ -26,6 +26,41 @@ ul.task-list li input[type="checkbox"] {
   margin: 0 0.8em 0.2em -1em; /* quarto-specific, see https://github.com/quarto-dev/quarto-cli/issues/4556 */ 
   vertical-align: middle;
 }
+/* CSS for syntax highlighting */
+html { -webkit-text-size-adjust: 100%; }
+pre > code.sourceCode { white-space: pre; position: relative; }
+pre > code.sourceCode > span { display: inline-block; line-height: 1.25; }
+pre > code.sourceCode > span:empty { height: 1.2em; }
+.sourceCode { overflow: visible; }
+code.sourceCode > span { color: inherit; text-decoration: inherit; }
+div.sourceCode { margin: 1em 0; }
+pre.sourceCode { margin: 0; }
+@media screen {
+div.sourceCode { overflow: auto; }
+}
+@media print {
+pre > code.sourceCode { white-space: pre-wrap; }
+pre > code.sourceCode > span { text-indent: -5em; padding-left: 5em; }
+}
+pre.numberSource code
+  { counter-reset: source-line 0; }
+pre.numberSource code > span
+  { position: relative; left: -4em; counter-increment: source-line; }
+pre.numberSource code > span > a:first-child::before
+  { content: counter(source-line);
+    position: relative; left: -1em; text-align: right; vertical-align: baseline;
+    border: none; display: inline-block;
+    -webkit-touch-callout: none; -webkit-user-select: none;
+    -khtml-user-select: none; -moz-user-select: none;
+    -ms-user-select: none; user-select: none;
+    padding: 0 4px; width: 4em;
+  }
+pre.numberSource { margin-left: 3em;  padding-left: 4px; }
+div.sourceCode
+  {   }
+@media screen {
+pre > code.sourceCode > span > a:first-child::before { text-decoration: underline; }
+}
 </style>
 
 
@@ -187,6 +222,7 @@ ul.task-list li input[type="checkbox"] {
   <ul>
   <li><a href="#gb" id="toc-gb" class="nav-link active" data-scroll-target="#gb">100 GB</a></li>
   <li><a href="#tb" id="toc-tb" class="nav-link" data-scroll-target="#tb">1 TB</a></li>
+  <li><a href="#cost-of-listing-files-in-a-snapshot" id="toc-cost-of-listing-files-in-a-snapshot" class="nav-link" data-scroll-target="#cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</a></li>
   <li><a href="#important-differences" id="toc-important-differences" class="nav-link" data-scroll-target="#important-differences">Important differences</a></li>
   </ul>
 </nav>
@@ -329,6 +365,65 @@ ul.task-list li input[type="checkbox"] {
 </tbody>
 </table>
 </section>
+<section id="cost-of-listing-files-in-a-snapshot" class="level2">
+<h2 class="anchored" data-anchor-id="cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</h2>
+<p>Restic can list a snapshot without downloading the backed-up file contents:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> <span class="op">&lt;</span>backup-id<span class="op">&gt;</span> ls <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The command downloads repository indexes, snapshot records, directory trees, and other required metadata. Commands such as <code>restore</code> and <code>dump</code> download file data. Restic’s local cache can reduce metadata reads on subsequent commands. Set <code>cache-dir</code> on a <code>restic-stores</code> entry to give each repository a stable, separate cache location; see <a href="./configuration.html">Configuration</a>.</p>
+<p>Prime that cache with repository metadata before browsing snapshots:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic prime-cache <span class="op">&lt;</span>repository-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>This runs <code>restic check --with-cache</code>; it does not download backed-up file data.</p>
+<table class="caption-top table">
+<colgroup>
+<col style="width: 30%">
+<col style="width: 30%">
+<col style="width: 40%">
+</colgroup>
+<thead>
+<tr class="header">
+<th>Provider</th>
+<th>Metadata-read charges</th>
+<th style="text-align: right;">Typical cost</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td>Backblaze B2</td>
+<td>GET and LIST transactions are free; egress is free up to 3× average monthly storage</td>
+<td style="text-align: right;"><strong>$0</strong> within the free egress allowance</td>
+</tr>
+<tr class="even">
+<td>AWS S3 Glacier Instant Retrieval, US East</td>
+<td>$0.03/GB retrieved plus about $0.01 per 1,000 GET requests</td>
+<td style="text-align: right;">Usually <strong>less than $0.01</strong></td>
+</tr>
+</tbody>
+</table>
+<p>Glacier Instant Retrieval examples below show retrieval charges only; request charges are additional:</p>
+<table class="caption-top table">
+<thead>
+<tr class="header">
+<th style="text-align: right;">Metadata downloaded</th>
+<th style="text-align: right;">Retrieval charge</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td style="text-align: right;">10 MB</td>
+<td style="text-align: right;">~$0.0003</td>
+</tr>
+<tr class="even">
+<td style="text-align: right;">100 MB</td>
+<td style="text-align: right;">~$0.003</td>
+</tr>
+<tr class="odd">
+<td style="text-align: right;">1 GB</td>
+<td style="text-align: right;">$0.03</td>
+</tr>
+</tbody>
+</table>
+<p>AWS currently includes the first 100 GB per month of internet data transfer out, aggregated across AWS services and regions. Backblaze charges $0.01/GB only for egress beyond its free allowance. Exact costs depend on the repository’s metadata size, object count, local cache, and other usage during the billing month.</p>
+</section>
 <section id="important-differences" class="level2">
 <h2 class="anchored" data-anchor-id="important-differences">Important differences</h2>
 <p>AWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project currently supports S3-compatible storage only, so Google Drive and OneDrive cannot be selected as <code>restic-stores</code>.</p>
@@ -339,6 +434,7 @@ ul.task-list li input[type="checkbox"] {
 <li><a href="https://aws.amazon.com/s3/pricing/">Amazon S3 pricing</a></li>
 <li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html">AWS archive retrieval options</a></li>
 <li><a href="https://www.backblaze.com/cloud-storage/pricing">Backblaze B2 pricing</a></li>
+<li><a href="https://www.backblaze.com/cloud-storage/transaction-pricing">Backblaze B2 transaction pricing</a></li>
 <li><a href="https://one.google.com/about/plans?hl=en_US">Google One plans</a></li>
 <li><a href="https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us">Microsoft OneDrive plans</a></li>
 </ul>
