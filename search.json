@@ -4,7 +4,7 @@
     "href": "configuration.html",
     "title": "Configuration",
     "section": "",
-    "text": "Copy the template and replace its CHANGE_ME values:\nThere is no default configuration path. Pass --config before the command, or set it once for the current shell:\nTo use an encrypted configuration, encrypt it with SOPS and enable decryption with either --sops or RESTIC_BACKUPS_SOPS=1:\nThe values of id fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly.",
+    "text": "Copy the template and replace its CHANGE_ME values:\nThere is no default configuration path. Pass --config before the command, or set it once for the current shell:\nTo use an encrypted configuration, encrypt it with SOPS and enable decryption with either --sops or RESTIC_BACKUPS_SOPS=1:\nThe values of id fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly. Every item may also have an optional description for user notes. Descriptions do not affect backup behavior.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -15,7 +15,7 @@
     "href": "configuration.html#credentials",
     "title": "Configuration",
     "section": "credentials",
-    "text": "credentials\ncredentials contains reusable S3 authentication details. Backblaze application key IDs and application keys use the same fields as AWS access keys.\ncredentials:\n  - id: b2-credentials\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\nOne credential may be referenced by several stores.",
+    "text": "credentials\ncredentials contains reusable S3 authentication details. Backblaze application key IDs and application keys use the same fields as AWS access keys.\ncredentials:\n  - id: b2-credentials\n    description: Backblaze B2 application credentials.\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\nOne credential may be referenced by several stores.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -26,7 +26,7 @@
     "href": "configuration.html#restic-stores",
     "title": "Configuration",
     "section": "restic-stores",
-    "text": "restic-stores\nrestic-stores describes each restic repository and links it to an entry in credentials through credentials-id.\nrestic-stores:\n  - id: b2-store\n    credentials-id: b2-credentials\n    enabled: true\n    endpoint: https://s3.us-west-004.backblazeb2.com\n    region: us-west-004\n    bucket: example-bucket\n    key_prefix: voice-memos\n    password: \"...\"\nAll stores use restic’s S3 backend. endpoint identifies the S3-compatible service, region configures request signing, and bucket plus key_prefix locate the repository. password encrypts the restic repository. Disabled stores are ignored by commands and may retain CHANGE_ME placeholders. An enabled store fails validation until its store values and credentials are complete.",
+    "text": "restic-stores\nrestic-stores describes each restic repository and links it to an entry in credentials through credentials-id.\nrestic-stores:\n  - id: b2-store\n    description: Backblaze B2 restic repository.\n    credentials-id: b2-credentials\n    enabled: true\n    endpoint: https://s3.us-west-004.backblazeb2.com\n    region: us-west-004\n    bucket: example-bucket\n    key_prefix: voice-memos\n    password: \"...\"\nAll stores use restic’s S3 backend. endpoint identifies the S3-compatible service, region configures request signing, and bucket plus key_prefix locate the repository. password encrypts the restic repository. Disabled stores are ignored by commands and may retain CHANGE_ME placeholders. An enabled store fails validation until its store values and credentials are complete.\nEvery store appears in the generic list repository table. generic init initializes enabled stores even when no backup references them; a backup entry is required before using that store with generic backup or generic run.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -37,7 +37,7 @@
     "href": "configuration.html#backups",
     "title": "Configuration",
     "section": "backups",
-    "text": "backups\nbackups names the jobs shown by the CLI. Each job selects a repository by matching restic-store-id to a restic-stores.id value.\nbackups:\n  - id: voice-memos\n    restic-store-id: b2-store\nSeveral backup jobs may share a restic store.",
+    "text": "backups\nbackups defines the entries shown in the CLI’s Backups table. Each entry selects a repository by matching restic-store-id to a restic-stores.id value.\nbackups:\n  - id: documents\n    description: Back up local documents.\n    restic-store-id: b2-store\n    paths:\n      - ~/Documents\n      - ~/Desktop\n    # Optional; defaults to the backup ID.\n    # tag: documents\nid is the stable name used to select the configured backup in commands and menus. paths is the non-empty list of local files or directories passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\ntag is optional restic metadata applied automatically to every snapshot created through that backup. It defaults to id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups generic backup documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic store. Their tags distinguish their snapshots inside the shared repository.\nSpecialized workflows may discover their own sources and omit paths. For example, the voice-memos subcommand locates the macOS recording store itself. generic backup reports an error if the selected backup has no configured paths.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -48,7 +48,7 @@
     "href": "configuration.html#optional-archive-policy",
     "title": "Configuration",
     "section": "Optional archive policy",
-    "text": "Optional archive policy\nAWS stores may add an archive policy. storage-class controls how new objects are stored, and restore defines retrieval behavior for cold storage:\ncredentials:\n  - id: aws-credentials\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\n\nrestic-stores:\n  - id: aws-store\n    credentials-id: aws-credentials\n    enabled: false\n    endpoint: https://s3.us-east-1.amazonaws.com\n    region: us-east-1\n    bucket: example-bucket\n    key_prefix: backups\n    password: \"...\"\n    archive:\n      storage-class: GLACIER_IR\n      restore: null\nOmit archive to use the storage provider’s default class.\nUse GLACIER_IR for immediate restic access. It must not define a restore policy:\narchive:\n  storage-class: GLACIER_IR\n  restore: null\nCold classes require an explicit retrieval policy:\narchive:\n  storage-class: GLACIER\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 24h\nGLACIER accepts Standard, Bulk, or Expedited; DEEP_ARCHIVE accepts Standard or Bulk. Retrieval commands also require an acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup &lt;backup-id&gt; restore latest --target &lt;dir&gt;\nChanging a storage class affects new objects only. Use a new key_prefix rather than mixing storage policies in one repository.",
+    "text": "Optional archive policy\nAWS stores may add an archive policy. storage-class controls how new objects are stored, and restore defines retrieval behavior for cold storage:\ncredentials:\n  - id: aws-credentials\n    description: AWS S3 access credentials.\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\n\nrestic-stores:\n  - id: aws-store\n    description: AWS S3 restic repository.\n    credentials-id: aws-credentials\n    enabled: false\n    endpoint: https://s3.us-east-1.amazonaws.com\n    region: us-east-1\n    bucket: example-bucket\n    key_prefix: backups\n    password: \"...\"\n    archive:\n      storage-class: GLACIER_IR\n      restore: null\nOmit archive to use the storage provider’s default class.\nUse GLACIER_IR for immediate restic access. It must not define a restore policy:\narchive:\n  storage-class: GLACIER_IR\n  restore: null\nCold classes require an explicit retrieval policy:\narchive:\n  storage-class: GLACIER\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 24h\nGLACIER accepts Standard, Bulk, or Expedited; DEEP_ARCHIVE accepts Standard or Bulk. Retrieval commands also require an acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup &lt;backup-id&gt; restore latest --target &lt;dir&gt;\nChanging a storage class affects new objects only. Use a new key_prefix rather than mixing storage policies in one repository.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -59,7 +59,7 @@
     "href": "configuration.html#validation-rules",
     "title": "Configuration",
     "section": "Validation rules",
-    "text": "Validation rules\ncheck-config also rejects duplicate IDs, unknown credential or store references, missing S3 fields, and invalid Glacier retrieval tiers or durations. Managed-data resolution separately rejects unsafe path components.",
+    "text": "Validation rules\ncheck-config also rejects duplicate IDs, unknown credential or store references, missing S3 fields, empty or invalid paths, and invalid Glacier retrieval tiers or durations. Managed-data resolution separately rejects unsafe path components.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -90,7 +90,7 @@
     "href": "quick-start.html#configure-a-repository",
     "title": "Quick Start",
     "section": "2. Configure a repository",
-    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first credential, store, and backup entries. For a generic backup:\n\nreplace every CHANGE_ME used by the enabled store;\nset the store endpoint, region, bucket, and key_prefix;\ngive the backup a useful ID such as documents;\nmake its restic-store-id match the enabled store ID;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic list",
+    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first credential, store, and backup entries. For a generic backup:\n\nreplace every CHANGE_ME used by the enabled store;\nset the store endpoint, region, bucket, and key_prefix;\ngive the backup a useful ID such as documents;\nlist the local files or directories under its paths field;\nomit tag unless it should differ from the backup ID;\nmake its restic-store-id match the enabled store ID;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic list\nThe list output separates Repositories from Backups. Every configured store appears in the repository table, even before a configured backup references it.",
     "crumbs": [
       "Quick Start"
     ]
@@ -100,7 +100,7 @@
     "href": "quick-start.html#initialize-and-back-up",
     "title": "Quick Start",
     "section": "3. Initialize and back up",
-    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic init\nThen back up any local path. Replace documents with your backup ID:\nuv run restic-backups generic run --backup documents backup \"$HOME/Documents\"\nuv run restic-backups generic run --backup documents snapshots\nExisting restic repositories do not need generic init.",
+    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic init\nThen create a snapshot from the paths configured for documents:\nuv run restic-backups generic backup documents\nuv run restic-backups generic run --backup documents snapshots\nRunning generic init again is safe: existing repositories are detected and skipped. Initialization covers every enabled repository; generic backup uses the selected backup’s repository, paths, and default or configured tag.",
     "crumbs": [
       "Quick Start"
     ]
@@ -131,7 +131,40 @@
     "href": "generic.html#commands",
     "title": "Generic Backups",
     "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ngeneric list\nShow backup IDs, stores, endpoints, and enabled state\nNo\n\n\ngeneric data-dir [BACKUP]\nPrint the managed private-data directory\nNo\n\n\ngeneric init\nInitialize each enabled referenced repository once\nYes\n\n\ngeneric run --backup ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\ndata-dir and run prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.",
+    "text": "Commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ngeneric list\nShow repository and backup tables\nNo\n\n\ngeneric data-dir [BACKUP]\nPrint the managed private-data directory\nNo\n\n\ngeneric init\nInitialize each new enabled repository\nYes\n\n\ngeneric backup [BACKUP]\nCreate a snapshot from configured paths\nYes\n\n\ngeneric forget [BACKUP]\nForget one tagged snapshot and prune\nYes\n\n\ngeneric destroy [REPOSITORY]\nPermanently erase one repository\nYes\n\n\ngeneric run --backup ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\nbackup, data-dir, and run prompt for a backup when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.\nRunning restic-backups generic without a subcommand in an interactive terminal opens a command menu. Explicit subcommands remain available for scripts and scheduled jobs. Run a restic command reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter --help at that prompt to see the selected command’s options.\ngeneric list has separate Repositories and Backups tables, so enabled stores remain visible even when no configured backup references them.\ngeneric init reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.",
+    "crumbs": [
+      "Generic Backups",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#create-a-snapshot",
+    "href": "generic.html#create-a-snapshot",
+    "title": "Generic Backups",
+    "section": "Create a snapshot",
+    "text": "Create a snapshot\nConfigure the local source paths once, then select the backup by its ID:\nbackups:\n  - id: documents\n    restic-store-id: personal-store\n    paths:\n      - ~/Documents\n      - ~/Desktop\nuv run restic-backups generic backup documents\nThe command expands ~, passes the paths to restic backup, and applies the backup ID as the restic tag unless tag is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.",
+    "crumbs": [
+      "Generic Backups",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#forget-one-snapshot",
+    "href": "generic.html#forget-one-snapshot",
+    "title": "Generic Backups",
+    "section": "Forget one snapshot",
+    "text": "Forget one snapshot\nuv run restic-backups generic forget\nForgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs restic forget --prune, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.\nWhen several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.",
+    "crumbs": [
+      "Generic Backups",
+      "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "generic.html#permanently-destroy-a-repository",
+    "href": "generic.html#permanently-destroy-a-repository",
+    "title": "Generic Backups",
+    "section": "Permanently destroy a repository",
+    "text": "Permanently destroy a repository\nuv run restic-backups generic destroy\nDestruction is interactive-only. The CLI shows the full S3 target, asks for a yes/no confirmation, then requires the exact repository ID. It deletes every object, object version, and delete marker below the configured bucket and key_prefix. It does not delete the bucket or change the YAML configuration.\nThe provider credentials need permission to list objects and versions and to delete objects and versions. An empty key_prefix is always rejected to prevent accidental bucket deletion.\n\nRepository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.",
     "crumbs": [
       "Generic Backups",
       "Generic Backups"
@@ -142,7 +175,7 @@
     "href": "generic.html#common-operations",
     "title": "Generic Backups",
     "section": "Common operations",
-    "text": "Common operations\n# Create a snapshot\nuv run restic-backups generic run --backup documents backup \"$HOME/Documents\"\n\n# Inspect and check the repository\nuv run restic-backups generic run --backup documents snapshots\nuv run restic-backups generic run --backup documents check\n\n# Restore a snapshot\nuv run restic-backups generic run --backup documents \\\n  restore latest --target /tmp/documents-restore\nArguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them.",
+    "text": "Common operations\n# Inspect and check the repository\nuv run restic-backups generic run --backup documents snapshots --tag documents\nuv run restic-backups generic run --backup documents check\n\n# Restore a snapshot\nuv run restic-backups generic run --backup documents \\\n  restore &lt;snapshot-id&gt; --target /tmp/documents-restore\nArguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the backup command, it also adds the configured restic tag automatically; additional --tag arguments remain supported.",
     "crumbs": [
       "Generic Backups",
       "Generic Backups"
@@ -153,7 +186,7 @@
     "href": "generic.html#managed-data-directory",
     "title": "Generic Backups",
     "section": "Managed data directory",
-    "text": "Managed data directory\nuv run restic-backups generic data-dir documents\nThe result follows data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/. It is for private generated metadata; generic backup sources do not need to live there.",
+    "text": "Managed data directory\nuv run restic-backups generic data-dir documents\nThe result follows data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/ beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.",
     "crumbs": [
       "Generic Backups",
       "Generic Backups"
@@ -262,7 +295,7 @@
     "href": "index.html#start-here",
     "title": "Restic Backups",
     "section": "Start here",
-    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes credentials, stores, backup jobs, and Glacier policy.\nGeneric Backups covers standard restic operations for any local files or directories.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
+    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes credentials, stores, backups, and Glacier policy.\nGeneric Backups covers standard restic operations for any local files or directories.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -272,7 +305,7 @@
     "href": "index.html#architecture",
     "title": "Restic Backups",
     "section": "Architecture",
-    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
+    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -282,7 +315,7 @@
     "href": "index.html#private-data-boundary",
     "title": "Restic Backups",
     "section": "Private data boundary",
-    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/\nThis does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
+    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -292,7 +325,7 @@
     "href": "cli.html",
     "title": "CLI",
     "section": "",
-    "text": "Run the installed command through uv:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.",
+    "text": "Run the installed command through uv:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
     "crumbs": [
       "Setup",
       "CLI"

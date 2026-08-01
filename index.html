@@ -223,7 +223,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="start-here">Start here</h2>
 <ul>
 <li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
-<li><a href="./configuration.html">Configuration</a> describes credentials, stores, backup jobs, and Glacier policy.</li>
+<li><a href="./configuration.html">Configuration</a> describes credentials, stores, backups, and Glacier policy.</li>
 <li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
 <li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
 </ul>
@@ -238,6 +238,7 @@ ul.task-list li input[type="checkbox"] {
     sops.py              SOPS decryption
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
+    s3.py                permanent repository destruction
   voice_memos/
     cli.py               Voice Memos command definitions
     pipeline.py          transcription and diarization processing
@@ -250,7 +251,7 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="private-data-boundary">Private data boundary</h2>
 <p>Managed artifacts use:</p>
 <pre class="text"><code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code></pre>
-<p>This does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
+<p>This path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">

@@ -270,6 +270,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>replace every <code>CHANGE_ME</code> used by the enabled store;</li>
 <li>set the store endpoint, region, bucket, and <code>key_prefix</code>;</li>
 <li>give the backup a useful ID such as <code>documents</code>;</li>
+<li>list the local files or directories under its <code>paths</code> field;</li>
+<li>omit <code>tag</code> unless it should differ from the backup ID;</li>
 <li>make its <code>restic-store-id</code> match the enabled store ID;</li>
 <li>delete unused example entries if desired.</li>
 </ul>
@@ -278,15 +280,16 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_CONFIG</span><span class="op">=</span><span class="st">"</span><span class="va">$PWD</span><span class="st">/config.yaml"</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The list output separates <strong>Repositories</strong> from <strong>Backups</strong>. Every configured store appears in the repository table, even before a configured backup references it.</p>
 </section>
 <section id="initialize-and-back-up" class="level2">
 <h2 class="anchored" data-anchor-id="initialize-and-back-up">3. Initialize and back up</h2>
 <p>Initialize a new repository once:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Then back up any local path. Replace <code>documents</code> with your backup ID:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents backup <span class="st">"</span><span class="va">$HOME</span><span class="st">/Documents"</span></span>
+<p>Then create a snapshot from the paths configured for <code>documents</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup documents</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic run <span class="at">--backup</span> documents snapshots</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Existing restic repositories do not need <code>generic init</code>.</p>
+<p>Running <code>generic init</code> again is safe: existing repositories are detected and skipped. Initialization covers every enabled repository; <code>generic backup</code> uses the selected backup’s repository, paths, and default or configured tag.</p>
 </section>
 <section id="verify-a-restore" class="level2">
 <h2 class="anchored" data-anchor-id="verify-a-restore">4. Verify a restore</h2>
