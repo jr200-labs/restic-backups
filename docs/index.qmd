@@ -10,7 +10,7 @@ directories, and a complete macOS Voice Memos workflow.
 ## Start here
 
 - [Quick Start](quick-start.qmd) creates, validates, and restores a first backup.
-- [Configuration](configuration.qmd) describes credentials, stores, backup jobs,
+- [Configuration](configuration.qmd) describes credentials, stores, backups,
   and Glacier policy.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.

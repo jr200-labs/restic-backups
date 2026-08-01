@@ -10,7 +10,7 @@ from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
-from restic_backups.generic.cli import delete_command
+from restic_backups.generic.cli import forget_command
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 
@@ -26,7 +26,7 @@ class VoiceMemosCliTest(unittest.TestCase):
 
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
-        for command in ("list", "data-dir", "init", "delete", "destroy", "run"):
+        for command in ("list", "data-dir", "init", "forget", "destroy", "run"):
             self.assertIn(command, generic.output)
 
     def test_help_exposes_workflows(self) -> None:
@@ -79,10 +79,10 @@ backups:
                 result = runner.invoke(app, args, env=env)
                 self.assertEqual(result.exit_code, 0, result.output)
 
-    def test_delete_forgets_selected_snapshot(self) -> None:
+    def test_forget_prunes_selected_tagged_snapshot(self) -> None:
         credentials: dict[str, dict[str, object]] = {"credentials": {}}
         stores = {"store": {"enabled": True}}
-        backups = {"backup": {"restic-store-id": "store"}}
+        backups = {"backup": {"restic-store-id": "store", "tag": "documents"}}
         snapshot_id = "a" * 64
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
@@ -103,7 +103,7 @@ backups:
                         }
                     ]
                 ),
-            ),
+            ) as command_output,
             patch("restic_backups.generic.cli.questionary.select") as select,
             patch("restic_backups.generic.cli.questionary.confirm") as confirm,
             patch(
@@ -113,8 +113,15 @@ backups:
             select.return_value.ask.return_value = snapshot_id
             confirm.return_value.ask.return_value = True
 
-            delete_command("backup")
+            forget_command("backup")
 
+        command_output.assert_called_once_with(
+            "backup",
+            ["snapshots", "--tag", "documents", "--json"],
+            credentials,
+            stores,
+            backups,
+        )
         command.assert_called_once_with(
             "backup",
             ["forget", snapshot_id, "--prune"],

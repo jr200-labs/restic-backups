@@ -40,7 +40,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
-            questionary.Choice("Delete a backup snapshot", "delete"),
+            questionary.Choice("Forget a snapshot", "forget"),
             questionary.Choice("Destroy a repository", "destroy"),
             questionary.Choice("Show managed data directory", "data-dir"),
             questionary.Choice("Run a restic command", "run"),
@@ -51,8 +51,8 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
-    elif selected == "delete":
-        delete_command(None)
+    elif selected == "forget":
+        forget_command(None)
     elif selected == "destroy":
         destroy_command(None)
     elif selected == "data-dir":
@@ -129,7 +129,7 @@ def choose_backup(
 
 @app.command("list")
 def list_command() -> None:
-    """Show configured repositories and backup jobs."""
+    """Show configured repositories and backups."""
     _, _, stores, backups = validated()
 
     store_table = Table(title="Repositories", box=box.ROUNDED)
@@ -151,6 +151,7 @@ def list_command() -> None:
     backup_table.add_column("ID", style="cyan", no_wrap=True)
     backup_table.add_column("Description")
     backup_table.add_column("Repository")
+    backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
         store = stores[backup["restic-store-id"]]
@@ -159,6 +160,7 @@ def list_command() -> None:
             Text(backup_id),
             Text(str(backup.get("description", "—"))),
             Text(str(store["id"])),
+            Text(str(backup.get("tag", backup_id))),
             Text(state, style="green" if store["enabled"] else "yellow"),
         )
     console.print(backup_table)
@@ -213,21 +215,26 @@ def init_command() -> None:
         error_console.print(Text(f"{store_id}: initialized", style="green"))
 
 
-@app.command("delete")
-def delete_command(
+@app.command("forget")
+def forget_command(
     backup: Annotated[
         str | None,
         typer.Argument(help="Backup ID; prompts when omitted."),
     ] = None,
 ) -> None:
-    """Permanently delete one snapshot from a backup repository."""
+    """Forget one snapshot and prune its unreferenced data."""
     if not sys.stdin.isatty():
-        fail("delete requires an interactive terminal")
+        fail("forget requires an interactive terminal")
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
+    tag = str(backups[backup_id].get("tag", backup_id))
     try:
         output = restic.command_output(
-            backup_id, ["snapshots", "--json"], credentials, stores, backups
+            backup_id,
+            ["snapshots", "--tag", tag, "--json"],
+            credentials,
+            stores,
+            backups,
         )
         snapshots = json.loads(output)
     except (BackupError, json.JSONDecodeError) as exc:
@@ -235,7 +242,9 @@ def delete_command(
     if not isinstance(snapshots, list):
         fail("restic snapshots returned invalid JSON")
     if not snapshots:
-        error_console.print(Text(f"{backup_id}: no snapshots", style="yellow"))
+        error_console.print(
+            Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
+        )
         return
 
     choices: list[questionary.Choice] = []
@@ -258,17 +267,17 @@ def delete_command(
             )
         )
 
-    selected = questionary.select("Snapshot to permanently delete:", choices).ask()
+    selected = questionary.select("Snapshot to forget:", choices).ask()
     if selected is None:
         raise typer.Abort()
     snapshot_id = str(selected)
     short_id = str(snapshot_by_id[snapshot_id].get("short_id", snapshot_id[:8]))
     confirmed = questionary.confirm(
-        f"Permanently delete snapshot '{short_id}' from '{backup_id}'?",
+        f"Forget snapshot '{short_id}' and prune its unreferenced data?",
         default=False,
     ).ask()
     if confirmed is not True:
-        error_console.print(Text("Cancelled; nothing was deleted.", style="yellow"))
+        error_console.print(Text("Cancelled; nothing was forgotten.", style="yellow"))
         return
     try:
         code = restic.command(
@@ -283,7 +292,7 @@ def delete_command(
     if code:
         raise typer.Exit(code)
     error_console.print(
-        Text(f"{backup_id}: deleted snapshot {short_id}", style="bold green")
+        Text(f"{backup_id}: forgot snapshot {short_id}", style="bold green")
     )
 
 

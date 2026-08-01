@@ -27,6 +27,7 @@ Edit its first credential, store, and backup entries. For a generic backup:
 - replace every `CHANGE_ME` used by the enabled store;
 - set the store endpoint, region, bucket, and `key_prefix`;
 - give the backup a useful ID such as `documents`;
+- set its restic `tag`, normally to the same value as its ID;
 - make its `restic-store-id` match the enabled store ID;
 - delete unused example entries if desired.
 
@@ -41,7 +42,8 @@ uv run restic-backups generic list
 ```
 
 The list output separates **Repositories** from **Backups**. Every configured
-store appears in the repository table, even before a backup job references it.
+store appears in the repository table, even before a configured backup references
+it.
 
 ## 3. Initialize and back up
 
@@ -60,7 +62,7 @@ uv run restic-backups generic run --backup documents snapshots
 
 Running `generic init` again is safe: existing repositories are detected and
 skipped. Initialization covers every enabled repository; `generic run` uses a
-backup job to select which repository receives the command.
+configured backup to select which repository receives the command.
 
 ## 4. Verify a restore
 

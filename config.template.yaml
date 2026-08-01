@@ -44,8 +44,10 @@ restic-stores:
         storage-class: GLACIER_IR
         restore: null
 
-# CLI backup jobs. restic-store-id must match a store ID above.
+# Configured backups. restic-store-id must match a store ID above.
 backups:
     - id: voice-memos
       description: Back up macOS Voice Memos.
       restic-store-id: b2-store
+      # Restic tag applied to every snapshot created for this backup.
+      tag: voice-memos

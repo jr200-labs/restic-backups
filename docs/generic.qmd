@@ -15,7 +15,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
-| `generic delete [BACKUP]` | Permanently delete one snapshot | Yes |
+| `generic forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
 | `generic destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
@@ -29,24 +29,25 @@ command list and descriptions, lets you select one, then prompts only for its
 arguments. Enter `--help` at that prompt to see the selected command's options.
 
 `generic list` has separate **Repositories** and **Backups** tables, so enabled
-stores remain visible even when no backup job references them.
+stores remain visible even when no configured backup references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
 
-## Delete one backup snapshot
+## Forget one snapshot
 
 ```sh
-uv run restic-backups generic delete
+uv run restic-backups generic forget
 ```
 
-Deletion is interactive-only. Select a backup job, select one snapshot from its
-repository, and confirm the deletion. The CLI runs `restic forget --prune`, so
-the snapshot and data no longer referenced by any other snapshot are permanently
-removed. The configured backup job and repository remain available.
+Forgetting is interactive-only. Select a configured backup, select one snapshot
+with its configured restic tag, and confirm. The CLI runs
+`restic forget --prune`, so the snapshot and data no longer referenced by any
+other snapshot are permanently removed. The configured backup and repository
+remain available.
 
-When several backup jobs share a repository, the snapshot picker shows every
-snapshot in that repository.
+When several configured backups share a repository, their restic tags keep their
+snapshots distinct in the picker.
 
 ## Permanently destroy a repository
 
@@ -76,17 +77,18 @@ them.
 uv run restic-backups generic run --backup documents backup "$HOME/Documents"
 
 # Inspect and check the repository
-uv run restic-backups generic run --backup documents snapshots
+uv run restic-backups generic run --backup documents snapshots --tag documents
 uv run restic-backups generic run --backup documents check
 
 # Restore a snapshot
 uv run restic-backups generic run --backup documents \
-  restore latest --target /tmp/documents-restore
+  restore <snapshot-id> --target /tmp/documents-restore
 ```
 
 Arguments after the backup selection are passed to restic unchanged. The CLI
 exports the selected repository and credentials only to the child process and
-does not print them.
+does not print them. For the `backup` command, it also adds the configured restic
+tag automatically; additional `--tag` arguments remain supported.
 
 ## Managed data directory
 

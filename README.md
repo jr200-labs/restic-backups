@@ -46,7 +46,7 @@ The configuration separates:
 - `credentials`: reusable S3-compatible authentication;
 - `restic-stores`: endpoint, region, bucket, key prefix/password, and optional
   archive policy;
-- `backups`: jobs linked to a store by `restic-store-id`.
+- `backups`: CLI selections linked to a store and a restic snapshot tag.
 
 One credential may serve many stores, and multiple backups may share a store.
 Disabled stores may contain `CHANGE_ME`; all placeholders must be replaced

@@ -61,6 +61,9 @@ def command(
     quiet: bool = False,
 ) -> int:
     store, credential = repository.resolve(backup_id, credentials, stores, backups)
+    if args and args[0] == "backup":
+        tag = str(backups[backup_id].get("tag", backup_id))
+        args = ["backup", "--tag", tag, *args[1:]]
     return store_command(store, credential, args, quiet=quiet)
 
 

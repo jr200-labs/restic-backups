@@ -14,12 +14,18 @@ from .pipeline import DEFAULT_RECORDINGS_DIR, SUMMARIES_DIR
 
 BACKUP_ID = "voice-memos"
 HOST = "mac-icloud"
-TAG = "voice-memos"
 
 
-def run_restic(args: list[str]) -> int:
+def run_restic(args: list[str], *, tagged: bool = False) -> int:
     """Run restic against the configured Voice Memos repository."""
     _, credentials, stores, backups = config.load_validated()
+    if tagged and args:
+        args = [
+            args[0],
+            "--tag",
+            str(backups[BACKUP_ID].get("tag", BACKUP_ID)),
+            *args[1:],
+        ]
     return restic.command(BACKUP_ID, args, credentials, stores, backups)
 
 
@@ -31,8 +37,6 @@ def backup(recordings_dir: Path = DEFAULT_RECORDINGS_DIR) -> int:
             "backup",
             str(recordings_dir.expanduser()),
             str(SUMMARIES_DIR),
-            "--tag",
-            TAG,
             "--tag",
             "summaries",
             "--host",

@@ -131,6 +131,8 @@ def validate(
 
     for backup_id, backup in backups.items():
         store_id = required_text(backup, "restic-store-id", backup_id)
+        if "tag" in backup:
+            required_text(backup, "tag", backup_id)
         if store_id not in stores:
             raise ConfigError(
                 f"{backup_id} references unknown restic store '{store_id}'"

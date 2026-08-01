@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import patch
 
 from restic_backups import config
@@ -67,7 +68,7 @@ Additional Commands:
                 )
 
     def test_s3_store_without_archive_policy(self) -> None:
-        config_data = {
+        config_data: dict[str, Any] = {
             "credentials": [
                 {
                     "id": "b2",
@@ -132,6 +133,14 @@ Additional Commands:
                 "voice-memos", ["backup", "/tmp/source"], credentials, stores, backups
             )
         self.assertIn("s3.storage-class=GLACIER_IR", run.call_args.args[0])
+        self.assertEqual(
+            run.call_args.args[0][-4:],
+            ["backup", "--tag", "voice-memos", "/tmp/source"],
+        )
+
+        config_data["backups"][0]["tag"] = 42
+        with self.assertRaisesRegex(config.ConfigError, "voice-memos.tag"):
+            config.validate(config_data)
 
 
 if __name__ == "__main__":

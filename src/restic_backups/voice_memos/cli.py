@@ -52,7 +52,7 @@ def check_repository() -> None:
 @cli.command()
 def stats() -> None:
     """Show size and file count for the latest Voice Memos snapshot."""
-    operation(lambda: workflow.run_restic(["stats", "latest", "--tag", workflow.TAG]))
+    operation(lambda: workflow.run_restic(["stats", "latest"], tagged=True))
 
 
 @cli.command("files")
