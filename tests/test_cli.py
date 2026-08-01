@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+from click import unstyle
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
@@ -20,14 +21,16 @@ class VoiceMemosCliTest(unittest.TestCase):
         runner = CliRunner()
         root = runner.invoke(app, ["--help"])
         self.assertEqual(root.exit_code, 0, root.output)
-        self.assertIn("generic", root.output)
-        self.assertIn("voice-memos", root.output)
-        self.assertIn("--verbose", root.output)
+        root_help = unstyle(root.output)
+        self.assertIn("generic", root_help)
+        self.assertIn("voice-memos", root_help)
+        self.assertIn("--verbose", root_help)
 
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
+        generic_help = unstyle(generic.output)
         for command in ("list", "data-dir", "init", "forget", "destroy", "run"):
-            self.assertIn(command, generic.output)
+            self.assertIn(command, generic_help)
 
     def test_help_exposes_workflows(self) -> None:
         result = ClickCliRunner().invoke(voice_memos_cli, ["--help"])
