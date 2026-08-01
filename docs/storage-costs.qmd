@@ -12,6 +12,7 @@ restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.
 | Service | Monthly cost | Price used | Supported by this CLI |
 |---|---:|---|:---:|
 | AWS S3 Glacier Instant Retrieval | **$0.40** | $0.004/GB-month | Yes |
+| AWS S3 Glacier Flexible Retrieval | **$0.36** | $0.0036/GB-month | Yes; restore required |
 | AWS S3 Standard | **$2.30** | $0.023/GB-month | Yes |
 | Backblaze B2 | **$0.63** | $0.00695/GB-month after the first 10 GB free | Yes |
 | Google Drive | **$1.99** | Google One Basic 100 GB plan | No |
@@ -22,6 +23,7 @@ restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.
 | Service | Monthly cost | Price used | Supported by this CLI |
 |---|---:|---|:---:|
 | AWS S3 Glacier Instant Retrieval | **$4.00** | 1,000 GB at $0.004/GB-month | Yes |
+| AWS S3 Glacier Flexible Retrieval | **$3.60** | 1,000 GB at $0.0036/GB-month | Yes; restore required |
 | AWS S3 Standard | **$23.00** | 1,000 GB at $0.023/GB-month | Yes |
 | Backblaze B2 | **$6.88** | 990 billable GB after the first 10 GB free | Yes |
 | Google Drive | **$9.99** | Cheapest plan covering 1 TB is the 2 TB plan | No |
@@ -34,16 +36,24 @@ OneDrive prices are fixed consumer subscription tiers that include other
 services. This project currently supports S3-compatible storage only, so Google
 Drive and OneDrive cannot be selected as `restic-stores`.
 
-Glacier Instant Retrieval has a 90-day minimum storage duration, a 128 KB
-minimum billable object size, and separate data-retrieval charges. S3 Standard
-and B2 cost more to store but do not require an archive restore before normal
-access. Backblaze includes free egress up to three times average monthly storage;
-AWS transfer and request charges vary by usage and region.
+Both Glacier classes have a 90-day minimum storage duration. Instant Retrieval
+is immediately readable but has a 128 KB minimum billable object size and
+separate data-retrieval charges. Flexible Retrieval first requires an archive
+restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5
+hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object,
+which is not included in the estimates above.
+
+For Flexible Retrieval, configure a `restore` policy and set
+`ALLOW_ARCHIVE_RETRIEVAL=1` when running retrieval-related commands. S3 Standard
+and B2 do not require an archive restore before normal access. Backblaze includes
+free egress up to three times average monthly storage; AWS transfer and request
+charges vary by usage and region.
 
 Prices vary by country and can change. Check the current official pages before
 choosing a provider:
 
 - [Amazon S3 pricing](https://aws.amazon.com/s3/pricing/)
+- [AWS archive retrieval options](https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html)
 - [Backblaze B2 pricing](https://www.backblaze.com/cloud-storage/pricing)
 - [Google One plans](https://one.google.com/about/plans?hl=en_US)
 - [Microsoft OneDrive plans](https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us)
