@@ -8,9 +8,17 @@ website:
     style: docked
     contents:
       - index.qmd
-      - cli.qmd
-      - configuration.qmd
-      - voice-memos.qmd
+      - quick-start.qmd
+      - section: Setup
+        contents:
+          - configuration.qmd
+          - cli.qmd
+      - section: Generic Backups
+        contents:
+          - generic.qmd
+      - section: Voice Memos Backups
+        contents:
+          - voice-memos.qmd
 
 format:
   html:

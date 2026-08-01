@@ -1,0 +1,75 @@
+---
+title: Quick Start
+---
+
+This guide creates one generic S3-compatible backup from a source checkout.
+
+## 1. Install
+
+```sh
+make install-deps
+make install
+```
+
+`make install-deps` installs the required Homebrew tools. `make install` creates
+the uv environment.
+
+## 2. Configure a repository
+
+Copy the commented template:
+
+```sh
+cp config.template.yaml config.yaml
+```
+
+Edit its first credential, store, and backup entries. For a generic backup:
+
+- replace every `CHANGE_ME` used by the enabled store;
+- set the store endpoint, region, bucket, and `key_prefix`;
+- give the backup a useful ID such as `documents`;
+- make its `restic-store-id` match the enabled store ID;
+- delete unused example entries if desired.
+
+Keep the repository password safe: restic cannot decrypt snapshots without it.
+
+Set the config path once for the shell and validate it:
+
+```sh
+export RESTIC_BACKUPS_CONFIG="$PWD/config.yaml"
+uv run restic-backups check-config
+uv run restic-backups generic list
+```
+
+## 3. Initialize and back up
+
+Initialize a new repository once:
+
+```sh
+uv run restic-backups generic init
+```
+
+Then back up any local path. Replace `documents` with your backup ID:
+
+```sh
+uv run restic-backups generic run --backup documents backup "$HOME/Documents"
+uv run restic-backups generic run --backup documents snapshots
+```
+
+Existing restic repositories do not need `generic init`.
+
+## 4. Verify a restore
+
+```sh
+mkdir -p /tmp/restic-restore-check
+uv run restic-backups generic run --backup documents \
+  restore latest --target /tmp/restic-restore-check
+```
+
+Inspect the restored files before relying on the backup. Continue with
+[Generic Backups](generic.qmd) for repository commands or
+[Voice Memos Backups](voice-memos.qmd) for the macOS workflow.
+
+::: {.callout-warning}
+Do not commit `config.yaml`, credentials, repository passwords, or restored
+data. Use [SOPS configuration](configuration.qmd) before committing a config.
+:::

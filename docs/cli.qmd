@@ -27,48 +27,13 @@ The equivalent environment variables are `RESTIC_BACKUPS_CONFIG` and
 | `generic ...` | Run generic configured repository commands | Depends on subcommand |
 | `voice-memos ...` | Run the macOS Voice Memos workflow | Depends on subcommand |
 
-## Generic commands
+Use [Generic Backups](generic.qmd) for restic passthrough, repository
+initialization, restores, and managed data directories. Use
+[Voice Memos Backups](voice-memos.qmd) for the macOS-specific workflow.
 
-| Command | Purpose | Remote storage |
-|---|---|---|
-| `generic list` | Show backup IDs, stores, endpoints, and enabled state | No |
-| `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
-| `generic init` | Initialize each enabled referenced repository once | Yes |
-| `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
-
-`generic data-dir` and `generic run` prompt with Questionary when the backup is omitted from an
-interactive terminal. Non-interactive callers must provide the ID.
-
-## Restic passthrough
-
-Use `generic run` for any repository operation not represented by a higher-level
-workflow command:
+Run subcommand help without loading a configuration:
 
 ```sh
-uv run restic-backups generic run --backup voice-memos snapshots
-uv run restic-backups generic run --backup voice-memos check
-uv run restic-backups generic run --backup voice-memos restore latest --target /tmp/restore
+uv run restic-backups generic --help
+uv run restic-backups voice-memos --help
 ```
-
-The CLI loads the selected store, exports credentials and restic repository
-settings only to the child process, and does not print them.
-
-## Managed data directory
-
-```sh
-uv run restic-backups generic data-dir voice-memos
-```
-
-The result follows
-`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/`. It is intended for
-private generated metadata, not as a required root for backup source files.
-
-## Cold S3 guard
-
-`GLACIER_IR` behaves as immediate storage. For `GLACIER` or `DEEP_ARCHIVE`, the
-CLI permits uploads but blocks retrieval-related work unless both the restore
-policy is valid and `ALLOW_ARCHIVE_RETRIEVAL=1` is set. The configured tier,
-days, and timeout are then passed to restic's S3 restore support.
-
-Commands outside the explicitly guarded cold-storage set are rejected. Use
-`GLACIER_IR` for repositories requiring normal interactive restic access.

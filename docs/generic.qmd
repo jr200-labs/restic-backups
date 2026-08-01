@@ -1,0 +1,65 @@
+---
+title: Generic Backups
+---
+
+The `generic` subcommand runs standard restic operations against any configured
+backup. Backup sources may be files or directories anywhere on the machine.
+
+Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
+[Quick Start](quick-start.qmd) for a complete first backup.
+
+## Commands
+
+| Command | Purpose | Remote storage |
+|---|---|---|
+| `generic list` | Show backup IDs, stores, endpoints, and enabled state | No |
+| `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
+| `generic init` | Initialize each enabled referenced repository once | Yes |
+| `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
+
+`data-dir` and `run` prompt for a backup when it is omitted in an interactive
+terminal. Non-interactive callers must provide the backup ID.
+
+## Common operations
+
+```sh
+# Create a snapshot
+uv run restic-backups generic run --backup documents backup "$HOME/Documents"
+
+# Inspect and check the repository
+uv run restic-backups generic run --backup documents snapshots
+uv run restic-backups generic run --backup documents check
+
+# Restore a snapshot
+uv run restic-backups generic run --backup documents \
+  restore latest --target /tmp/documents-restore
+```
+
+Arguments after the backup selection are passed to restic unchanged. The CLI
+exports the selected repository and credentials only to the child process and
+does not print them.
+
+## Managed data directory
+
+```sh
+uv run restic-backups generic data-dir documents
+```
+
+The result follows
+`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/`. It is for private generated
+metadata; generic backup sources do not need to live there.
+
+## Cold S3 storage
+
+`GLACIER_IR` supports immediate access. `GLACIER` and `DEEP_ARCHIVE` permit
+uploads, but retrieval-related commands require the configured restore policy
+and an explicit acknowledgement:
+
+```sh
+ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \
+  --backup archive restore latest --target /tmp/archive-restore
+```
+
+Other restic commands are rejected for cold repositories when the CLI cannot
+determine that they are safe. See [Configuration](configuration.qmd) for the
+archive policy fields.
