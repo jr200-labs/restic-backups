@@ -31,6 +31,8 @@ export RESTIC_BACKUPS_SOPS=1
 
 The values of `id` fields are user-defined names. They only need to be unique
 within their section; references in other sections must match them exactly.
+Every item may also have an optional `description` for user notes. Descriptions
+do not affect backup behavior.
 
 ## `credentials`
 
@@ -40,6 +42,7 @@ key IDs and application keys use the same fields as AWS access keys.
 ```yaml
 credentials:
   - id: b2-credentials
+    description: Backblaze B2 application credentials.
     access-key-id: "..."
     secret-access-key: "..."
 ```
@@ -54,6 +57,7 @@ One credential may be referenced by several stores.
 ```yaml
 restic-stores:
   - id: b2-store
+    description: Backblaze B2 restic repository.
     credentials-id: b2-credentials
     enabled: true
     endpoint: https://s3.us-west-004.backblazeb2.com
@@ -78,6 +82,7 @@ matching `restic-store-id` to a `restic-stores.id` value.
 ```yaml
 backups:
   - id: voice-memos
+    description: Back up macOS Voice Memos.
     restic-store-id: b2-store
 ```
 
@@ -91,11 +96,13 @@ objects are stored, and `restore` defines retrieval behavior for cold storage:
 ```yaml
 credentials:
   - id: aws-credentials
+    description: AWS S3 access credentials.
     access-key-id: "..."
     secret-access-key: "..."
 
 restic-stores:
   - id: aws-store
+    description: AWS S3 restic repository.
     credentials-id: aws-credentials
     enabled: false
     endpoint: https://s3.us-east-1.amazonaws.com

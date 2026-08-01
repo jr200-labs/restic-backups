@@ -4,10 +4,13 @@
 # Reusable provider credentials. IDs are arbitrary, but must be unique here.
 credentials:
     - id: b2-credentials
+      # Optional user note; does not affect backup behavior.
+      description: Backblaze B2 application credentials.
       access-key-id: CHANGE_ME
       secret-access-key: CHANGE_ME
 
     - id: aws-credentials
+      description: AWS S3 access credentials.
       access-key-id: CHANGE_ME
       secret-access-key: CHANGE_ME
 
@@ -15,6 +18,7 @@ credentials:
 # Restic repositories. credentials-id must match an ID above.
 restic-stores:
     - id: b2-store
+      description: Backblaze B2 restic repository.
       credentials-id: b2-credentials
       # Set false to ignore this store; disabled stores may retain CHANGE_ME.
       enabled: true
@@ -27,6 +31,7 @@ restic-stores:
       password: CHANGE_ME
 
     - id: aws-store
+      description: AWS S3 restic repository.
       credentials-id: aws-credentials
       enabled: false
       endpoint: https://s3.us-east-1.amazonaws.com
@@ -42,4 +47,5 @@ restic-stores:
 # CLI backup jobs. restic-store-id must match a store ID above.
 backups:
     - id: voice-memos
+      description: Back up macOS Voice Memos.
       restic-store-id: b2-store
