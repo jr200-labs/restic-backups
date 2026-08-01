@@ -95,6 +95,19 @@ def init_command() -> None:
         if store_id not in seen and stores[store_id]["enabled"]:
             seen.add(store_id)
             try:
+                code = restic.command(
+                    backup_id,
+                    ["cat", "config"],
+                    credentials,
+                    stores,
+                    backups,
+                    quiet=True,
+                )
+                if code == 0:
+                    typer.echo(f"{store_id}: already initialized; skipping")
+                    continue
+                if code != 10:
+                    raise typer.Exit(code)
                 code = restic.command(backup_id, ["init"], credentials, stores, backups)
             except BackupError as exc:
                 fail(str(exc))

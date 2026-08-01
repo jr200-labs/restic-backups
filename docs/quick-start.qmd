@@ -55,7 +55,8 @@ uv run restic-backups generic run --backup documents backup "$HOME/Documents"
 uv run restic-backups generic run --backup documents snapshots
 ```
 
-Existing restic repositories do not need `generic init`.
+Running `generic init` again is safe: existing repositories are detected and
+skipped.
 
 ## 4. Verify a restore
 

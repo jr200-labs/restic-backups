@@ -22,6 +22,8 @@ def command(
     credentials: dict[str, dict[str, Any]],
     stores: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
+    *,
+    quiet: bool = False,
 ) -> int:
     if not args:
         fail("restic command required")
@@ -76,13 +78,18 @@ def command(
     try:
         with tempfile.TemporaryFile(mode="w+") as errors:
             result = subprocess.run(
-                ["restic", *options, *args], env=env, stderr=errors, check=False
+                ["restic", *options, *args],
+                env=env,
+                stdout=subprocess.DEVNULL if quiet else None,
+                stderr=errors,
+                check=False,
             )
             errors.seek(0)
             error_text = errors.read()
     except FileNotFoundError:
         fail("restic is not installed")
-    print(error_text, end="", file=sys.stderr)
+    if not quiet or result.returncode not in {0, 10}:
+        print(error_text, end="", file=sys.stderr)
     if "operation not permitted" in error_text.lower():
         print(
             "\nrestic was blocked by macOS. Grant the terminal Full Disk Access, "

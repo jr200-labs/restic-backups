@@ -3,6 +3,7 @@
 import tempfile
 import unittest
 from pathlib import Path
+from unittest.mock import call, patch
 
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
@@ -63,6 +64,48 @@ backups:
             ):
                 result = runner.invoke(app, args, env=env)
                 self.assertEqual(result.exit_code, 0, result.output)
+
+    @patch("restic_backups.generic.cli.restic.command")
+    @patch("restic_backups.generic.cli.validated")
+    def test_init_skips_existing_repositories(self, validated, command) -> None:
+        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        stores = {
+            "existing": {"enabled": True},
+            "new": {"enabled": True},
+        }
+        backups = {
+            "first": {"restic-store-id": "existing"},
+            "second": {"restic-store-id": "new"},
+        }
+        validated.return_value = ({}, credentials, stores, backups)
+        command.side_effect = [0, 10, 0]
+
+        result = CliRunner().invoke(app, ["generic", "init"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("existing: already initialized; skipping", result.output)
+        self.assertEqual(
+            command.call_args_list,
+            [
+                call(
+                    "first",
+                    ["cat", "config"],
+                    credentials,
+                    stores,
+                    backups,
+                    quiet=True,
+                ),
+                call(
+                    "second",
+                    ["cat", "config"],
+                    credentials,
+                    stores,
+                    backups,
+                    quiet=True,
+                ),
+                call("second", ["init"], credentials, stores, backups),
+            ],
+        )
 
 
 if __name__ == "__main__":
