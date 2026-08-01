@@ -64,7 +64,7 @@ restic-stores:
     region: us-west-004
     bucket: example-bucket
     key_prefix: voice-memos
-    cache-dir: restic-cache/b2-store
+    cache-dir: .restic-cache/b2-store
     password: "..."
 ```
 
