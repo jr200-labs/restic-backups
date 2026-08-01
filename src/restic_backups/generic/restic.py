@@ -114,6 +114,8 @@ def store_run(
         RESTIC_PASSWORD=store["password"],
         RESTIC_REPOSITORY=(f"s3:{endpoint}/{store['bucket']}/{key_prefix}"),
     )
+    if "cache-dir" in store:
+        env["RESTIC_CACHE_DIR"] = str(repository.cache_dir(store))
     options: list[str] = ["-o", f"s3.region={store['region']}"]
     archive = store.get("archive")
     if archive is not None:

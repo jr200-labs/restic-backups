@@ -64,6 +64,7 @@ restic-stores:
     region: us-west-004
     bucket: example-bucket
     key_prefix: voice-memos
+    cache-dir: .restic-cache/b2-store
     password: "..."
 ```
 
@@ -73,6 +74,11 @@ locate the repository. `password` encrypts the restic repository. Disabled
 stores are ignored by commands and may retain `CHANGE_ME` placeholders. An
 enabled store fails validation until its store values and credentials are
 complete.
+
+`cache-dir` optionally selects restic's local cache for this repository. `~` is
+expanded, and a relative path is resolved beside the selected config file. If
+omitted, restic uses its operating-system default. A store-specific value takes
+precedence over `RESTIC_CACHE_DIR` from the process environment.
 
 Every store appears in the `generic list` repository table. `generic init`
 initializes enabled stores even when no backup references them; a backup entry

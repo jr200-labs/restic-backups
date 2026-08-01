@@ -45,7 +45,7 @@ The configuration separates:
 
 - `credentials`: reusable S3-compatible authentication;
 - `restic-stores`: endpoint, region, bucket, key prefix/password, and optional
-  archive policy;
+  cache directory and archive policy;
 - `backups`: CLI selections linked to a store, local source paths, and an
   optional restic snapshot tag (defaulting to the backup ID).
 

@@ -50,6 +50,10 @@ Additional Commands:
                     Path(directory).resolve()
                     / "data/store/bucket/private/voice-memos/voice-memos",
                 )
+                self.assertEqual(
+                    repository.cache_dir({"cache-dir": ".restic-cache/store"}),
+                    Path(directory).resolve() / ".restic-cache/store",
+                )
 
     def test_plain_yaml_and_sops_modes(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -86,6 +90,7 @@ Additional Commands:
                     "bucket": "bucket",
                     "key_prefix": "voice-memos",
                     "password": "password",
+                    "cache-dir": "/tmp/restic-cache",
                 }
             ],
             "backups": [{"id": "voice-memos", "restic-store-id": "store"}],
@@ -108,6 +113,7 @@ Additional Commands:
             environment["RESTIC_REPOSITORY"],
             "s3:https://s3.us-west-004.backblazeb2.com/bucket/voice-memos",
         )
+        self.assertEqual(environment["RESTIC_CACHE_DIR"], "/tmp/restic-cache")
 
         result.stdout = "[]"
         with patch("subprocess.run", return_value=result) as run:
@@ -145,6 +151,11 @@ Additional Commands:
         config_data["backups"][0]["tag"] = "voice-memos"
         config_data["backups"][0]["paths"] = []
         with self.assertRaisesRegex(config.ConfigError, "voice-memos.paths"):
+            config.validate(config_data)
+
+        config_data["backups"][0]["paths"] = ["/tmp/source"]
+        config_data["restic-stores"][0]["cache-dir"] = 42
+        with self.assertRaisesRegex(config.ConfigError, "store.cache-dir"):
             config.validate(config_data)
 
 

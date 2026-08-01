@@ -27,6 +27,8 @@ restic-stores:
       bucket: CHANGE_ME
       # Object-key prefix for the restic repository inside the bucket.
       key_prefix: restic
+      # Optional restic cache; relative paths are resolved beside this file.
+      # cache-dir: .restic-cache/b2-store
       # Restic repository encryption password, not the provider password.
       password: CHANGE_ME
 
