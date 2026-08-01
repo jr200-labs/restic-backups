@@ -28,6 +28,7 @@ restic_backups/
     sops.py              SOPS decryption
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
+    s3.py                permanent repository deletion
   voice_memos/
     cli.py               Voice Memos command definitions
     pipeline.py          transcription and diarization processing

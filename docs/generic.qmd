@@ -15,6 +15,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | `generic list` | Show repository and backup tables | No |
 | `generic data-dir [BACKUP]` | Print the managed private-data directory | No |
 | `generic init` | Initialize each new enabled repository | Yes |
+| `generic delete [REPOSITORY]` | Permanently erase one repository | Yes |
 | `generic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
 `data-dir` and `run` prompt for a backup when it is omitted in an interactive
@@ -29,6 +30,27 @@ stores remain visible even when no backup job references them.
 
 `generic init` reports each configured store, skips disabled or already
 initialized stores, and initializes every enabled store that is missing.
+
+## Permanently delete a repository
+
+```sh
+uv run restic-backups generic delete
+```
+
+Deletion is interactive-only. The CLI shows the full S3 target, asks for a
+yes/no confirmation, then requires the exact repository ID. It deletes every
+object, object version, and delete marker below the configured `bucket` and
+`key_prefix`. It does not delete the bucket or change the YAML configuration.
+
+The provider credentials need permission to list objects and versions and to
+delete objects and versions. An empty `key_prefix` is always rejected to prevent
+accidental bucket deletion.
+
+::: {.callout-danger}
+Repository deletion is irreversible. Snapshots, indexes, repository keys, and
+encrypted data are all erased. The configured restic password cannot recover
+them.
+:::
 
 ## Common operations
 

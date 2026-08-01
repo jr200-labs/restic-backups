@@ -15,7 +15,7 @@ from rich.text import Text
 
 from .. import config
 from ..errors import BackupError
-from . import repository, restic
+from . import repository, restic, s3
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -39,6 +39,7 @@ def menu(context: typer.Context) -> None:
         choices=[
             questionary.Choice("List configuration", "list"),
             questionary.Choice("Initialize repositories", "init"),
+            questionary.Choice("Delete a repository", "delete"),
             questionary.Choice("Show managed data directory", "data-dir"),
             questionary.Choice("Run a restic command", "run"),
             questionary.Choice("Exit", "exit"),
@@ -48,6 +49,8 @@ def menu(context: typer.Context) -> None:
         list_command()
     elif selected == "init":
         init_command()
+    elif selected == "delete":
+        delete_command(None)
     elif selected == "data-dir":
         data_dir_command(None)
     elif selected == "run":
@@ -189,6 +192,62 @@ def init_command() -> None:
         if code:
             raise typer.Exit(code)
         error_console.print(Text(f"{store_id}: initialized", style="green"))
+
+
+@app.command("delete")
+def delete_command(
+    repository_id: Annotated[
+        str | None,
+        typer.Argument(help="Repository ID; prompts when omitted."),
+    ] = None,
+) -> None:
+    """Permanently erase a configured repository from S3."""
+    if not sys.stdin.isatty():
+        fail("delete requires an interactive terminal")
+    _, credentials, stores, _ = validated()
+    if repository_id is None:
+        selected = questionary.select(
+            "Repository to permanently delete:",
+            choices=[
+                questionary.Choice(
+                    f"{store_id}  ({store['endpoint']}/{store['bucket']}/{store['key_prefix']})",
+                    store_id,
+                )
+                for store_id, store in stores.items()
+            ],
+        ).ask()
+        if selected is None:
+            raise typer.Abort()
+        repository_id = str(selected)
+    store = stores.get(repository_id)
+    if store is None:
+        fail(f"repository '{repository_id}' not found in {config.config_path()}")
+
+    target = (
+        f"{store['endpoint'].rstrip('/')}/{store['bucket']}/"
+        f"{store['key_prefix'].strip('/')}"
+    )
+    confirmed = questionary.confirm(
+        f"Permanently delete '{repository_id}' and all data at {target}?",
+        default=False,
+    ).ask()
+    if confirmed is not True:
+        error_console.print(Text("Cancelled; nothing was deleted.", style="yellow"))
+        return
+    typed = questionary.text(
+        f"Type '{repository_id}' to confirm permanent deletion:"
+    ).ask()
+    if typed != repository_id:
+        fail("repository ID did not match; nothing was deleted")
+
+    credential = credentials[store["credentials-id"]]
+    deleted = s3.delete_repository(store, credential)
+    error_console.print(
+        Text(
+            f"{repository_id}: permanently deleted {deleted} objects and versions",
+            style="bold green",
+        )
+    )
 
 
 @app.command(
