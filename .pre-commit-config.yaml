@@ -1,0 +1,42 @@
+repos:
+  - repo: local
+    hooks:
+      - id: sync-shared
+        name: sync shared configs
+        entry: bash -c 'mkdir -p .shared; [ -x .shared/sync.sh ] || { curl -sfL --max-time 10 "https://raw.githubusercontent.com/jr200-labs/github-action-templates/master/shared/sync.sh" -o .shared/sync.sh 2>/dev/null && chmod +x .shared/sync.sh; }; [ -x .shared/sync.sh ] && .shared/sync.sh python; exit 0'
+        language: system
+        always_run: true
+        pass_filenames: false
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.15.0
+    hooks:
+      - id: ruff
+        args: [--config=.shared/ruff.toml, --fix]
+      - id: ruff-format
+        args: [--config=.shared/ruff.toml]
+
+  # mypy runs via `uv run` so it sees the project's real venv (all
+  # project deps + type stubs installed by `uv sync --group dev`). The
+  # pre-commit `mirrors-mypy` hook installs mypy into an isolated venv
+  # that only knows the packages listed in additional_dependencies —
+  # which cannot be kept in sync with every consumer repo's dep list,
+  # producing "Cannot find implementation or library stub for module
+  # named X" cascades. Shell out and use the real env instead.
+  # (JRL-45)
+  - repo: local
+    hooks:
+      - id: mypy
+        name: mypy (uv run)
+        entry: uv run --group dev mypy .
+        language: system
+        types: [python]
+        require_serial: true
+        pass_filenames: false
+
+  - repo: https://github.com/alessandrojcm/commitlint-pre-commit-hook
+    rev: v9.22.0
+    hooks:
+      - id: commitlint
+        stages: [commit-msg]
+        additional_dependencies: ['@commitlint/config-conventional']

@@ -1,0 +1,52 @@
+[project]
+name = "restic-backups"
+version = "0.1.0"
+description = "Restic backup CLI with optional SOPS configuration."
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.1",
+    "requests>=2.32",
+    "mlx-whisper>=0.4.0; platform_system == 'Darwin' and platform_machine == 'arm64'",
+    "pyannote.audio>=3.1",
+    "torch>=2.0",
+    "torchaudio>=2.0",
+    "textual>=0.80",
+    "typer>=0.25.1",
+    "questionary>=2.1.1",
+    "pyyaml>=6.0.3",
+]
+
+[project.urls]
+Documentation = "https://jr200-labs.github.io/restic-backups/"
+Repository = "https://github.com/jr200-labs/restic-backups"
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "quarto-cli>=1.9.38",
+    "ruff>=0.14.14",
+    "types-pyyaml>=6.0.12.20250915",
+]
+
+[project.scripts]
+restic-backups = "restic_backups.cli:app"
+
+[build-system]
+requires = ["uv_build>=0.12.1,<0.13.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = "src/restic-backups"
+
+[tool.mypy]
+packages = ["restic_backups"]
+
+# ponytail: the ML/Click workflow is dynamically typed; remove as it gains annotations.
+[[tool.mypy.overrides]]
+module = ["restic_backups.voice_memos.*"]
+ignore_errors = true
+
+[tool.ruff]
+extend = ".shared/ruff.toml"

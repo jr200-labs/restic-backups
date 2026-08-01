@@ -1,0 +1,105 @@
+---
+title: Voice Memos
+---
+
+The `voice-memos` command backs up the macOS recording store and produces
+private JSON transcripts, summaries, tags, indexes, and speaker diarization.
+There is no separate Voice Memos Makefile.
+
+Set `RESTIC_BACKUPS_CONFIG` first; set `RESTIC_BACKUPS_SOPS=1` too when the
+file is SOPS-encrypted. See [Configuration](configuration.qmd).
+
+## Requirements
+
+- Give the terminal Full Disk Access.
+- Open Voice Memos and wait for iCloud synchronization.
+- Run LM Studio at `http://localhost:1234/v1` when producing summaries.
+- Set `HF_TOKEN` for speaker diarization.
+
+The default recording source is:
+
+```text
+~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings
+```
+
+## Safe routine
+
+```sh
+uv run restic-backups voice-memos status
+uv run restic-backups voice-memos backup
+uv run restic-backups voice-memos transcribe
+uv run restic-backups voice-memos backup
+uv run restic-backups voice-memos check
+uv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore
+```
+
+The second backup captures newly generated summaries. Verify a restore before
+deleting recordings from any device; iCloud synchronization is not a backup.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `backup` | Back up recordings and summaries together |
+| `snapshots` | List repository snapshots |
+| `check` | Verify repository structure and metadata |
+| `stats` | Show latest tagged snapshot size and file count |
+| `files [SNAPSHOT]` | List files in a snapshot |
+| `restore [SNAPSHOT] --target DIR` | Restore a snapshot |
+| `get UUID [--restore]` | Resolve a summary to its recording and reveal it |
+| `transcribe` | Incrementally transcribe and summarise |
+| `status` | Count processed, pending, stale, and errored memos |
+| `diarize` | Add speakers to existing transcript segments |
+| `diarize-parallel` | Split pending diarization across worker processes |
+| `dashboard [LOG_DIR]` | Watch parallel worker progress |
+| `diarize-status` | Count transcripts with and without speakers |
+| `migrate-layout` | Move flat JSON records into monthly directories |
+| `prune-index` | Remove index entries whose JSON is missing |
+| `rebuild-index` | Rebuild the index from JSON records on disk |
+| `peek` | Inspect the Voice Memos database schema |
+
+Run `uv run restic-backups voice-memos COMMAND --help` for exact options.
+
+## Transcription variants
+
+```sh
+# Incremental transcription and summaries
+uv run restic-backups voice-memos transcribe
+
+# Reprocess all memos or selected UUIDs
+uv run restic-backups voice-memos transcribe --all
+uv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456
+
+# Reuse transcripts for new summaries, or omit summaries entirely
+uv run restic-backups voice-memos transcribe --summary-only --all
+uv run restic-backups voice-memos transcribe --no-summary
+
+# Force retranscription
+uv run restic-backups voice-memos transcribe --all --no-summary --force
+```
+
+The available engines are `whisper-mlx` and `whisper-mlx-turbo`.
+
+## Parallel diarization
+
+```sh
+export HF_TOKEN=hf_...
+uv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard
+```
+
+Workers write logs beneath a temporary `diarize-chunks-*` directory. Use
+`--detach` to leave them running without the dashboard, then attach with:
+
+```sh
+uv run restic-backups voice-memos dashboard
+```
+
+## Generated data
+
+The CLI derives the summary directory from the configured `voice-memos` backup:
+
+```sh
+uv run restic-backups generic data-dir voice-memos
+```
+
+All generated JSON and indexes remain beneath that ignored private directory.

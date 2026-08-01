@@ -1,0 +1,35 @@
+# GENERATED/SHARED WORKFLOW: copied into consuming repos by sync-shared.
+# Do not edit in consuming repos; change jr200-labs/github-action-templates and sync.
+name: publish-quarto-docs
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'docs/**'
+  workflow_dispatch:
+    inputs:
+      runner:
+        description: Runner pool
+        required: false
+        type: choice
+        default: configured
+        options:
+          - configured
+          - self-hosted
+          - github-hosted
+
+# Only the caller's TOP-LEVEL permissions cascade into reusable
+# workflows. The Quarto Pages publisher needs contents:write to update
+# gh-pages.
+permissions:
+  contents: write
+  pages: write
+
+jobs:
+  publish-quarto-docs:
+    uses: jr200-labs/github-action-templates/.github/workflows/build_quarto_docs.yaml@master
+    with:
+      checkout-ref: ${{ github.ref }}
+      site-path: docs
+      runner: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'self-hosted' && 'self-hosted' || github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'github-hosted' && 'ubuntu-latest' || fromJSON(vars.RUNNER_PROFILES)[vars.RUNNER_PROFILE].default }}

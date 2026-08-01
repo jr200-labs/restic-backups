@@ -1,0 +1,45 @@
+# Copy this file and pass it with --config. Add --sops after encrypting it.
+# Do not commit real credentials or an unencrypted copy.
+
+# Reusable provider credentials. IDs are arbitrary, but must be unique here.
+credentials:
+    - id: b2-credentials
+      access-key-id: CHANGE_ME
+      secret-access-key: CHANGE_ME
+
+    - id: aws-credentials
+      access-key-id: CHANGE_ME
+      secret-access-key: CHANGE_ME
+
+
+# Restic repositories. credentials-id must match an ID above.
+restic-stores:
+    - id: b2-store
+      credentials-id: b2-credentials
+      # Set false to ignore this store; disabled stores may retain CHANGE_ME.
+      enabled: true
+      endpoint: CHANGE_ME # For example: https://s3.us-west-004.backblazeb2.com
+      region: CHANGE_ME
+      bucket: CHANGE_ME
+      # Object-key prefix for the restic repository inside the bucket.
+      key_prefix: voice-memos
+      # Restic repository encryption password, not the provider password.
+      password: CHANGE_ME
+
+    - id: aws-store
+      credentials-id: aws-credentials
+      enabled: false
+      endpoint: https://s3.us-east-1.amazonaws.com
+      region: us-east-1
+      bucket: CHANGE_ME
+      key_prefix: CHANGE_ME
+      password: CHANGE_ME
+      # Optional AWS archive policy. Omit for the provider's default storage.
+      archive:
+        storage-class: GLACIER_IR
+        restore: null
+
+# CLI backup jobs. restic-store-id must match a store ID above.
+backups:
+    - id: voice-memos
+      restic-store-id: b2-store
