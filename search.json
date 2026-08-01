@@ -1,0 +1,242 @@
+[
+  {
+    "objectID": "configuration.html",
+    "href": "configuration.html",
+    "title": "Configuration",
+    "section": "",
+    "text": "Copy the template and replace its CHANGE_ME values:\nThere is no default configuration path. Pass --config before the command, or set it once for the current shell:\nTo use an encrypted configuration, encrypt it with SOPS and enable decryption with either --sops or RESTIC_BACKUPS_SOPS=1:\nThe values of id fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#credentials",
+    "href": "configuration.html#credentials",
+    "title": "Configuration",
+    "section": "credentials",
+    "text": "credentials\ncredentials contains reusable S3 authentication details. Backblaze application key IDs and application keys use the same fields as AWS access keys.\ncredentials:\n  - id: b2-credentials\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\nOne credential may be referenced by several stores.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#restic-stores",
+    "href": "configuration.html#restic-stores",
+    "title": "Configuration",
+    "section": "restic-stores",
+    "text": "restic-stores\nrestic-stores describes each restic repository and links it to an entry in credentials through credentials-id.\nrestic-stores:\n  - id: b2-store\n    credentials-id: b2-credentials\n    enabled: true\n    endpoint: https://s3.us-west-004.backblazeb2.com\n    region: us-west-004\n    bucket: example-bucket\n    key_prefix: voice-memos\n    password: \"...\"\nAll stores use restic’s S3 backend. endpoint identifies the S3-compatible service, region configures request signing, and bucket plus key_prefix locate the repository. password encrypts the restic repository. Disabled stores are ignored by commands and may retain CHANGE_ME placeholders. An enabled store fails validation until its store values and credentials are complete.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#backups",
+    "href": "configuration.html#backups",
+    "title": "Configuration",
+    "section": "backups",
+    "text": "backups\nbackups names the jobs shown by the CLI. Each job selects a repository by matching restic-store-id to a restic-stores.id value.\nbackups:\n  - id: voice-memos\n    restic-store-id: b2-store\nSeveral backup jobs may share a restic store.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#optional-archive-policy",
+    "href": "configuration.html#optional-archive-policy",
+    "title": "Configuration",
+    "section": "Optional archive policy",
+    "text": "Optional archive policy\nAWS stores may add an archive policy. storage-class controls how new objects are stored, and restore defines retrieval behavior for cold storage:\ncredentials:\n  - id: aws-credentials\n    access-key-id: \"...\"\n    secret-access-key: \"...\"\n\nrestic-stores:\n  - id: aws-store\n    credentials-id: aws-credentials\n    enabled: false\n    endpoint: https://s3.us-east-1.amazonaws.com\n    region: us-east-1\n    bucket: example-bucket\n    key_prefix: backups\n    password: \"...\"\n    archive:\n      storage-class: GLACIER_IR\n      restore: null\nOmit archive to use the storage provider’s default class.\nUse GLACIER_IR for immediate restic access. It must not define a restore policy:\narchive:\n  storage-class: GLACIER_IR\n  restore: null\nCold classes require an explicit retrieval policy:\narchive:\n  storage-class: GLACIER\n  restore:\n    tier: Bulk\n    days: 7\n    timeout: 24h\nGLACIER accepts Standard, Bulk, or Expedited; DEEP_ARCHIVE accepts Standard or Bulk. Retrieval commands also require an acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic run \\\n  --backup &lt;backup-id&gt; restore latest --target &lt;dir&gt;\nChanging a storage class affects new objects only. Use a new key_prefix rather than mixing storage policies in one repository.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#validation-rules",
+    "href": "configuration.html#validation-rules",
+    "title": "Configuration",
+    "section": "Validation rules",
+    "text": "Validation rules\ncheck-config also rejects duplicate IDs, unknown credential or store references, missing S3 fields, and invalid Glacier retrieval tiers or durations. Managed-data resolution separately rejects unsafe path components.",
+    "crumbs": [
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Restic Backups",
+    "section": "",
+    "text": "Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports reusable S3-compatible credentials, multiple buckets and key prefixes, managed private metadata directories, and a complete macOS Voice Memos workflow.",
+    "crumbs": [
+      "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "index.html#install",
+    "href": "index.html#install",
+    "title": "Restic Backups",
+    "section": "Install",
+    "text": "Install\nmake install-deps  # restic, sops, uv, ffmpeg, jq, coreutils\nmake install       # uv sync, including development dependencies\nAfter configuring the CLI, make init initializes each enabled, referenced restic store once. It does not back up files.",
+    "crumbs": [
+      "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "index.html#start-here",
+    "href": "index.html#start-here",
+    "title": "Restic Backups",
+    "section": "Start here",
+    "text": "Start here\n\nCLI covers repository selection, raw restic passthrough, and local data directories.\nConfiguration describes credentials, stores, backup jobs, and Glacier policy.\nVoice Memos covers backup, transcription, recovery, and diarization.",
+    "crumbs": [
+      "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "index.html#architecture",
+    "href": "index.html#architecture",
+    "title": "Restic Backups",
+    "section": "Architecture",
+    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
+    "crumbs": [
+      "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "index.html#private-data-boundary",
+    "href": "index.html#private-data-boundary",
+    "title": "Restic Backups",
+    "section": "Private data boundary",
+    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/\nThis does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
+    "crumbs": [
+      "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html",
+    "href": "voice-memos.html",
+    "title": "Voice Memos",
+    "section": "",
+    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#requirements",
+    "href": "voice-memos.html#requirements",
+    "title": "Voice Memos",
+    "section": "Requirements",
+    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#safe-routine",
+    "href": "voice-memos.html#safe-routine",
+    "title": "Voice Memos",
+    "section": "Safe routine",
+    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#commands",
+    "href": "voice-memos.html#commands",
+    "title": "Voice Memos",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#transcription-variants",
+    "href": "voice-memos.html#transcription-variants",
+    "title": "Voice Memos",
+    "section": "Transcription variants",
+    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#parallel-diarization",
+    "href": "voice-memos.html#parallel-diarization",
+    "title": "Voice Memos",
+    "section": "Parallel diarization",
+    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#generated-data",
+    "href": "voice-memos.html#generated-data",
+    "title": "Voice Memos",
+    "section": "Generated data",
+    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "crumbs": [
+      "Voice Memos"
+    ]
+  },
+  {
+    "objectID": "cli.html",
+    "href": "cli.html",
+    "title": "CLI",
+    "section": "",
+    "text": "Run the installed command through uv:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#root-commands",
+    "href": "cli.html#root-commands",
+    "title": "CLI",
+    "section": "Root commands",
+    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\nvoice-memos ...\nRun the macOS Voice Memos workflow\nDepends on subcommand",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#generic-commands",
+    "href": "cli.html#generic-commands",
+    "title": "CLI",
+    "section": "Generic commands",
+    "text": "Generic commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRemote storage\n\n\n\n\ngeneric list\nShow backup IDs, stores, endpoints, and enabled state\nNo\n\n\ngeneric data-dir [BACKUP]\nPrint the managed private-data directory\nNo\n\n\ngeneric init\nInitialize each enabled referenced repository once\nYes\n\n\ngeneric run --backup ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\ngeneric data-dir and generic run prompt with Questionary when the backup is omitted from an interactive terminal. Non-interactive callers must provide the ID.",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#restic-passthrough",
+    "href": "cli.html#restic-passthrough",
+    "title": "CLI",
+    "section": "Restic passthrough",
+    "text": "Restic passthrough\nUse generic run for any repository operation not represented by a higher-level workflow command:\nuv run restic-backups generic run --backup voice-memos snapshots\nuv run restic-backups generic run --backup voice-memos check\nuv run restic-backups generic run --backup voice-memos restore latest --target /tmp/restore\nThe CLI loads the selected store, exports credentials and restic repository settings only to the child process, and does not print them.",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#managed-data-directory",
+    "href": "cli.html#managed-data-directory",
+    "title": "CLI",
+    "section": "Managed data directory",
+    "text": "Managed data directory\nuv run restic-backups generic data-dir voice-memos\nThe result follows data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/. It is intended for private generated metadata, not as a required root for backup source files.",
+    "crumbs": [
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#cold-s3-guard",
+    "href": "cli.html#cold-s3-guard",
+    "title": "CLI",
+    "section": "Cold S3 guard",
+    "text": "Cold S3 guard\nGLACIER_IR behaves as immediate storage. For GLACIER or DEEP_ARCHIVE, the CLI permits uploads but blocks retrieval-related work unless both the restore policy is valid and ALLOW_ARCHIVE_RETRIEVAL=1 is set. The configured tier, days, and timeout are then passed to restic’s S3 restore support.\nCommands outside the explicitly guarded cold-storage set are rejected. Use GLACIER_IR for repositories requiring normal interactive restic access.",
+    "crumbs": [
+      "CLI"
+    ]
+  }
+]
