@@ -74,10 +74,14 @@ stores are ignored by commands and may retain `CHANGE_ME` placeholders. An
 enabled store fails validation until its store values and credentials are
 complete.
 
+Every store appears in the `generic list` repository table. `generic init`
+initializes enabled stores even when no backup references them; a backup entry
+is required before using that store with `generic run`.
+
 ## `backups`
 
-`backups` names the jobs shown by the CLI. Each job selects a repository by
-matching `restic-store-id` to a `restic-stores.id` value.
+`backups` names the jobs shown in the CLI's **Backups** table. Each job selects a
+repository by matching `restic-store-id` to a `restic-stores.id` value.
 
 ```yaml
 backups:

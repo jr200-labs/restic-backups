@@ -40,6 +40,9 @@ uv run restic-backups check-config
 uv run restic-backups generic list
 ```
 
+The list output separates **Repositories** from **Backups**. Every configured
+store appears in the repository table, even before a backup job references it.
+
 ## 3. Initialize and back up
 
 Initialize a new repository once:
@@ -56,7 +59,8 @@ uv run restic-backups generic run --backup documents snapshots
 ```
 
 Running `generic init` again is safe: existing repositories are detected and
-skipped.
+skipped. Initialization covers every enabled repository; `generic run` uses a
+backup job to select which repository receives the command.
 
 ## 4. Verify a restore
 
