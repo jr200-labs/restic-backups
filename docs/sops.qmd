@@ -1,0 +1,157 @@
+---
+title: SOPS
+---
+
+[SOPS](https://getsops.io/) encrypts secrets in the YAML configuration while
+leaving the file safe to store in Git. `restic-backups` asks SOPS to decrypt the
+file in memory and parses the result; it does not create a decrypted copy.
+
+## Install SOPS and age
+
+`make install-deps` installs SOPS. Install
+[age](https://github.com/FiloSottile/age) when `age-keygen` is not already
+available:
+
+```sh
+brew install age
+```
+
+Generate an age identity outside the repository:
+
+```sh
+mkdir -p "$HOME/.config/sops/age"
+age-keygen -o "$HOME/.config/sops/age/keys.txt"
+age-keygen -y "$HOME/.config/sops/age/keys.txt"
+```
+
+The final command prints the public `age1...` recipient. It is safe to put that
+recipient in `.sops.yaml`. Never commit the private `AGE-SECRET-KEY-1...`
+identity or the identity file.
+
+## Add `.sops.yaml`
+
+The SOPS configuration file must be named `.sops.yaml`, not `.sops.yml`. Put it
+in the repository root so SOPS finds it when commands run anywhere below that
+directory.
+
+This template encrypts only the credential fields and restic repository
+passwords used by `restic-backups`:
+
+```yaml
+creation_rules:
+  - path_regex: config\.sops\.yaml$
+    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT
+    encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+```
+
+Credential IDs, descriptions, endpoints, paths, and other operational settings
+remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree.
+SOPS also encrypts comments, so use the configuration's `description` fields
+for readable notes.
+
+To encrypt every value instead, omit `encrypted_regex`:
+
+```yaml
+creation_rules:
+  - path_regex: config\.sops\.yaml$
+    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT
+```
+
+The public recipient can instead come from `SOPS_AGE_RECIPIENTS`. When that
+variable is always set for encryption, omit `age` from the creation rule:
+
+```yaml
+creation_rules:
+  - path_regex: config\.sops\.yaml$
+    encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+```
+
+See the official [SOPS configuration format](https://github.com/getsops/sops#5-config-file-format)
+for rule matching and other key providers.
+
+## Create the encrypted config
+
+Use `config.sops.yaml` as the conventional name. The CLI accepts another name,
+but it must match `path_regex` and be passed through `--config` or
+`RESTIC_BACKUPS_CONFIG`.
+
+Copy the template, then edit it through SOPS so secrets are encrypted when the
+editor closes:
+
+```sh
+cp config.template.yaml config.sops.yaml
+sops config.sops.yaml
+```
+
+Confirm the file is encrypted and validate it without contacting remote
+storage:
+
+```sh
+sops filestatus config.sops.yaml
+uv run restic-backups --config config.sops.yaml --sops check-config
+```
+
+Commit `.sops.yaml` and the encrypted `config.sops.yaml`. Do not commit a plain
+`config.yaml`, the age identity, or decrypted command output.
+
+## Environment variables
+
+These variables avoid repeating the global CLI options:
+
+| Variable | Purpose | Sensitive |
+|---|---|---|
+| `RESTIC_BACKUPS_CONFIG` | Path to the encrypted application config | No |
+| `RESTIC_BACKUPS_SOPS=1` | Tell `restic-backups` to decrypt through SOPS | No |
+| `SOPS_AGE_KEY_FILE` | Path to a file containing private age identities | **Yes: protect the file** |
+| `SOPS_AGE_KEY` | Private age identities supplied directly by a secret manager | **Yes** |
+| `SOPS_AGE_KEY_CMD` | Command that prints private age identities | Depends on the command |
+| `SOPS_AGE_RECIPIENTS` | Public recipients used when encrypting new files | No |
+| `SOPS_CONFIG` | Non-default path to `.sops.yaml` | No |
+
+Normally, set the identity file and the two `restic-backups` variables:
+
+```sh
+export SOPS_AGE_KEY_FILE="$HOME/.config/sops/age/keys.txt"
+export RESTIC_BACKUPS_CONFIG="$PWD/config.sops.yaml"
+export RESTIC_BACKUPS_SOPS=1
+
+uv run restic-backups check-config
+uv run restic-backups generic repository list
+```
+
+`SOPS_AGE_KEY_FILE`, `SOPS_AGE_KEY`, and `SOPS_AGE_KEY_CMD` are alternatives;
+set only the one appropriate for the environment. If the identity is stored in
+SOPS's operating-system default age location, none of them is required.
+
+## Edit and rotate
+
+Edit an existing file with:
+
+```sh
+sops config.sops.yaml
+```
+
+The encrypted file already records its public recipients. When recipients in
+`.sops.yaml` change, synchronize them with:
+
+```sh
+sops updatekeys config.sops.yaml
+```
+
+Changing `encrypted_regex` requires decrypting and re-encrypting the document.
+Keep plaintext in the pipe and replace the original only after encryption
+succeeds:
+
+```sh
+umask 077
+sops decrypt config.sops.yaml |
+  sops encrypt --filename-override config.sops.yaml \
+    --input-type yaml --output-type yaml /dev/stdin > config.sops.yaml.new
+mv config.sops.yaml.new config.sops.yaml
+```
+
+Validate again after every key or rule change:
+
+```sh
+uv run restic-backups check-config
+```

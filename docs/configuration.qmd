@@ -29,6 +29,9 @@ export RESTIC_BACKUPS_CONFIG="$PWD/config.sops.yaml"
 export RESTIC_BACKUPS_SOPS=1
 ```
 
+See [SOPS](sops.qmd) for age key setup, selective encryption, `.sops.yaml`,
+environment variables, and safe editing.
+
 The values of `id` fields are user-defined names. They only need to be unique
 within their section; references in other sections must match them exactly.
 Every item may also have an optional `description` for user notes. Descriptions

@@ -81,5 +81,5 @@ Inspect the restored files before relying on the backup. Continue with
 
 ::: {.callout-warning}
 Do not commit `config.yaml`, credentials, repository passwords, or restored
-data. Use [SOPS configuration](configuration.qmd) before committing a config.
+data. Use [SOPS](sops.qmd) before committing a config.
 :::
