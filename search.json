@@ -4,7 +4,7 @@
     "href": "configuration.html",
     "title": "Configuration",
     "section": "",
-    "text": "Copy the template and replace its CHANGE_ME values:\nThere is no default configuration path. Pass --config before the command, or set it once for the current shell:\nTo use an encrypted configuration, encrypt it with SOPS and enable decryption with either --sops or RESTIC_BACKUPS_SOPS=1:\nThe values of id fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly. Every item may also have an optional description for user notes. Descriptions do not affect backup behavior.",
+    "text": "Copy the template and replace its CHANGE_ME values:\nThere is no default configuration path. Pass --config before the command, or set it once for the current shell:\nTo use an encrypted configuration, encrypt it with SOPS and enable decryption with either --sops or RESTIC_BACKUPS_SOPS=1:\nSee SOPS for age key setup, selective encryption, .sops.yaml, environment variables, and safe editing.\nThe values of id fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly. Every item may also have an optional description for user notes. Descriptions do not affect backup behavior.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -110,7 +110,7 @@
     "href": "quick-start.html#verify-a-restore",
     "title": "Quick Start",
     "section": "4. Verify a restore",
-    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS configuration before committing a config.",
+    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS before committing a config.",
     "crumbs": [
       "Quick Start"
     ]
@@ -153,83 +153,6 @@
     "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;job-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
     "crumbs": [
       "Restic Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html",
-    "href": "voice-memos.html",
-    "title": "Voice Memos Backups",
-    "section": "",
-    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#requirements",
-    "href": "voice-memos.html#requirements",
-    "title": "Voice Memos Backups",
-    "section": "Requirements",
-    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#safe-routine",
-    "href": "voice-memos.html#safe-routine",
-    "title": "Voice Memos Backups",
-    "section": "Safe routine",
-    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#commands",
-    "href": "voice-memos.html#commands",
-    "title": "Voice Memos Backups",
-    "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#transcription-variants",
-    "href": "voice-memos.html#transcription-variants",
-    "title": "Voice Memos Backups",
-    "section": "Transcription variants",
-    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#parallel-diarization",
-    "href": "voice-memos.html#parallel-diarization",
-    "title": "Voice Memos Backups",
-    "section": "Parallel diarization",
-    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "voice-memos.html#generated-data",
-    "href": "voice-memos.html#generated-data",
-    "title": "Voice Memos Backups",
-    "section": "Generated data",
-    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic backup data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
-    "crumbs": [
-      "Commands",
-      "Voice Memos Backups"
     ]
   },
   {
@@ -329,6 +252,149 @@
     "crumbs": [
       "Commands",
       "Generic Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html",
+    "href": "voice-memos.html",
+    "title": "Voice Memos Backups",
+    "section": "",
+    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#requirements",
+    "href": "voice-memos.html#requirements",
+    "title": "Voice Memos Backups",
+    "section": "Requirements",
+    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#safe-routine",
+    "href": "voice-memos.html#safe-routine",
+    "title": "Voice Memos Backups",
+    "section": "Safe routine",
+    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#commands",
+    "href": "voice-memos.html#commands",
+    "title": "Voice Memos Backups",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#transcription-variants",
+    "href": "voice-memos.html#transcription-variants",
+    "title": "Voice Memos Backups",
+    "section": "Transcription variants",
+    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#parallel-diarization",
+    "href": "voice-memos.html#parallel-diarization",
+    "title": "Voice Memos Backups",
+    "section": "Parallel diarization",
+    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#generated-data",
+    "href": "voice-memos.html#generated-data",
+    "title": "Voice Memos Backups",
+    "section": "Generated data",
+    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic backup data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "sops.html",
+    "href": "sops.html",
+    "title": "SOPS",
+    "section": "",
+    "text": "SOPS encrypts secrets in the YAML configuration while leaving the file safe to store in Git. restic-backups asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#install-sops-and-age",
+    "href": "sops.html#install-sops-and-age",
+    "title": "SOPS",
+    "section": "Install SOPS and age",
+    "text": "Install SOPS and age\nmake install-deps installs SOPS. Install age when age-keygen is not already available:\nbrew install age\nGenerate an age identity outside the repository:\nmkdir -p \"$HOME/.config/sops/age\"\nage-keygen -o \"$HOME/.config/sops/age/keys.txt\"\nage-keygen -y \"$HOME/.config/sops/age/keys.txt\"\nThe final command prints the public age1... recipient. It is safe to put that recipient in .sops.yaml. Never commit the private AGE-SECRET-KEY-1... identity or the identity file.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#add-.sops.yaml",
+    "href": "sops.html#add-.sops.yaml",
+    "title": "SOPS",
+    "section": "Add .sops.yaml",
+    "text": "Add .sops.yaml\nThe SOPS configuration file must be named .sops.yaml, not .sops.yml. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.\nThis template encrypts only the credential fields and restic repository passwords used by restic-backups:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\nCredential IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. SOPS also encrypts comments, so use the configuration’s description fields for readable notes.\nTo encrypt every value instead, omit encrypted_regex:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\nThe public recipient can instead come from SOPS_AGE_RECIPIENTS. When that variable is always set for encryption, omit age from the creation rule:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\nSee the official SOPS configuration format for rule matching and other key providers.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#create-the-encrypted-config",
+    "href": "sops.html#create-the-encrypted-config",
+    "title": "SOPS",
+    "section": "Create the encrypted config",
+    "text": "Create the encrypted config\nUse config.sops.yaml as the conventional name. The CLI accepts another name, but it must match path_regex and be passed through --config or RESTIC_BACKUPS_CONFIG.\nCopy the template, then edit it through SOPS so secrets are encrypted when the editor closes:\ncp config.template.yaml config.sops.yaml\nsops config.sops.yaml\nConfirm the file is encrypted and validate it without contacting remote storage:\nsops filestatus config.sops.yaml\nuv run restic-backups --config config.sops.yaml --sops check-config\nCommit .sops.yaml and the encrypted config.sops.yaml. Do not commit a plain config.yaml, the age identity, or decrypted command output.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#environment-variables",
+    "href": "sops.html#environment-variables",
+    "title": "SOPS",
+    "section": "Environment variables",
+    "text": "Environment variables\nThese variables avoid repeating the global CLI options:\n\n\n\n\n\n\n\n\nVariable\nPurpose\nSensitive\n\n\n\n\nRESTIC_BACKUPS_CONFIG\nPath to the encrypted application config\nNo\n\n\nRESTIC_BACKUPS_SOPS=1\nTell restic-backups to decrypt through SOPS\nNo\n\n\nSOPS_AGE_KEY_FILE\nPath to a file containing private age identities\nYes: protect the file\n\n\nSOPS_AGE_KEY\nPrivate age identities supplied directly by a secret manager\nYes\n\n\nSOPS_AGE_KEY_CMD\nCommand that prints private age identities\nDepends on the command\n\n\nSOPS_AGE_RECIPIENTS\nPublic recipients used when encrypting new files\nNo\n\n\nSOPS_CONFIG\nNon-default path to .sops.yaml\nNo\n\n\n\nNormally, set the identity file and the two restic-backups variables:\nexport SOPS_AGE_KEY_FILE=\"$HOME/.config/sops/age/keys.txt\"\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.sops.yaml\"\nexport RESTIC_BACKUPS_SOPS=1\n\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nSOPS_AGE_KEY_FILE, SOPS_AGE_KEY, and SOPS_AGE_KEY_CMD are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#edit-and-rotate",
+    "href": "sops.html#edit-and-rotate",
+    "title": "SOPS",
+    "section": "Edit and rotate",
+    "text": "Edit and rotate\nEdit an existing file with:\nsops config.sops.yaml\nThe encrypted file already records its public recipients. When recipients in .sops.yaml change, synchronize them with:\nsops updatekeys config.sops.yaml\nChanging encrypted_regex requires decrypting and re-encrypting the document. Keep plaintext in the pipe and replace the original only after encryption succeeds:\numask 077\nsops decrypt config.sops.yaml |\n  sops encrypt --filename-override config.sops.yaml \\\n    --input-type yaml --output-type yaml /dev/stdin &gt; config.sops.yaml.new\nmv config.sops.yaml.new config.sops.yaml\nValidate again after every key or rule change:\nuv run restic-backups check-config",
+    "crumbs": [
+      "Setup",
+      "SOPS"
     ]
   },
   {

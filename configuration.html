@@ -175,6 +175,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./sops.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">SOPS</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./storage-costs.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Storage Cost Comparison</span></a>
   </div>
@@ -268,6 +274,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_CONFIG</span><span class="op">=</span><span class="st">"</span><span class="va">$PWD</span><span class="st">/config.sops.yaml"</span></span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_SOPS</span><span class="op">=</span>1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>See <a href="./sops.html">SOPS</a> for age key setup, selective encryption, <code>.sops.yaml</code>, environment variables, and safe editing.</p>
 <p>The values of <code>id</code> fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly. Every item may also have an optional <code>description</code> for user notes. Descriptions do not affect backup behavior.</p>
 <section id="credentials" class="level2">
 <h2 class="anchored" data-anchor-id="credentials"><code>credentials</code></h2>

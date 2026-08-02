@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>CLI – Restic Backups</title>
+<title>SOPS – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -121,7 +121,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./sops.html">SOPS</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -175,7 +175,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./sops.html" class="sidebar-item-text sidebar-link">
+  <a href="./sops.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">SOPS</span></a>
   </div>
 </li>
@@ -187,7 +187,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./cli.html" class="sidebar-item-text sidebar-link active">
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">CLI</span></a>
   </div>
 </li>
@@ -226,16 +226,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#root-commands" id="toc-root-commands" class="nav-link active" data-scroll-target="#root-commands">Root commands</a></li>
+  <li><a href="#install-sops-and-age" id="toc-install-sops-and-age" class="nav-link active" data-scroll-target="#install-sops-and-age">Install SOPS and age</a></li>
+  <li><a href="#add-.sops.yaml" id="toc-add-.sops.yaml" class="nav-link" data-scroll-target="#add-.sops.yaml">Add <code>.sops.yaml</code></a></li>
+  <li><a href="#create-the-encrypted-config" id="toc-create-the-encrypted-config" class="nav-link" data-scroll-target="#create-the-encrypted-config">Create the encrypted config</a></li>
+  <li><a href="#environment-variables" id="toc-environment-variables" class="nav-link" data-scroll-target="#environment-variables">Environment variables</a></li>
+  <li><a href="#edit-and-rotate" id="toc-edit-and-rotate" class="nav-link" data-scroll-target="#edit-and-rotate">Edit and rotate</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./sops.html">SOPS</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">CLI</h1>
+<h1 class="title">SOPS</h1>
 </div>
 
 
@@ -252,20 +256,50 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Run the installed command through uv:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Generic backups</strong>, <strong>Voice Memos</strong>, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.</p>
-<p>Every menu level includes <strong>Help</strong> and <strong>Back</strong>. <strong>Help</strong> shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.</p>
-<p>Show command-line help instead:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Commands that use a repository require a configuration file. Pass the global options before the command:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.yaml generic repository list</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.sops.yaml <span class="at">--sops</span> generic backup list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The equivalent environment variables are <code>RESTIC_BACKUPS_CONFIG</code> and <code>RESTIC_BACKUPS_SOPS=1</code>. See <a href="./configuration.html">Configuration</a> for setup.</p>
-<p>Commands use colored, level-aware stderr logging for configuration and operation progress. Add <code>--verbose</code> before the command, or set <code>RESTIC_BACKUPS_VERBOSE=1</code>, to include command-level details without printing credentials or repository passwords:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--verbose</span> generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<section id="root-commands" class="level2">
-<h2 class="anchored" data-anchor-id="root-commands">Root commands</h2>
+<p><a href="https://getsops.io/">SOPS</a> encrypts secrets in the YAML configuration while leaving the file safe to store in Git. <code>restic-backups</code> asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.</p>
+<section id="install-sops-and-age" class="level2">
+<h2 class="anchored" data-anchor-id="install-sops-and-age">Install SOPS and age</h2>
+<p><code>make install-deps</code> installs SOPS. Install <a href="https://github.com/FiloSottile/age">age</a> when <code>age-keygen</code> is not already available:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">brew</span> install age</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Generate an age identity outside the repository:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">mkdir</span> <span class="at">-p</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">/.config/sops/age"</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">age-keygen</span> <span class="at">-o</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">/.config/sops/age/keys.txt"</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">age-keygen</span> <span class="at">-y</span> <span class="st">"</span><span class="va">$HOME</span><span class="st">/.config/sops/age/keys.txt"</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The final command prints the public <code>age1...</code> recipient. It is safe to put that recipient in <code>.sops.yaml</code>. Never commit the private <code>AGE-SECRET-KEY-1...</code> identity or the identity file.</p>
+</section>
+<section id="add-.sops.yaml" class="level2">
+<h2 class="anchored" data-anchor-id="add-.sops.yaml">Add <code>.sops.yaml</code></h2>
+<p>The SOPS configuration file must be named <code>.sops.yaml</code>, not <code>.sops.yml</code>. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.</p>
+<p>This template encrypts only the credential fields and restic repository passwords used by <code>restic-backups</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">age</span><span class="kw">:</span><span class="at"> age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Credential IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. SOPS also encrypts comments, so use the configuration’s <code>description</code> fields for readable notes.</p>
+<p>To encrypt every value instead, omit <code>encrypted_regex</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">age</span><span class="kw">:</span><span class="at"> age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The public recipient can instead come from <code>SOPS_AGE_RECIPIENTS</code>. When that variable is always set for encryption, omit <code>age</code> from the creation rule:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>See the official <a href="https://github.com/getsops/sops#5-config-file-format">SOPS configuration format</a> for rule matching and other key providers.</p>
+</section>
+<section id="create-the-encrypted-config" class="level2">
+<h2 class="anchored" data-anchor-id="create-the-encrypted-config">Create the encrypted config</h2>
+<p>Use <code>config.sops.yaml</code> as the conventional name. The CLI accepts another name, but it must match <code>path_regex</code> and be passed through <code>--config</code> or <code>RESTIC_BACKUPS_CONFIG</code>.</p>
+<p>Copy the template, then edit it through SOPS so secrets are encrypted when the editor closes:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> config.template.yaml config.sops.yaml</span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Confirm the file is encrypted and validate it without contacting remote storage:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> filestatus config.sops.yaml</span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.sops.yaml <span class="at">--sops</span> check-config</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Commit <code>.sops.yaml</code> and the encrypted <code>config.sops.yaml</code>. Do not commit a plain <code>config.yaml</code>, the age identity, or decrypted command output.</p>
+</section>
+<section id="environment-variables" class="level2">
+<h2 class="anchored" data-anchor-id="environment-variables">Environment variables</h2>
+<p>These variables avoid repeating the global CLI options:</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 33%">
@@ -274,33 +308,72 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </colgroup>
 <thead>
 <tr class="header">
-<th>Command</th>
+<th>Variable</th>
 <th>Purpose</th>
-<th>Remote storage</th>
+<th>Sensitive</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><code>check-config</code></td>
-<td>Load and validate configuration</td>
+<td><code>RESTIC_BACKUPS_CONFIG</code></td>
+<td>Path to the encrypted application config</td>
 <td>No</td>
 </tr>
 <tr class="even">
-<td><code>generic ...</code></td>
-<td>Run generic configured repository commands</td>
-<td>Depends on subcommand</td>
+<td><code>RESTIC_BACKUPS_SOPS=1</code></td>
+<td>Tell <code>restic-backups</code> to decrypt through SOPS</td>
+<td>No</td>
 </tr>
 <tr class="odd">
-<td><code>voice-memos ...</code></td>
-<td>Run the macOS Voice Memos workflow</td>
-<td>Depends on subcommand</td>
+<td><code>SOPS_AGE_KEY_FILE</code></td>
+<td>Path to a file containing private age identities</td>
+<td><strong>Yes: protect the file</strong></td>
+</tr>
+<tr class="even">
+<td><code>SOPS_AGE_KEY</code></td>
+<td>Private age identities supplied directly by a secret manager</td>
+<td><strong>Yes</strong></td>
+</tr>
+<tr class="odd">
+<td><code>SOPS_AGE_KEY_CMD</code></td>
+<td>Command that prints private age identities</td>
+<td>Depends on the command</td>
+</tr>
+<tr class="even">
+<td><code>SOPS_AGE_RECIPIENTS</code></td>
+<td>Public recipients used when encrypting new files</td>
+<td>No</td>
+</tr>
+<tr class="odd">
+<td><code>SOPS_CONFIG</code></td>
+<td>Non-default path to <code>.sops.yaml</code></td>
+<td>No</td>
 </tr>
 </tbody>
 </table>
-<p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
-<p>Run subcommand help without loading a configuration:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Normally, set the identity file and the two <code>restic-backups</code> variables:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">SOPS_AGE_KEY_FILE</span><span class="op">=</span><span class="st">"</span><span class="va">$HOME</span><span class="st">/.config/sops/age/keys.txt"</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_CONFIG</span><span class="op">=</span><span class="st">"</span><span class="va">$PWD</span><span class="st">/config.sops.yaml"</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_SOPS</span><span class="op">=</span>1</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>SOPS_AGE_KEY_FILE</code>, <code>SOPS_AGE_KEY</code>, and <code>SOPS_AGE_KEY_CMD</code> are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.</p>
+</section>
+<section id="edit-and-rotate" class="level2">
+<h2 class="anchored" data-anchor-id="edit-and-rotate">Edit and rotate</h2>
+<p>Edit an existing file with:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The encrypted file already records its public recipients. When recipients in <code>.sops.yaml</code> change, synchronize them with:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> updatekeys config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Changing <code>encrypted_regex</code> requires decrypting and re-encrypting the document. Keep plaintext in the pipe and replace the original only after encryption succeeds:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">umask</span> 077</span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> decrypt config.sops.yaml <span class="kw">|</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">sops</span> encrypt <span class="at">--filename-override</span> config.sops.yaml <span class="dt">\</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--input-type</span> yaml <span class="at">--output-type</span> yaml /dev/stdin <span class="op">&gt;</span> config.sops.yaml.new</span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> config.sops.yaml.new config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Validate again after every key or rule change:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
