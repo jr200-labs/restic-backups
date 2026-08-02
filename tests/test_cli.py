@@ -14,6 +14,8 @@ from typer.testing import CliRunner
 from restic_backups.cli import app
 from restic_backups.cli import interactive_menu as root_menu
 from restic_backups.generic.cli import (
+    choose_dry_run,
+    destroy_command,
     forget_command,
     init_command,
     restic_menu,
@@ -32,6 +34,15 @@ def choice_title(choice: questionary.Choice) -> str:
 
 
 class VoiceMemosCliTest(unittest.TestCase):
+    def test_dry_run_is_a_spacebar_checkbox(self) -> None:
+        with patch("restic_backups.generic.cli.questionary.checkbox") as checkbox:
+            checkbox.return_value.ask.return_value = ["dry-run"]
+
+            self.assertTrue(choose_dry_run())
+
+        self.assertIn("Space to toggle", checkbox.call_args.args[0])
+        self.assertEqual(checkbox.call_args.kwargs["choices"][0].value, "dry-run")
+
     def test_root_and_generic_help_expose_subcommands(self) -> None:
         runner = CliRunner()
         root = runner.invoke(app, ["--help"])
@@ -249,20 +260,49 @@ backups:
             confirm.return_value.ask.return_value = True
 
             forget_command("backup")
+            forget_command("backup", dry_run=True)
 
-        command_output.assert_called_once_with(
-            "backup",
-            ["snapshots", "--tag", "documents", "--json"],
-            credentials,
-            stores,
-            backups,
+        self.assertEqual(
+            command_output.call_args_list,
+            [
+                call(
+                    "backup",
+                    ["snapshots", "--tag", "documents", "--json"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+                call(
+                    "backup",
+                    ["snapshots", "--tag", "documents", "--json"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+            ],
         )
-        command.assert_called_once_with(
-            "backup",
-            ["forget", snapshot_id, "--prune"],
-            credentials,
-            stores,
-            backups,
+        self.assertEqual(
+            command.call_args_list,
+            [
+                call(
+                    "backup",
+                    ["forget", snapshot_id, "--prune"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+                call(
+                    "backup",
+                    ["forget", snapshot_id, "--prune", "--dry-run"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+            ],
+        )
+        confirm.assert_called_once_with(
+            "Forget snapshot 'aaaaaaaa' and prune its unreferenced data?",
+            default=False,
         )
 
     def test_snapshots_lists_configured_tag_as_table(self) -> None:
@@ -324,14 +364,35 @@ backups:
             ) as command,
         ):
             result = CliRunner().invoke(app, ["generic", "backup", "run", "documents"])
+            dry_run = CliRunner().invoke(
+                app, ["generic", "backup", "run", "documents", "--dry-run"]
+            )
 
         self.assertEqual(result.exit_code, 0, result.output)
-        command.assert_called_once_with(
-            "documents",
-            ["backup", str(Path("~/Documents").expanduser()), "/tmp/example"],
-            credentials,
-            stores,
-            backups,
+        self.assertEqual(dry_run.exit_code, 0, dry_run.output)
+        self.assertEqual(
+            command.call_args_list,
+            [
+                call(
+                    "documents",
+                    ["backup", str(Path("~/Documents").expanduser()), "/tmp/example"],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+                call(
+                    "documents",
+                    [
+                        "backup",
+                        "--dry-run",
+                        str(Path("~/Documents").expanduser()),
+                        "/tmp/example",
+                    ],
+                    credentials,
+                    stores,
+                    backups,
+                ),
+            ],
         )
 
     @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
@@ -387,6 +448,37 @@ backups:
             f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
             "--sops generic restic run --backup documents list snapshots",
             output,
+        )
+
+    def test_advanced_restic_menu_adds_selected_dry_run(self) -> None:
+        with (
+            patch(
+                "restic_backups.generic.cli.restic.available_commands",
+                return_value=[("backup", "Create a new backup")],
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.command_usage",
+                return_value="restic backup [flags] [files]",
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.supports_dry_run",
+                return_value=True,
+            ),
+            patch(
+                "restic_backups.generic.cli.choose_dry_run", return_value=True
+            ) as dry_run,
+            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.questionary.text") as arguments,
+            patch("restic_backups.generic.cli.run_args") as run,
+        ):
+            select.return_value.ask.side_effect = ["backup", "run"]
+            arguments.return_value.ask.return_value = "/data"
+
+            restic_menu()
+
+        dry_run.assert_called_once_with()
+        run.assert_called_once_with(
+            None, ["backup", "--dry-run", "/data"], interactive=True
         )
 
     @patch("restic_backups.generic.cli.restic.store_command")
@@ -465,6 +557,40 @@ backups:
             ["cat", "config"],
             quiet=True,
         )
+
+        command.reset_mock()
+        command.side_effect = [10]
+        result = runner.invoke(
+            app, ["generic", "repository", "init", "new", "--dry-run"]
+        )
+        self.assertEqual(result.exit_code, 0, result.output)
+        self.assertIn("dry run; would initialize repository", result.output)
+        command.assert_called_once_with(
+            stores["new"], credentials["credentials"], ["cat", "config"], quiet=True
+        )
+
+    def test_destroy_dry_run_does_not_delete(self) -> None:
+        store = {
+            "id": "store",
+            "enabled": True,
+            "credentials-id": "credentials",
+            "endpoint": "https://s3.example.com",
+            "bucket": "bucket",
+            "key_prefix": "restic",
+        }
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, {"credentials": {}}, {"store": store}, {}),
+            ),
+            patch("restic_backups.generic.cli.s3.delete_repository") as delete,
+            patch("restic_backups.generic.cli.questionary.confirm") as confirm,
+        ):
+            destroy_command("store", dry_run=True)
+
+        delete.assert_not_called()
+        confirm.assert_not_called()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.questionary.select")
