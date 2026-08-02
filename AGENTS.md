@@ -24,7 +24,7 @@ downstream GitHub references to upstream issues or pull requests.
   `backups` linked by `restic-store-id`. Stores use the S3 backend with an
   optional `archive` policy.
 - Backup sources may be absolute paths outside this repository. Managed local
-  artifacts belong below `data/<store-id>/<bucket>/<key-prefix>/<backup-id>/`.
+  artifacts belong below `data/<store-id>/<bucket>/<key-prefix>/<job-id>/`.
 
 ## Safety
 

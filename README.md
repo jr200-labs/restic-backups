@@ -5,6 +5,13 @@ with optional SOPS decryption. The package currently includes a complete macOS
 Voice Memos workflow for backup, transcription, summarisation, and speaker
 diarization.
 
+## Why
+
+Create encrypted, deduplicated **incremental backups** that upload only new or
+changed data. This makes reliable off-site backups practical with
+[cheaper storage options](docs/storage-costs.qmd), without maintaining a
+separate backup script for every repository.
+
 Backup payloads, generated metadata, model caches, and restores are excluded
 from Git by a default-deny `.gitignore`.
 
@@ -51,7 +58,7 @@ The configuration separates:
 - `restic-stores`: endpoint, region, bucket, key prefix/password, and optional
   cache directory and archive policy;
 - `backups`: CLI selections linked to a store, local source paths, and an
-  optional restic snapshot tag (defaulting to the backup ID).
+  optional restic snapshot tag (defaulting to the job ID).
 
 One credential may serve many stores, and multiple backups may share a store.
 Disabled stores may contain `CHANGE_ME`; all placeholders must be replaced
@@ -62,7 +69,7 @@ before enabling one.
 Managed local artifacts use:
 
 ```text
-data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
+data/<store-id>/<bucket>/<key-prefix>/<job-id>/
 ```
 
 This directory is created beside the selected configuration file. It is
@@ -82,7 +89,7 @@ and timeout. Retrieval must also be acknowledged at runtime:
 
 ```sh
 ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \
-  --backup <backup-id> restore latest --target <dir>
+  --backup <job-id> restore latest --target <dir>
 ```
 
 Storage-class changes apply only to new objects. Use a new `key_prefix` instead
