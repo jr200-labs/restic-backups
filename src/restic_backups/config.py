@@ -4,8 +4,10 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 from typing import Any, NoReturn
+from urllib.parse import urlparse
 
 import yaml
 
@@ -74,6 +76,108 @@ def backup_repository_ids(backup: dict[str, Any], backup_id: str) -> list[str]:
             f"{backup_id}.restic-repository-ids must be a non-empty list of unique IDs"
         )
     return values
+
+
+def credential_source(value: Any, owner: str) -> None:
+    if not isinstance(value, dict) or set(value) not in ({"env"}, {"file"}):
+        raise ConfigError(f"{owner} must contain exactly one of env or file")
+    required_text(value, next(iter(value)), owner)
+
+
+def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
+    """Validate a github.com clone URL and return owner, repository, transport."""
+    transport = "ssh"
+    if url.startswith("git@github.com:"):
+        path = url.removeprefix("git@github.com:")
+    else:
+        parsed = urlparse(url)
+        if (
+            parsed.scheme != "https"
+            or parsed.hostname != "github.com"
+            or parsed.username is not None
+            or parsed.password is not None
+            or parsed.query
+            or parsed.fragment
+        ):
+            raise ConfigError(f"{owner}.repository-url must be a safe github.com URL")
+        path = parsed.path.lstrip("/")
+        transport = "https"
+    parts = path.removesuffix(".git").split("/")
+    if len(parts) != 2 or any(
+        not re.fullmatch(r"[A-Za-z0-9_.-]+", part) or part in {".", ".."}
+        for part in parts
+    ):
+        raise ConfigError(f"{owner}.repository-url must identify OWNER/REPOSITORY")
+    return parts[0], parts[1], transport
+
+
+def validate_github(backup: dict[str, Any], backup_id: str) -> None:
+    if backup_id in {".", ".."} or "/" in backup_id or "\\" in backup_id:
+        raise ConfigError(f"{backup_id}.job-id must be a safe path component")
+    github = backup.get("github")
+    if not isinstance(github, dict):
+        raise ConfigError(f"{backup_id}.github must be a mapping")
+    _, _, transport = github_repository_name(
+        required_text(github, "repository-url", f"{backup_id}.github"),
+        f"{backup_id}.github",
+    )
+    components = github.get("components")
+    fields = {"git", "lfs", "wiki", "metadata", "release-assets"}
+    if not isinstance(components, dict) or set(components) != fields:
+        raise ConfigError(
+            f"{backup_id}.github.components must define git, lfs, wiki, metadata, and release-assets"
+        )
+    if any(not isinstance(value, bool) for value in components.values()):
+        raise ConfigError(f"{backup_id}.github.components values must be true or false")
+    if not any(components.values()):
+        raise ConfigError(
+            f"{backup_id}.github.components must enable at least one component"
+        )
+    if components["lfs"] and not components["git"]:
+        raise ConfigError(f"{backup_id}.github.components.lfs requires git")
+    timeout = github.get("migration-timeout-seconds")
+    if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
+        raise ConfigError(
+            f"{backup_id}.github.migration-timeout-seconds must be a positive integer"
+        )
+
+    authentication = github.get("authentication", {})
+    if not isinstance(authentication, dict):
+        raise ConfigError(f"{backup_id}.github.authentication must be a mapping")
+    unknown = set(authentication) - {"git", "api"}
+    if unknown:
+        raise ConfigError(f"{backup_id}.github.authentication has unknown fields")
+    git_auth = authentication.get("git", {})
+    if not isinstance(git_auth, dict) or set(git_auth) - {"ssh", "https"}:
+        raise ConfigError(f"{backup_id}.github.authentication.git is invalid")
+    if transport == "ssh" and "https" in git_auth:
+        raise ConfigError(f"{backup_id}: HTTPS authentication requires an HTTPS URL")
+    if transport == "https" and "ssh" in git_auth:
+        raise ConfigError(f"{backup_id}: SSH authentication requires an SSH URL")
+    if "ssh" in git_auth:
+        ssh = git_auth["ssh"]
+        if not isinstance(ssh, dict) or set(ssh) != {"private-key", "known-hosts"}:
+            raise ConfigError(
+                f"{backup_id}.github.authentication.git.ssh must define private-key and known-hosts"
+            )
+        credential_source(ssh["private-key"], f"{backup_id}.github SSH private-key")
+        credential_source(ssh["known-hosts"], f"{backup_id}.github SSH known-hosts")
+    if "https" in git_auth:
+        https = git_auth["https"]
+        if not isinstance(https, dict) or set(https) != {"token"}:
+            raise ConfigError(
+                f"{backup_id}.github.authentication.git.https must define token"
+            )
+        credential_source(https["token"], f"{backup_id}.github HTTPS token")
+    api = authentication.get("api")
+    if api is not None:
+        if not isinstance(api, dict) or set(api) != {"token"}:
+            raise ConfigError(
+                f"{backup_id}.github.authentication.api must define token"
+            )
+        credential_source(api["token"], f"{backup_id}.github API token")
+    if (components["metadata"] or components["release-assets"]) and api is None:
+        raise ConfigError(f"{backup_id}.github.authentication.api.token is required")
 
 
 def indexed(
@@ -193,6 +297,10 @@ def validate(
             or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
+        if "github" in backup:
+            if paths is not None:
+                raise ConfigError(f"{backup_id} cannot define both github and paths")
+            validate_github(backup, backup_id)
         for repository_id in repository_ids:
             if repository_id not in repositories:
                 raise ConfigError(

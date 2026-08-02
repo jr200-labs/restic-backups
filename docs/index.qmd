@@ -6,6 +6,8 @@ Restic Backups is a YAML configuration and CLI layer for multiple restic
 repositories, with optional SOPS decryption. It supports S3-compatible services,
 mounted local storage, multiple repositories and backup jobs, managed private
 metadata directories, and a complete macOS Voice Memos workflow.
+It can also maintain and snapshot complete GitHub repository mirrors and
+selected GitHub-hosted data.
 
 ## Start here
 
@@ -14,6 +16,8 @@ metadata directories, and a complete macOS Voice Memos workflow.
   backup jobs, and Glacier policy.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
+- [GitHub Repositories](github-repositories.qmd) covers Git history, LFS, wikis,
+  metadata, release assets, and unattended credentials.
 - [Voice Memos Backups](voice-memos.qmd) covers backup, transcription, recovery,
   and diarization on macOS.
 
@@ -30,6 +34,9 @@ restic_backups/
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
     s3.py                permanent repository destruction
+  github_repository/
+    cli.py               GitHub repository commands and TUI
+    workflow.py          Git, GitHub export, and snapshot updates
   voice_memos/
     cli.py               Voice Memos command definitions
     pipeline.py          transcription and diarization processing
@@ -52,6 +59,9 @@ data/<storage-id>/<repository-path>/<job-id>/
 This path is relative to the selected configuration file. It does not constrain
 backup sources; commands may pass absolute source paths outside the repository.
 Everything below `data/` is ignored.
+
+GitHub repository jobs use `data/github-repositories/<job-id>/` because their
+managed source workspace is shared by every selected restic destination.
 
 ::: {.callout-warning}
 Commit `config.sops.yaml` only while encrypted. Never commit credentials,

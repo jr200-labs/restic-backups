@@ -3,7 +3,7 @@
 YAML configuration and a Python CLI for running multiple restic repositories,
 with optional SOPS decryption. The package currently includes a complete macOS
 Voice Memos workflow for backup, transcription, summarisation, and speaker
-diarization.
+diarization, plus managed GitHub repository backups.
 
 ## Why
 
@@ -18,7 +18,7 @@ from Git by a default-deny `.gitignore`.
 ## Install
 
 ```sh
-make install-deps  # Homebrew: restic, sops, uv, ffmpeg, jq, coreutils
+make install-deps  # Homebrew tools, including restic, sops, git-lfs, gh, and uv
 make install       # uv sync, including the dev group and Quarto
 ```
 
@@ -33,6 +33,7 @@ Use the built-in help for available commands and options:
 ```sh
 uv run restic-backups  # interactive arrow-key menu
 uv run restic-backups --help
+uv run restic-backups github-repository --help
 uv run restic-backups generic --help
 uv run restic-backups voice-memos --help
 ```
@@ -46,6 +47,8 @@ operation can be inspected without changing repository data.
 Command auditing is enabled by default and appends JSON records to
 `audit-log.json` in the current directory. Set `RESTIC_BACKUPS_AUDIT=0` to
 disable it. Passwords and other secret-like argument values are redacted.
+GitHub jobs also audit their raw `git`, `git lfs`, `gh`, and `restic` commands;
+tokens and temporary credential paths remain outside those arguments.
 
 ## Configuration
 
@@ -66,7 +69,8 @@ The configuration separates:
 - `restic-repositories`: encrypted repositories within storage, including the
   bucket/key prefix or local path, restic password, cache, and archive policy;
 - `backups`: jobs linked to one or more restic repositories, local source
-  paths, and an optional snapshot tag (defaulting to the job ID).
+  paths or a managed GitHub source, and an optional snapshot tag (defaulting to
+  the job ID).
 
 Multiple restic repositories may use one storage backend, one backup job may
 write to several repositories, and several jobs may share one repository. The
@@ -114,3 +118,6 @@ make docs-preview  # local preview server
 
 Start with the [Quick Start](docs/quick-start.qmd). Never commit decrypted SOPS
 configuration or anything below `data/`.
+
+For complete Git history plus optional LFS objects, wikis, GitHub metadata, and
+release assets, see [GitHub Repositories](docs/github-repositories.qmd).

@@ -449,6 +449,8 @@ def choose_backup(
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
+        if "github" in backups[backup_id]:
+            fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
@@ -458,6 +460,7 @@ def choose_backup(
             value=item_id,
         )
         for item_id, item in backups.items()
+        if "github" not in item
         if any(
             repositories[value]["enabled"]
             for value in config.backup_repository_ids(item, item_id)
@@ -577,6 +580,8 @@ def show_backups(
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
+        if "github" in backup:
+            continue
         repository_ids = config.backup_repository_ids(backup, backup_id)
         enabled = sum(repositories[value]["enabled"] for value in repository_ids)
         state = (

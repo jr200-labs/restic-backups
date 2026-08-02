@@ -1,4 +1,6 @@
 brew "restic"
+brew "gh"
+brew "git-lfs"
 brew "jq"
 brew "coreutils"
 brew "ffmpeg"

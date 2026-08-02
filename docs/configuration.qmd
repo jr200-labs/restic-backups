@@ -189,6 +189,40 @@ example, the `voice-memos` subcommand locates the macOS recording store itself.
 `generic backup run` reports an error if the selected backup has no configured
 paths.
 
+### GitHub repository jobs
+
+A GitHub repository job replaces `paths` with a `github` mapping:
+
+```yaml
+backups:
+  - job-id: example-github-repository
+    description: Back up Git history and selected GitHub data.
+    restic-repository-ids:
+      - personal-b2
+      - personal-local
+    github:
+      repository-url: git@github.com:example/example-repository.git
+      authentication:
+        api:
+          token:
+            env: GITHUB_MIGRATION_TOKEN
+      components:
+        git: true
+        lfs: false
+        wiki: false
+        metadata: true
+        release-assets: true
+      migration-timeout-seconds: 3600
+```
+
+All component flags are required and at least one must be enabled. `lfs`
+requires `git`. API authentication is required for `metadata` and
+`release-assets`; Git-only jobs do not require `gh` or an API token. Secret
+sources contain exactly one `env` or `file` key, so secret values remain outside
+the YAML. See [GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
+Git authentication, migration permissions, commands, workspace layout, and
+restore steps.
+
 ## Optional archive policy
 
 Restic repositories on AWS S3 storage may add an `archive` policy.
@@ -296,4 +330,5 @@ rather than mixing storage policies in one repository.
 
 `check-config` also rejects duplicate IDs, unknown storage or repository
 references, unsupported storage types, missing S3 fields, unsafe local paths,
-empty or invalid `paths`, and invalid Glacier retrieval tiers or durations.
+empty or invalid `paths`, unsafe GitHub URLs, invalid GitHub component or
+credential combinations, and invalid Glacier retrieval tiers or durations.
