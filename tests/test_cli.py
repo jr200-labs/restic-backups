@@ -238,6 +238,64 @@ backups:
                 result = runner.invoke(app, args, env=env)
                 self.assertEqual(result.exit_code, 0, result.output)
 
+    def test_init_validates_only_the_selected_repository(self) -> None:
+        config = """\
+storage:
+  - id: aws
+    type: s3
+    endpoint: https://s3.example.com
+    region: us-east-1
+    credentials:
+      access-key-id: key
+      secret-access-key: secret
+  - id: disk
+    type: local
+    path: /Volumes/unfinished
+restic-repositories:
+  - id: aws-ready
+    storage-id: aws
+    enabled: true
+    bucket: backups
+    key_prefix: restic
+    password: password
+  - id: disk-unfinished
+    storage-id: disk
+    enabled: true
+    path: personal
+    password: CHANGE_ME
+backups:
+  - job-id: documents
+    restic-repository-id: aws-ready
+"""
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "config.yaml"
+            path.write_text(config)
+            runner = CliRunner()
+            with patch(
+                "restic_backups.generic.cli.restic.repository_command",
+                return_value=10,
+            ) as command:
+                result = runner.invoke(
+                    app,
+                    [
+                        "--config",
+                        str(path),
+                        "generic",
+                        "repository",
+                        "init",
+                        "aws-ready",
+                        "--dry-run",
+                    ],
+                )
+
+            self.assertEqual(result.exit_code, 0, result.output)
+            self.assertIn("would initialize repository", result.output)
+            command.assert_called_once()
+
+            check = runner.invoke(app, ["--config", str(path), "check-config"])
+            self.assertEqual(check.exit_code, 1, check.output)
+            self.assertIn("disk-unfinished", check.output)
+
     def test_forget_prunes_selected_tagged_snapshot(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
         repositories = {"store": {"enabled": True}}

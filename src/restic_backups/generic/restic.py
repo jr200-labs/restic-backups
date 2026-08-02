@@ -9,7 +9,7 @@ import sys
 import tempfile
 from typing import Any, NoReturn
 
-from .. import audit
+from .. import audit, config
 from ..errors import BackupError
 from . import repository
 
@@ -142,6 +142,10 @@ def repository_run(
 ) -> tuple[int, str]:
     if not args:
         fail("restic command required")
+    try:
+        config.ensure_repository_ready(restic_repository, storage)
+    except config.ConfigError as exc:
+        fail(str(exc))
     logger.debug("%s: running restic %s", restic_repository["id"], args[0])
 
     env = os.environ.copy()

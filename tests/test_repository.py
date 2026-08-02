@@ -195,6 +195,35 @@ Usage:
         with self.assertRaisesRegex(config.ConfigError, "unknown restic repository"):
             config.validate(config_data)
 
+    def test_repository_readiness_is_checked_at_execution(self) -> None:
+        config_data: dict[str, Any] = {
+            "storage": [{"id": "disk", "type": "local", "path": "/Volumes/unfinished"}],
+            "restic-repositories": [
+                {
+                    "id": "unfinished",
+                    "storage-id": "disk",
+                    "enabled": True,
+                    "path": "personal",
+                    "password": "CHANGE_ME",
+                }
+            ],
+            "backups": [{"job-id": "files", "restic-repository-id": "unfinished"}],
+        }
+        with self.assertRaisesRegex(config.ConfigError, "contains placeholders"):
+            config.validate(config_data)
+
+        storage, repositories, _ = config.validate(
+            config_data, check_placeholders=False
+        )
+        with (
+            patch("subprocess.run") as run,
+            self.assertRaisesRegex(BackupError, "contains placeholders"),
+        ):
+            restic.repository_command(
+                repositories["unfinished"], storage["disk"], ["init"]
+            )
+        run.assert_not_called()
+
 
 if __name__ == "__main__":
     unittest.main()

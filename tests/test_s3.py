@@ -58,9 +58,19 @@ class S3DeletionTest(unittest.TestCase):
             "storage-id": "s3",
             "bucket": "bucket",
             "key_prefix": "repo",
+            "password": "password",
         }
         storage = {
-            "s3": {"id": "s3", "type": "s3", "endpoint": "https://s3.example.com"}
+            "s3": {
+                "id": "s3",
+                "type": "s3",
+                "endpoint": "https://s3.example.com",
+                "region": "us-east-1",
+                "credentials": {
+                    "access-key-id": "key",
+                    "secret-access-key": "secret",
+                },
+            }
         }
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
