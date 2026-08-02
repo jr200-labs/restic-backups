@@ -333,15 +333,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> github-repository</span></span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">personal-local</span><span class="kw">]</span></span>
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source</span><span class="kw">:</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-url</span><span class="kw">:</span><span class="at"> git@github.com:example/source-code.git</span></span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The job updates a managed mirror and selected GitHub data before snapshotting that workspace. See <a href="./github-repositories.html">GitHub Repositories</a> for components and credentials.</p>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-urls</span><span class="kw">:</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> git@github.com:example/source-code.git</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> git@github.com:example/another-project.git</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The job updates an independent managed mirror and selected GitHub data for each URL before snapshotting the complete job workspace. See <a href="./github-repositories.html">GitHub Repositories</a> for components and credentials.</p>
 </section>
 <section id="voice-memos" class="level2">
 <h2 class="anchored" data-anchor-id="voice-memos">Voice Memos</h2>

@@ -280,7 +280,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>The <code>github-repository</code> job type incrementally maintains a complete Git mirror and optionally collects Git LFS objects, the wiki, repository metadata, and release assets. It then snapshots the managed workspace to one or more configured restic repositories.</p>
+<p>The <code>github-repository</code> job type incrementally maintains complete Git mirrors for one or more URLs and optionally collects Git LFS objects, wikis, repository metadata, and release assets. It then snapshots the combined managed workspace to one or more configured restic repositories.</p>
 <section id="configure-a-job" class="level2">
 <h2 class="anchored" data-anchor-id="configure-a-job">Configure a job</h2>
 <p>GitHub jobs use the shared <code>jobs</code> section and a GitHub-specific <code>source</code>:</p>
@@ -293,29 +293,31 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> personal-local</span></span>
 <span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tag</span><span class="kw">:</span><span class="at"> example-github-repository</span></span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source</span><span class="kw">:</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-url</span><span class="kw">:</span><span class="at"> git@github.com:example/example-repository.git</span></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">authentication</span><span class="kw">:</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">ssh</span><span class="kw">:</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">private-key</span><span class="kw">:</span></span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/ssh-private-key</span></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">known-hosts</span><span class="kw">:</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/known-hosts</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">api</span><span class="kw">:</span></span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">token</span><span class="kw">:</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">env</span><span class="kw">:</span><span class="at"> GITHUB_MIGRATION_TOKEN</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Every component flag is required, and at least one must be <code>true</code>. <code>lfs</code> requires <code>git</code>. The optional restic <code>tag</code> still defaults to <code>job-id</code>.</p>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-urls</span><span class="kw">:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> git@github.com:example/example-repository.git</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> git@github.com:example/another-repository.git</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">authentication</span><span class="kw">:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">ssh</span><span class="kw">:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">private-key</span><span class="kw">:</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/ssh-private-key</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">known-hosts</span><span class="kw">:</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/known-hosts</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">api</span><span class="kw">:</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">token</span><span class="kw">:</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">env</span><span class="kw">:</span><span class="at"> GITHUB_MIGRATION_TOKEN</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Every component flag is required, and at least one must be <code>true</code>. <code>lfs</code> requires <code>git</code>. Every URL uses the same component and authentication settings. The optional restic <code>tag</code> still defaults to <code>job-id</code>.</p>
 <p>Only <code>github.com</code> clone URLs are accepted:</p>
 <pre class="text"><code>git@github.com:OWNER/REPOSITORY.git
 https://github.com/OWNER/REPOSITORY.git</code></pre>
-<p>Credentials, query strings, and fragments embedded in the URL are rejected.</p>
+<p>Credentials, query strings, and fragments embedded in the URL are rejected. The URL list must be non-empty and identify distinct repositories; SSH and HTTPS URLs for the same repository cannot appear together. The previous singular <code>repository-url</code> field is accepted temporarily for migration.</p>
 </section>
 <section id="credentials" class="level2">
 <h2 class="anchored" data-anchor-id="credentials">Credentials</h2>
@@ -411,21 +413,24 @@ https://github.com/OWNER/REPOSITORY.git</code></pre>
 <h2 class="anchored" data-anchor-id="managed-workspace-and-snapshots">Managed workspace and snapshots</h2>
 <p>The reusable local workspace lives beside the selected config:</p>
 <pre class="text"><code>data/github-repositories/&lt;job-id&gt;/
-  repository.git/
-  wiki.git/
-  github-export/
-  release-assets/
-  backup-manifest.json</code></pre>
-<p>The manifest records the source, update time, and a safe status for every component: <code>updated</code>, <code>unchanged</code>, <code>stale</code>, <code>not-present</code>, <code>failed</code>, or <code>disabled</code>. If one component fails, the workflow still attempts the others and all selected destinations. Existing local component data is included as <code>stale</code>; the command creates the best available snapshot and exits nonzero when anything failed. Disabled cached components are not included.</p>
+  backup-manifest.json
+  &lt;owner&gt;/&lt;repository&gt;/
+    repository.git/
+    wiki.git/
+    github-export/
+    release-assets/</code></pre>
+<p>The manifest records every source, the update time, and a safe status for every repository component: <code>updated</code>, <code>unchanged</code>, <code>stale</code>, <code>not-present</code>, <code>failed</code>, or <code>disabled</code>. If one component fails, the workflow still attempts the others and all selected destinations. Existing local component data is included as <code>stale</code>; the command creates the best available snapshot and exits nonzero when anything failed. Disabled cached components are not included.</p>
 <p>Restic splits input into content-defined chunks and deduplicates identical chunks <strong>within each restic repository</strong>. Stable Git pack files, LFS objects, migration files, and release assets therefore do not need to be uploaded again. The workflow disables automatic Git maintenance and repacking because repacking can rewrite otherwise unchanged Git objects and reduce deduplication. Separate restic repositories do not share chunks, so two destinations each store their own copy. See restic’s <a href="https://restic.readthedocs.io/en/stable/100_references.html#repository-design">repository design</a>.</p>
 <p>Restore a snapshot with the normal restic command, then clone the restored bare repository into a working tree:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> example-github-repository <span class="dt">\</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  restore latest <span class="at">--target</span> /tmp/github-restore</span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone /tmp/github-restore/repository.git restored-repository</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone <span class="st">"</span><span class="va">$(</span><span class="fu">find</span> /tmp/github-restore <span class="at">-type</span> d <span class="dt">\</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a>  <span class="at">-path</span> <span class="st">'*/example/example-repository/repository.git'</span> <span class="at">-print</span> <span class="at">-quit</span><span class="va">)</span><span class="st">"</span> <span class="dt">\</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a>  restored-repository</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="deliberate-limits" class="level2">
 <h2 class="anchored" data-anchor-id="deliberate-limits">Deliberate limits</h2>
-<p>This workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, submodule repositories, or GitHub Enterprise. Configure another job for each independent Git or submodule repository that must be retained.</p>
+<p>This workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, automatically discovered submodule repositories, or GitHub Enterprise. Add each independent Git or submodule repository URL that must be retained.</p>
 
 
 </section>
