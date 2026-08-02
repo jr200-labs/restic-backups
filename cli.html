@@ -215,6 +215,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GitHub Repositories</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Generic Backups</span></a>
   </div>
@@ -266,7 +272,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <p>Run the installed command through uv:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Generic backups</strong>, <strong>Voice Memos</strong>, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.</p>
+<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Generic backups</strong>, <strong>GitHub repositories</strong>, <strong>Voice Memos</strong>, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.</p>
 <p>Every menu level includes <strong>Help</strong> and <strong>Back</strong>. <strong>Help</strong> shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.</p>
 <p>Press Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.</p>
 <p>Show command-line help instead:</p>
@@ -282,9 +288,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Command auditing is enabled by default. <code>restic-backups</code> appends compact JSON objects to <code>audit-log.json</code> in the directory where it was started. Each command has two linked records:</p>
 <ul>
 <li>a <code>started</code> event containing an <code>id</code>, <code>start-time</code>, <code>hostname</code>, <code>command</code>, and its exact <code>args</code>;</li>
-<li>a <code>finished</code> event containing <code>started-id</code>, <code>end-time</code>, and <code>successful</code>.</li>
+<li>a <code>finished</code> event containing <code>started-id</code>, <code>end-time</code>, and <code>successful</code>. Workflows may also add non-secret component and destination results under <code>details</code>.</li>
 </ul>
-<p>The <code>started-id</code> links completion to the corresponding <code>started</code> event. A <code>started</code> event without a matching <code>finished</code> event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
+<p>The <code>started-id</code> links completion to the corresponding <code>started</code> event. A <code>started</code> event without a matching <code>finished</code> event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. GitHub repository jobs likewise record every raw <code>git</code>, <code>git lfs</code>, <code>gh</code>, and <code>restic</code> command. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
 <p>The log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_AUDIT</span><span class="op">=</span>0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The values <code>false</code>, <code>no</code>, and <code>off</code> are also accepted, case-insensitively.</p>
@@ -311,21 +317,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>No</td>
 </tr>
 <tr class="even">
+<td><code>github-repository ...</code></td>
+<td>Update and snapshot a GitHub repository export</td>
+<td>Depends on subcommand</td>
+</tr>
+<tr class="odd">
 <td><code>generic ...</code></td>
 <td>Run generic configured repository commands</td>
 <td>Depends on subcommand</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td><code>voice-memos ...</code></td>
 <td>Run the macOS Voice Memos workflow</td>
 <td>Depends on subcommand</td>
 </tr>
 </tbody>
 </table>
-<p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
+<p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./github-repositories.html">GitHub Repositories</a> for Git history and selected GitHub-hosted data. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
 <p>Run subcommand help without loading a configuration:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository <span class="at">--help</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>

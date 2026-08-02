@@ -180,6 +180,12 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GitHub Repositories</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Generic Backups</span></a>
   </div>
@@ -230,13 +236,14 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow.</p>
+<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow. It can also maintain and snapshot complete GitHub repository mirrors and selected GitHub-hosted data.</p>
 <section id="start-here" class="level2">
 <h2 class="anchored" data-anchor-id="start-here">Start here</h2>
 <ul>
 <li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
 <li><a href="./configuration.html">Configuration</a> describes storage, restic repositories, backup jobs, and Glacier policy.</li>
 <li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
+<li><a href="./github-repositories.html">GitHub Repositories</a> covers Git history, LFS, wikis, metadata, release assets, and unattended credentials.</li>
 <li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
 </ul>
 </section>
@@ -252,6 +259,9 @@ ul.task-list li input[type="checkbox"] {
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
     s3.py                permanent repository destruction
+  github_repository/
+    cli.py               GitHub repository commands and TUI
+    workflow.py          Git, GitHub export, and snapshot updates
   voice_memos/
     cli.py               Voice Memos command definitions
     pipeline.py          transcription and diarization processing
@@ -265,6 +275,7 @@ ul.task-list li input[type="checkbox"] {
 <p>Managed artifacts use:</p>
 <pre class="text"><code>data/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/</code></pre>
 <p>This path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
+<p>GitHub repository jobs use <code>data/github-repositories/&lt;job-id&gt;/</code> because their managed source workspace is shared by every selected restic destination.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">

@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Storage Cost Comparison – Restic Backups</title>
+<title>GitHub Repositories – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -145,7 +145,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./github-repositories.html">Commands</a></li><li class="breadcrumb-item"><a href="./github-repositories.html">GitHub Repositories</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -192,7 +192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link active">
+  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Storage Cost Comparison</span></a>
   </div>
 </li>
@@ -215,7 +215,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
+  <a href="./github-repositories.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">GitHub Repositories</span></a>
   </div>
 </li>
@@ -243,19 +243,21 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#gb" id="toc-gb" class="nav-link active" data-scroll-target="#gb">100 GB</a></li>
-  <li><a href="#tb" id="toc-tb" class="nav-link" data-scroll-target="#tb">1 TB</a></li>
-  <li><a href="#cost-of-listing-files-in-a-snapshot" id="toc-cost-of-listing-files-in-a-snapshot" class="nav-link" data-scroll-target="#cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</a></li>
-  <li><a href="#important-differences" id="toc-important-differences" class="nav-link" data-scroll-target="#important-differences">Important differences</a></li>
+  <li><a href="#configure-a-job" id="toc-configure-a-job" class="nav-link active" data-scroll-target="#configure-a-job">Configure a job</a></li>
+  <li><a href="#credentials" id="toc-credentials" class="nav-link" data-scroll-target="#credentials">Credentials</a></li>
+  <li><a href="#components" id="toc-components" class="nav-link" data-scroll-target="#components">Components</a></li>
+  <li><a href="#run-and-inspect" id="toc-run-and-inspect" class="nav-link" data-scroll-target="#run-and-inspect">Run and inspect</a></li>
+  <li><a href="#managed-workspace-and-snapshots" id="toc-managed-workspace-and-snapshots" class="nav-link" data-scroll-target="#managed-workspace-and-snapshots">Managed workspace and snapshots</a></li>
+  <li><a href="#deliberate-limits" id="toc-deliberate-limits" class="nav-link" data-scroll-target="#deliberate-limits">Deliberate limits</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./github-repositories.html">Commands</a></li><li class="breadcrumb-item"><a href="./github-repositories.html">GitHub Repositories</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Storage Cost Comparison</h1>
+<h1 class="title">GitHub Repositories</h1>
 </div>
 
 
@@ -272,195 +274,151 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.</p>
-<section id="gb" class="level2">
-<h2 class="anchored" data-anchor-id="gb">100 GB</h2>
-<p><strong>Prices as of 1 August 2026.</strong></p>
+<p>The <strong>GitHub repositories</strong> workflow incrementally maintains a complete Git mirror and optionally collects Git LFS objects, the wiki, repository metadata, and release assets. It then snapshots the managed workspace to one or more configured restic repositories.</p>
+<section id="configure-a-job" class="level2">
+<h2 class="anchored" data-anchor-id="configure-a-job">Configure a job</h2>
+<p>GitHub jobs live in <code>backups</code>, but use <code>github</code> instead of <code>paths</code>:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> example-github-repository</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Complete GitHub repository backup.</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> personal-b2</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> personal-local</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tag</span><span class="kw">:</span><span class="at"> example-github-repository</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">github</span><span class="kw">:</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-url</span><span class="kw">:</span><span class="at"> git@github.com:example/example-repository.git</span></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">authentication</span><span class="kw">:</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">ssh</span><span class="kw">:</span></span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">private-key</span><span class="kw">:</span></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/ssh-private-key</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">known-hosts</span><span class="kw">:</span></span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="at">              </span><span class="fu">file</span><span class="kw">:</span><span class="at"> /var/run/secrets/github/known-hosts</span></span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">api</span><span class="kw">:</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="at">          </span><span class="fu">token</span><span class="kw">:</span></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a><span class="at">            </span><span class="fu">env</span><span class="kw">:</span><span class="at"> GITHUB_MIGRATION_TOKEN</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Every component flag is required, and at least one must be <code>true</code>. <code>lfs</code> requires <code>git</code>. A GitHub job cannot also define <code>paths</code>. The optional restic <code>tag</code> still defaults to <code>job-id</code>.</p>
+<p>Only <code>github.com</code> clone URLs are accepted:</p>
+<pre class="text"><code>git@github.com:OWNER/REPOSITORY.git
+https://github.com/OWNER/REPOSITORY.git</code></pre>
+<p>Credentials, query strings, and fragments embedded in the URL are rejected.</p>
+</section>
+<section id="credentials" class="level2">
+<h2 class="anchored" data-anchor-id="credentials">Credentials</h2>
+<p>Every configured secret source contains exactly one <code>env</code> or <code>file</code> key. The environment variable or file is read again on every run, which works with rotated Kubernetes Secrets and other secret managers. Secret values are never placed in command arguments, logs, manifests, or the audit log.</p>
+<p>For SSH clone URLs, omit <code>authentication.git</code> to use the existing SSH agent and configuration, or configure both a private key and <code>known_hosts</code>. Configured keys are copied to temporary owner-only files, and strict host verification is always enabled. Generate a pinned host entry according to GitHub’s <a href="https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints">SSH host key guidance</a>.</p>
+<p>For HTTPS clone URLs, use a token without putting it in the URL:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">authentication</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">git</span><span class="kw">:</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">https</span><span class="kw">:</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">token</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">env</span><span class="kw">:</span><span class="at"> GITHUB_GIT_TOKEN</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The CLI supplies it through a temporary Git askpass helper. Public HTTPS repositories may omit Git authentication.</p>
+<p>The separate <code>authentication.api.token</code> is required when <code>metadata</code> or <code>release-assets</code> is enabled. GitHub’s migration API currently requires a compatible <strong>classic personal access token</strong> and repository-owner access; fine-grained tokens and GitHub App tokens are not supported for this API. See GitHub’s <a href="https://docs.github.com/en/rest/migrations/orgs">organization migration API</a> and <a href="https://docs.github.com/en/rest/migrations/users">user migration API</a>.</p>
+<p>For a Kubernetes CronJob, mount files or inject environment variables from a Secret and point the job at their names—do not put secret values in YAML:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">env</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> GITHUB_MIGRATION_TOKEN</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">valueFrom</span><span class="kw">:</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">secretKeyRef</span><span class="kw">:</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">name</span><span class="kw">:</span><span class="at"> github-backup</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">key</span><span class="kw">:</span><span class="at"> api-token</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="fu">volumeMounts</span><span class="kw">:</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">name</span><span class="kw">:</span><span class="at"> github-ssh</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">mountPath</span><span class="kw">:</span><span class="at"> /var/run/secrets/github</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">readOnly</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The container needs <code>git</code>, <code>git-lfs</code> when LFS is enabled, <code>gh</code> when API-backed components are enabled, and <code>restic</code>. <code>make install-deps</code> installs these tools with Homebrew for local use.</p>
+</section>
+<section id="components" class="level2">
+<h2 class="anchored" data-anchor-id="components">Components</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 26%">
-<col style="width: 20%">
+<col style="width: 33%">
+<col style="width: 33%">
 <col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Service</th>
-<th style="text-align: right;">Monthly cost</th>
-<th>Price used</th>
-<th style="text-align: center;">Supported by this CLI</th>
+<th>Component</th>
+<th>Backed-up data</th>
+<th>Update behavior</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>AWS S3 Glacier Instant Retrieval</td>
-<td style="text-align: right;"><strong>$0.40</strong></td>
-<td>$0.004/GB-month</td>
-<td style="text-align: center;">Yes</td>
+<td><code>git</code></td>
+<td>Every Git ref and object, including full branch and tag history</td>
+<td>Initial <code>git clone --mirror</code>; later <code>git remote update --prune</code></td>
 </tr>
 <tr class="even">
-<td>AWS S3 Glacier Flexible Retrieval</td>
-<td style="text-align: right;"><strong>$0.36</strong></td>
-<td>$0.0036/GB-month</td>
-<td style="text-align: center;">Yes; restore required</td>
+<td><code>lfs</code></td>
+<td>All Git LFS objects reachable from the mirror</td>
+<td><code>git lfs fetch --all origin</code></td>
 </tr>
 <tr class="odd">
-<td>AWS S3 Standard</td>
-<td style="text-align: right;"><strong>$2.30</strong></td>
-<td>$0.023/GB-month</td>
-<td style="text-align: center;">Yes</td>
+<td><code>wiki</code></td>
+<td>The repository wiki as a separate Git mirror</td>
+<td>Missing or empty wikis are recorded as <code>not-present</code></td>
 </tr>
 <tr class="even">
-<td>Backblaze B2</td>
-<td style="text-align: right;"><strong>$0.63</strong></td>
-<td>$0.00695/GB-month after the first 10 GB free</td>
-<td style="text-align: center;">Yes</td>
+<td><code>metadata</code></td>
+<td>GitHub’s official migration export, including issues, pull requests, comments, attachments, and release metadata</td>
+<td>A new migration archive is requested and downloaded each run</td>
 </tr>
 <tr class="odd">
-<td>Google Drive</td>
-<td style="text-align: right;"><strong>$1.99</strong></td>
-<td>Google One Basic 100 GB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-<tr class="even">
-<td>OneDrive</td>
-<td style="text-align: right;"><strong>$1.99</strong></td>
-<td>Microsoft 365 Basic 100 GB plan</td>
-<td style="text-align: center;">No</td>
+<td><code>release-assets</code></td>
+<td>Binary files attached to releases</td>
+<td>Missing or changed assets download atomically; remotely deleted assets are removed only after a complete successful update</td>
 </tr>
 </tbody>
 </table>
+<p>A Git-only job sets <code>git: true</code> and every other component to <code>false</code>. It needs only Git authentication and never invokes <code>gh</code>. Git history contains commits, branches, and tags; it does <strong>not</strong> contain issue discussions, pull-request comments, or other GitHub database records. Without <code>lfs</code>, Git history still contains LFS pointer files but not the referenced large objects.</p>
 </section>
-<section id="tb" class="level2">
-<h2 class="anchored" data-anchor-id="tb">1 TB</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 26%">
-<col style="width: 20%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Service</th>
-<th style="text-align: right;">Monthly cost</th>
-<th>Price used</th>
-<th style="text-align: center;">Supported by this CLI</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>AWS S3 Glacier Instant Retrieval</td>
-<td style="text-align: right;"><strong>$4.00</strong></td>
-<td>1,000 GB at $0.004/GB-month</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="even">
-<td>AWS S3 Glacier Flexible Retrieval</td>
-<td style="text-align: right;"><strong>$3.60</strong></td>
-<td>1,000 GB at $0.0036/GB-month</td>
-<td style="text-align: center;">Yes; restore required</td>
-</tr>
-<tr class="odd">
-<td>AWS S3 Standard</td>
-<td style="text-align: right;"><strong>$23.00</strong></td>
-<td>1,000 GB at $0.023/GB-month</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="even">
-<td>Backblaze B2</td>
-<td style="text-align: right;"><strong>$6.88</strong></td>
-<td>990 billable GB after the first 10 GB free</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="odd">
-<td>Google Drive</td>
-<td style="text-align: right;"><strong>$9.99</strong></td>
-<td>Cheapest plan covering 1 TB is the 2 TB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-<tr class="even">
-<td>OneDrive</td>
-<td style="text-align: right;"><strong>$9.99</strong></td>
-<td>Microsoft 365 Personal 1 TB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-</tbody>
-</table>
+<section id="run-and-inspect" class="level2">
+<h2 class="anchored" data-anchor-id="run-and-inspect">Run and inspect</h2>
+<p>Use the described arrow-key TUI or explicit commands:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository list</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository backup example-github-repository <span class="dt">\</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="at">--repository</span> personal-local</span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository status</span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository status example-github-repository</span>
+<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository data-dir example-github-repository</span>
+<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list example-github-repository <span class="dt">\</span></span>
+<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2</span>
+<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> example-github-repository <span class="dt">\</span></span>
+<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 ls latest <span class="at">--tag</span> example-github-repository</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>With no job ID, <code>status</code> shows one row for every GitHub job and destination, including the latest snapshot ID and time, the local export time, and component states. Snapshots are matched using each job’s configured tag, which defaults to its job ID. Each destination repository is queried only once, even when many jobs share it. Passing a job ID limits the snapshot table and adds that job’s detailed component errors.</p>
+<p>The status table reads restic snapshot metadata, not backed-up file contents. It can contact remote storage when the required metadata is not already cached.</p>
+<p>GitHub jobs are also selectable from <strong>Snapshots</strong> and <strong>Advanced restic</strong>. Use <code>restic ls</code> to browse files in a snapshot. The different <code>restic list</code> command lists internal repository objects and requires an object type such as <code>packs</code>, <code>snapshots</code>, or <code>keys</code>; it does not list configured backup jobs.</p>
+<p>The TUI starts with every configured destination unchecked. Select each desired restic repository with Space. A dry run validates the plan without calling Git, GitHub, or restic and without writing the workspace:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository backup example-github-repository <span class="dt">\</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="at">--dry-run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="cost-of-listing-files-in-a-snapshot" class="level2">
-<h2 class="anchored" data-anchor-id="cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</h2>
-<p>Restic can list a snapshot without downloading the backed-up file contents:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> ls <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The command downloads repository indexes, snapshot records, directory trees, and other required metadata. Commands such as <code>restore</code> and <code>dump</code> download file data. Restic’s local cache can reduce metadata reads on subsequent commands. Set <code>cache-dir</code> on a <code>restic-repositories</code> entry to give each repository a stable, separate cache location; see <a href="./configuration.html">Configuration</a>.</p>
-<p>Prime that cache with repository metadata before browsing snapshots:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository prime-cache <span class="op">&lt;</span>repository-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This runs <code>restic check --with-cache</code>; it does not download backed-up file data.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 30%">
-<col style="width: 30%">
-<col style="width: 40%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Provider</th>
-<th>Metadata-read charges</th>
-<th style="text-align: right;">Typical cost</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Backblaze B2</td>
-<td>GET and LIST transactions are free; egress is free up to 3× average monthly storage</td>
-<td style="text-align: right;"><strong>$0</strong> within the free egress allowance</td>
-</tr>
-<tr class="even">
-<td>AWS S3 Glacier Instant Retrieval, US East</td>
-<td>$0.03/GB retrieved plus about $0.01 per 1,000 GET requests</td>
-<td style="text-align: right;">Usually <strong>less than $0.01</strong></td>
-</tr>
-</tbody>
-</table>
-<p>Glacier Instant Retrieval examples below show retrieval charges only; request charges are additional:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th style="text-align: right;">Metadata downloaded</th>
-<th style="text-align: right;">Retrieval charge</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: right;">10 MB</td>
-<td style="text-align: right;">~$0.0003</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">100 MB</td>
-<td style="text-align: right;">~$0.003</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">1 GB</td>
-<td style="text-align: right;">$0.03</td>
-</tr>
-</tbody>
-</table>
-<p>AWS currently includes the first 100 GB per month of internet data transfer out, aggregated across AWS services and regions. Backblaze charges $0.01/GB only for egress beyond its free allowance. Exact costs depend on the repository’s metadata size, object count, local cache, and other usage during the billing month.</p>
+<section id="managed-workspace-and-snapshots" class="level2">
+<h2 class="anchored" data-anchor-id="managed-workspace-and-snapshots">Managed workspace and snapshots</h2>
+<p>The reusable local workspace lives beside the selected config:</p>
+<pre class="text"><code>data/github-repositories/&lt;job-id&gt;/
+  repository.git/
+  wiki.git/
+  github-export/
+  release-assets/
+  backup-manifest.json</code></pre>
+<p>The manifest records the source, update time, and a safe status for every component: <code>updated</code>, <code>unchanged</code>, <code>stale</code>, <code>not-present</code>, <code>failed</code>, or <code>disabled</code>. If one component fails, the workflow still attempts the others and all selected destinations. Existing local component data is included as <code>stale</code>; the command creates the best available snapshot and exits nonzero when anything failed. Disabled cached components are not included.</p>
+<p>Restic splits input into content-defined chunks and deduplicates identical chunks <strong>within each restic repository</strong>. Stable Git pack files, LFS objects, migration files, and release assets therefore do not need to be uploaded again. The workflow disables automatic Git maintenance and repacking because repacking can rewrite otherwise unchanged Git objects and reduce deduplication. Separate restic repositories do not share chunks, so two destinations each store their own copy. See restic’s <a href="https://restic.readthedocs.io/en/stable/100_references.html#repository-design">repository design</a>.</p>
+<p>Restore a snapshot with the normal restic command, then clone the restored bare repository into a working tree:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> example-github-repository <span class="dt">\</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a>  restore latest <span class="at">--target</span> /tmp/github-restore</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="fu">git</span> clone /tmp/github-restore/repository.git restored-repository</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="important-differences" class="level2">
-<h2 class="anchored" data-anchor-id="important-differences">Important differences</h2>
-<p>AWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project supports S3-compatible and local filesystem storage; Google Drive and OneDrive cannot be selected as storage backends.</p>
-<p>Both Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.</p>
-<p>For Flexible Retrieval, configure a <code>restore</code> policy and set <code>ALLOW_ARCHIVE_RETRIEVAL=1</code> when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.</p>
-<p>Prices vary by country and can change. Check the current official pages before choosing a provider:</p>
-<ul>
-<li><a href="https://aws.amazon.com/s3/pricing/">Amazon S3 pricing</a></li>
-<li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html">AWS archive retrieval options</a></li>
-<li><a href="https://www.backblaze.com/cloud-storage/pricing">Backblaze B2 pricing</a></li>
-<li><a href="https://www.backblaze.com/cloud-storage/transaction-pricing">Backblaze B2 transaction pricing</a></li>
-<li><a href="https://one.google.com/about/plans?hl=en_US">Google One plans</a></li>
-<li><a href="https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us">Microsoft OneDrive plans</a></li>
-</ul>
+<section id="deliberate-limits" class="level2">
+<h2 class="anchored" data-anchor-id="deliberate-limits">Deliberate limits</h2>
+<p>This workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, submodule repositories, or GitHub Enterprise. Configure another job for each independent Git or submodule repository that must be retained.</p>
 
 
 </section>

@@ -37,7 +37,7 @@
     "href": "configuration.html#backups",
     "title": "Configuration",
     "section": "backups",
-    "text": "backups\nbackups defines the entries shown in the CLI’s Backups table. Each entry lists one or more repositories under restic-repository-ids. Every value must match a restic-repositories.id value.\nbackups:\n  - job-id: documents\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    paths:\n      - ~/Documents\n      - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the configured backup job in commands and menus. paths is the non-empty list of local files or directories passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a backup runs in the TUI, every configured repository starts deselected; select one or more with Space. This prevents a job from writing to an unintended destination. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups generic backup run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nSpecialized workflows may discover their own sources and omit paths. For example, the voice-memos subcommand locates the macOS recording store itself. generic backup run reports an error if the selected backup has no configured paths.",
+    "text": "backups\nbackups defines the entries shown in the CLI’s Backups table. Each entry lists one or more repositories under restic-repository-ids. Every value must match a restic-repositories.id value.\nbackups:\n  - job-id: documents\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    paths:\n      - ~/Documents\n      - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the configured backup job in commands and menus. paths is the non-empty list of local files or directories passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a backup runs in the TUI, every configured repository starts deselected; select one or more with Space. This prevents a job from writing to an unintended destination. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups generic backup run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nSpecialized workflows may discover their own sources and omit paths. For example, the voice-memos subcommand locates the macOS recording store itself. generic backup run reports an error if the selected backup has no configured paths.\n\nGitHub repository jobs\nA GitHub repository job replaces paths with a github mapping:\nbackups:\n  - job-id: example-github-repository\n    description: Back up Git history and selected GitHub data.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    github:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nAll component flags are required and at least one must be enabled. lfs requires git. API authentication is required for metadata and release-assets; Git-only jobs do not require gh or an API token. Secret sources contain exactly one env or file key, so secret values remain outside the YAML. See GitHub Repositories for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -59,7 +59,7 @@
     "href": "configuration.html#validation-rules",
     "title": "Configuration",
     "section": "Validation rules",
-    "text": "Validation rules\ncheck-config also rejects duplicate IDs, unknown storage or repository references, unsupported storage types, missing S3 fields, unsafe local paths, empty or invalid paths, and invalid Glacier retrieval tiers or durations.",
+    "text": "Validation rules\ncheck-config also rejects duplicate IDs, unknown storage or repository references, unsupported storage types, missing S3 fields, unsafe local paths, empty or invalid paths, unsafe GitHub URLs, invalid GitHub component or credential combinations, and invalid Glacier retrieval tiers or durations.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -110,7 +110,7 @@
     "href": "quick-start.html#verify-a-restore",
     "title": "Quick Start",
     "section": "4. Verify a restore",
-    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS before committing a config.",
+    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or GitHub Repositories for Git and GitHub data, or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS before committing a config.",
     "crumbs": [
       "Quick Start"
     ]
@@ -120,7 +120,7 @@
     "href": "index.html",
     "title": "Restic Backups",
     "section": "",
-    "text": "Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow.",
+    "text": "Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow. It can also maintain and snapshot complete GitHub repository mirrors and selected GitHub-hosted data.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -130,7 +130,7 @@
     "href": "index.html#start-here",
     "title": "Restic Backups",
     "section": "Start here",
-    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, backup jobs, and Glacier policy.\nGeneric Backups covers standard restic operations for any local files or directories.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
+    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, backup jobs, and Glacier policy.\nGeneric Backups covers standard restic operations for any local files or directories.\nGitHub Repositories covers Git history, LFS, wikis, metadata, release assets, and unattended credentials.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -140,7 +140,7 @@
     "href": "index.html#architecture",
     "title": "Restic Backups",
     "section": "Architecture",
-    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
+    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  github_repository/\n    cli.py               GitHub repository commands and TUI\n    workflow.py          Git, GitHub export, and snapshot updates\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -150,9 +150,152 @@
     "href": "index.html#private-data-boundary",
     "title": "Restic Backups",
     "section": "Private data boundary",
-    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
+    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\nGitHub repository jobs use data/github-repositories/&lt;job-id&gt;/ because their managed source workspace is shared by every selected restic destination.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
     "crumbs": [
       "Restic Backups"
+    ]
+  },
+  {
+    "objectID": "sops.html",
+    "href": "sops.html",
+    "title": "SOPS",
+    "section": "",
+    "text": "SOPS encrypts secrets in the YAML configuration while leaving the file safe to store in Git. restic-backups asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#install-sops-and-age",
+    "href": "sops.html#install-sops-and-age",
+    "title": "SOPS",
+    "section": "Install SOPS and age",
+    "text": "Install SOPS and age\nmake install-deps installs SOPS. Install age when age-keygen is not already available:\nbrew install age\nGenerate an age identity outside the repository:\nmkdir -p \"$HOME/.config/sops/age\"\nage-keygen -o \"$HOME/.config/sops/age/keys.txt\"\nage-keygen -y \"$HOME/.config/sops/age/keys.txt\"\nThe final command prints the public age1... recipient. It is safe to put that recipient in .sops.yaml. Never commit the private AGE-SECRET-KEY-1... identity or the identity file.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#add-.sops.yaml",
+    "href": "sops.html#add-.sops.yaml",
+    "title": "SOPS",
+    "section": "Add .sops.yaml",
+    "text": "Add .sops.yaml\nThe SOPS configuration file must be named .sops.yaml, not .sops.yml. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.\nThis template encrypts only the credential fields and restic repository passwords used by restic-backups:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nStorage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. mac_only_encrypted: true allows those readable values to be edited directly without invalidating the SOPS message authentication code (MAC).\n\n\n\n\n\n\nWarning\n\n\n\nWith mac_only_encrypted: true, SOPS authenticates encrypted values but no longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job mappings. Review those changes through Git. Omit this setting when SOPS should protect the integrity of every value, accepting that all edits must then go through SOPS.\n\n\nSOPS also encrypts comments, so use the configuration’s description fields for readable notes.\nTo encrypt every value instead, omit encrypted_regex:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\nThe public recipient can instead come from SOPS_AGE_RECIPIENTS. When that variable is always set for encryption, omit age from the creation rule:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nSee the official SOPS configuration format for rule matching and other key providers.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#create-the-encrypted-config",
+    "href": "sops.html#create-the-encrypted-config",
+    "title": "SOPS",
+    "section": "Create the encrypted config",
+    "text": "Create the encrypted config\nUse config.sops.yaml as the conventional name. The CLI accepts another name, but it must match path_regex and be passed through --config or RESTIC_BACKUPS_CONFIG.\nCopy the template, then edit it through SOPS so secrets are encrypted when the editor closes:\ncp config.template.yaml config.sops.yaml\nsops config.sops.yaml\nConfirm the file is encrypted and validate it without contacting remote storage:\nsops filestatus config.sops.yaml\nuv run restic-backups --config config.sops.yaml --sops check-config\nCommit .sops.yaml and the encrypted config.sops.yaml. Do not commit a plain config.yaml, the age identity, or decrypted command output.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#environment-variables",
+    "href": "sops.html#environment-variables",
+    "title": "SOPS",
+    "section": "Environment variables",
+    "text": "Environment variables\nThese variables avoid repeating the global CLI options:\n\n\n\n\n\n\n\n\nVariable\nPurpose\nSensitive\n\n\n\n\nRESTIC_BACKUPS_CONFIG\nPath to the encrypted application config\nNo\n\n\nRESTIC_BACKUPS_SOPS=1\nTell restic-backups to decrypt through SOPS\nNo\n\n\nSOPS_AGE_KEY_FILE\nPath to a file containing private age identities\nYes: protect the file\n\n\nSOPS_AGE_KEY\nPrivate age identities supplied directly by a secret manager\nYes\n\n\nSOPS_AGE_KEY_CMD\nCommand that prints private age identities\nDepends on the command\n\n\nSOPS_AGE_RECIPIENTS\nPublic recipients used when encrypting new files\nNo\n\n\nSOPS_CONFIG\nNon-default path to .sops.yaml\nNo\n\n\n\nNormally, set the identity file and the two restic-backups variables:\nexport SOPS_AGE_KEY_FILE=\"$HOME/.config/sops/age/keys.txt\"\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.sops.yaml\"\nexport RESTIC_BACKUPS_SOPS=1\n\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nSOPS_AGE_KEY_FILE, SOPS_AGE_KEY, and SOPS_AGE_KEY_CMD are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "sops.html#edit-and-rotate",
+    "href": "sops.html#edit-and-rotate",
+    "title": "SOPS",
+    "section": "Edit and rotate",
+    "text": "Edit and rotate\nWith mac_only_encrypted: true, ordinary text editors may change plaintext leaf values directly:\n$EDITOR config.sops.yaml\nuv run restic-backups check-config\nDo not replace an ENC[...] value manually. Use SOPS when changing a password, access key, or secret key, and for structural edits that add, remove, reorder, or rename branches containing encrypted values:\nsops edit config.sops.yaml\nFor a single value, sops set avoids opening the complete decrypted document:\nsops set config.sops.yaml \\\n  '[\"storage\"][0][\"description\"]' '\"Off-site object storage\"'\nThe encrypted file already records its public recipients. When recipients in .sops.yaml change, synchronize them with:\nsops updatekeys config.sops.yaml\nAdding or changing encrypted_regex or mac_only_encrypted in .sops.yaml does not alter an existing encrypted document. Decrypt and re-encrypt it once so the new rule is stored in the file. Keep plaintext in the pipe and replace the original only after encryption succeeds:\numask 077\nsops decrypt config.sops.yaml |\n  sops encrypt --filename-override config.sops.yaml \\\n    --input-type yaml --output-type yaml /dev/stdin &gt; config.sops.yaml.new\nmv config.sops.yaml.new config.sops.yaml\nValidate again after every key or rule change:\nuv run restic-backups check-config",
+    "crumbs": [
+      "Setup",
+      "SOPS"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html",
+    "href": "voice-memos.html",
+    "title": "Voice Memos Backups",
+    "section": "",
+    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#requirements",
+    "href": "voice-memos.html#requirements",
+    "title": "Voice Memos Backups",
+    "section": "Requirements",
+    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#safe-routine",
+    "href": "voice-memos.html#safe-routine",
+    "title": "Voice Memos Backups",
+    "section": "Safe routine",
+    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#commands",
+    "href": "voice-memos.html#commands",
+    "title": "Voice Memos Backups",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#transcription-variants",
+    "href": "voice-memos.html#transcription-variants",
+    "title": "Voice Memos Backups",
+    "section": "Transcription variants",
+    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#parallel-diarization",
+    "href": "voice-memos.html#parallel-diarization",
+    "title": "Voice Memos Backups",
+    "section": "Parallel diarization",
+    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
+    ]
+  },
+  {
+    "objectID": "voice-memos.html#generated-data",
+    "href": "voice-memos.html#generated-data",
+    "title": "Voice Memos Backups",
+    "section": "Generated data",
+    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic backup data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "crumbs": [
+      "Commands",
+      "Voice Memos Backups"
     ]
   },
   {
@@ -266,146 +409,80 @@
     ]
   },
   {
-    "objectID": "voice-memos.html",
-    "href": "voice-memos.html",
-    "title": "Voice Memos Backups",
+    "objectID": "github-repositories.html",
+    "href": "github-repositories.html",
+    "title": "GitHub Repositories",
     "section": "",
-    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "text": "The GitHub repositories workflow incrementally maintains a complete Git mirror and optionally collects Git LFS objects, the wiki, repository metadata, and release assets. It then snapshots the managed workspace to one or more configured restic repositories.",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#requirements",
-    "href": "voice-memos.html#requirements",
-    "title": "Voice Memos Backups",
-    "section": "Requirements",
-    "text": "Requirements\n\nGive the terminal Full Disk Access.\nOpen Voice Memos and wait for iCloud synchronization.\nRun LM Studio at http://localhost:1234/v1 when producing summaries.\nSet HF_TOKEN for speaker diarization.\n\nThe default recording source is:\n~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings",
+    "objectID": "github-repositories.html#configure-a-job",
+    "href": "github-repositories.html#configure-a-job",
+    "title": "GitHub Repositories",
+    "section": "Configure a job",
+    "text": "Configure a job\nGitHub jobs live in backups, but use github instead of paths:\nbackups:\n  - job-id: example-github-repository\n    description: Complete GitHub repository backup.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    tag: example-github-repository\n    github:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        git:\n          ssh:\n            private-key:\n              file: /var/run/secrets/github/ssh-private-key\n            known-hosts:\n              file: /var/run/secrets/github/known-hosts\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: true\n        wiki: true\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nEvery component flag is required, and at least one must be true. lfs requires git. A GitHub job cannot also define paths. The optional restic tag still defaults to job-id.\nOnly github.com clone URLs are accepted:\ngit@github.com:OWNER/REPOSITORY.git\nhttps://github.com/OWNER/REPOSITORY.git\nCredentials, query strings, and fragments embedded in the URL are rejected.",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#safe-routine",
-    "href": "voice-memos.html#safe-routine",
-    "title": "Voice Memos Backups",
-    "section": "Safe routine",
-    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "objectID": "github-repositories.html#credentials",
+    "href": "github-repositories.html#credentials",
+    "title": "GitHub Repositories",
+    "section": "Credentials",
+    "text": "Credentials\nEvery configured secret source contains exactly one env or file key. The environment variable or file is read again on every run, which works with rotated Kubernetes Secrets and other secret managers. Secret values are never placed in command arguments, logs, manifests, or the audit log.\nFor SSH clone URLs, omit authentication.git to use the existing SSH agent and configuration, or configure both a private key and known_hosts. Configured keys are copied to temporary owner-only files, and strict host verification is always enabled. Generate a pinned host entry according to GitHub’s SSH host key guidance.\nFor HTTPS clone URLs, use a token without putting it in the URL:\nauthentication:\n  git:\n    https:\n      token:\n        env: GITHUB_GIT_TOKEN\nThe CLI supplies it through a temporary Git askpass helper. Public HTTPS repositories may omit Git authentication.\nThe separate authentication.api.token is required when metadata or release-assets is enabled. GitHub’s migration API currently requires a compatible classic personal access token and repository-owner access; fine-grained tokens and GitHub App tokens are not supported for this API. See GitHub’s organization migration API and user migration API.\nFor a Kubernetes CronJob, mount files or inject environment variables from a Secret and point the job at their names—do not put secret values in YAML:\nenv:\n  - name: GITHUB_MIGRATION_TOKEN\n    valueFrom:\n      secretKeyRef:\n        name: github-backup\n        key: api-token\nvolumeMounts:\n  - name: github-ssh\n    mountPath: /var/run/secrets/github\n    readOnly: true\nThe container needs git, git-lfs when LFS is enabled, gh when API-backed components are enabled, and restic. make install-deps installs these tools with Homebrew for local use.",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#commands",
-    "href": "voice-memos.html#commands",
-    "title": "Voice Memos Backups",
-    "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "objectID": "github-repositories.html#components",
+    "href": "github-repositories.html#components",
+    "title": "GitHub Repositories",
+    "section": "Components",
+    "text": "Components\n\n\n\n\n\n\n\n\nComponent\nBacked-up data\nUpdate behavior\n\n\n\n\ngit\nEvery Git ref and object, including full branch and tag history\nInitial git clone --mirror; later git remote update --prune\n\n\nlfs\nAll Git LFS objects reachable from the mirror\ngit lfs fetch --all origin\n\n\nwiki\nThe repository wiki as a separate Git mirror\nMissing or empty wikis are recorded as not-present\n\n\nmetadata\nGitHub’s official migration export, including issues, pull requests, comments, attachments, and release metadata\nA new migration archive is requested and downloaded each run\n\n\nrelease-assets\nBinary files attached to releases\nMissing or changed assets download atomically; remotely deleted assets are removed only after a complete successful update\n\n\n\nA Git-only job sets git: true and every other component to false. It needs only Git authentication and never invokes gh. Git history contains commits, branches, and tags; it does not contain issue discussions, pull-request comments, or other GitHub database records. Without lfs, Git history still contains LFS pointer files but not the referenced large objects.",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#transcription-variants",
-    "href": "voice-memos.html#transcription-variants",
-    "title": "Voice Memos Backups",
-    "section": "Transcription variants",
-    "text": "Transcription variants\n# Incremental transcription and summaries\nuv run restic-backups voice-memos transcribe\n\n# Reprocess all memos or selected UUIDs\nuv run restic-backups voice-memos transcribe --all\nuv run restic-backups voice-memos transcribe --uuids ABC-123,DEF-456\n\n# Reuse transcripts for new summaries, or omit summaries entirely\nuv run restic-backups voice-memos transcribe --summary-only --all\nuv run restic-backups voice-memos transcribe --no-summary\n\n# Force retranscription\nuv run restic-backups voice-memos transcribe --all --no-summary --force\nThe available engines are whisper-mlx and whisper-mlx-turbo.",
+    "objectID": "github-repositories.html#run-and-inspect",
+    "href": "github-repositories.html#run-and-inspect",
+    "title": "GitHub Repositories",
+    "section": "Run and inspect",
+    "text": "Run and inspect\nUse the described arrow-key TUI or explicit commands:\nuv run restic-backups github-repository list\nuv run restic-backups github-repository backup example-github-repository \\\n  --repository personal-b2 --repository personal-local\nuv run restic-backups github-repository status\nuv run restic-backups github-repository status example-github-repository\nuv run restic-backups github-repository data-dir example-github-repository\nuv run restic-backups generic snapshot list example-github-repository \\\n  --repository personal-b2\nuv run restic-backups generic restic run --backup example-github-repository \\\n  --repository personal-b2 ls latest --tag example-github-repository\nWith no job ID, status shows one row for every GitHub job and destination, including the latest snapshot ID and time, the local export time, and component states. Snapshots are matched using each job’s configured tag, which defaults to its job ID. Each destination repository is queried only once, even when many jobs share it. Passing a job ID limits the snapshot table and adds that job’s detailed component errors.\nThe status table reads restic snapshot metadata, not backed-up file contents. It can contact remote storage when the required metadata is not already cached.\nGitHub jobs are also selectable from Snapshots and Advanced restic. Use restic ls to browse files in a snapshot. The different restic list command lists internal repository objects and requires an object type such as packs, snapshots, or keys; it does not list configured backup jobs.\nThe TUI starts with every configured destination unchecked. Select each desired restic repository with Space. A dry run validates the plan without calling Git, GitHub, or restic and without writing the workspace:\nuv run restic-backups github-repository backup example-github-repository \\\n  --repository personal-b2 --dry-run",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#parallel-diarization",
-    "href": "voice-memos.html#parallel-diarization",
-    "title": "Voice Memos Backups",
-    "section": "Parallel diarization",
-    "text": "Parallel diarization\nexport HF_TOKEN=hf_...\nuv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard\nWorkers write logs beneath a temporary diarize-chunks-* directory. Use --detach to leave them running without the dashboard, then attach with:\nuv run restic-backups voice-memos dashboard",
+    "objectID": "github-repositories.html#managed-workspace-and-snapshots",
+    "href": "github-repositories.html#managed-workspace-and-snapshots",
+    "title": "GitHub Repositories",
+    "section": "Managed workspace and snapshots",
+    "text": "Managed workspace and snapshots\nThe reusable local workspace lives beside the selected config:\ndata/github-repositories/&lt;job-id&gt;/\n  repository.git/\n  wiki.git/\n  github-export/\n  release-assets/\n  backup-manifest.json\nThe manifest records the source, update time, and a safe status for every component: updated, unchanged, stale, not-present, failed, or disabled. If one component fails, the workflow still attempts the others and all selected destinations. Existing local component data is included as stale; the command creates the best available snapshot and exits nonzero when anything failed. Disabled cached components are not included.\nRestic splits input into content-defined chunks and deduplicates identical chunks within each restic repository. Stable Git pack files, LFS objects, migration files, and release assets therefore do not need to be uploaded again. The workflow disables automatic Git maintenance and repacking because repacking can rewrite otherwise unchanged Git objects and reduce deduplication. Separate restic repositories do not share chunks, so two destinations each store their own copy. See restic’s repository design.\nRestore a snapshot with the normal restic command, then clone the restored bare repository into a working tree:\nuv run restic-backups generic restic run --backup example-github-repository \\\n  restore latest --target /tmp/github-restore\ngit clone /tmp/github-restore/repository.git restored-repository",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
+      "GitHub Repositories"
     ]
   },
   {
-    "objectID": "voice-memos.html#generated-data",
-    "href": "voice-memos.html#generated-data",
-    "title": "Voice Memos Backups",
-    "section": "Generated data",
-    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic backup data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "objectID": "github-repositories.html#deliberate-limits",
+    "href": "github-repositories.html#deliberate-limits",
+    "title": "GitHub Repositories",
+    "section": "Deliberate limits",
+    "text": "Deliberate limits\nThis workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, submodule repositories, or GitHub Enterprise. Configure another job for each independent Git or submodule repository that must be retained.",
     "crumbs": [
       "Commands",
-      "Voice Memos Backups"
-    ]
-  },
-  {
-    "objectID": "sops.html",
-    "href": "sops.html",
-    "title": "SOPS",
-    "section": "",
-    "text": "SOPS encrypts secrets in the YAML configuration while leaving the file safe to store in Git. restic-backups asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.",
-    "crumbs": [
-      "Setup",
-      "SOPS"
-    ]
-  },
-  {
-    "objectID": "sops.html#install-sops-and-age",
-    "href": "sops.html#install-sops-and-age",
-    "title": "SOPS",
-    "section": "Install SOPS and age",
-    "text": "Install SOPS and age\nmake install-deps installs SOPS. Install age when age-keygen is not already available:\nbrew install age\nGenerate an age identity outside the repository:\nmkdir -p \"$HOME/.config/sops/age\"\nage-keygen -o \"$HOME/.config/sops/age/keys.txt\"\nage-keygen -y \"$HOME/.config/sops/age/keys.txt\"\nThe final command prints the public age1... recipient. It is safe to put that recipient in .sops.yaml. Never commit the private AGE-SECRET-KEY-1... identity or the identity file.",
-    "crumbs": [
-      "Setup",
-      "SOPS"
-    ]
-  },
-  {
-    "objectID": "sops.html#add-.sops.yaml",
-    "href": "sops.html#add-.sops.yaml",
-    "title": "SOPS",
-    "section": "Add .sops.yaml",
-    "text": "Add .sops.yaml\nThe SOPS configuration file must be named .sops.yaml, not .sops.yml. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.\nThis template encrypts only the credential fields and restic repository passwords used by restic-backups:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nStorage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. mac_only_encrypted: true allows those readable values to be edited directly without invalidating the SOPS message authentication code (MAC).\n\n\n\n\n\n\nWarning\n\n\n\nWith mac_only_encrypted: true, SOPS authenticates encrypted values but no longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job mappings. Review those changes through Git. Omit this setting when SOPS should protect the integrity of every value, accepting that all edits must then go through SOPS.\n\n\nSOPS also encrypts comments, so use the configuration’s description fields for readable notes.\nTo encrypt every value instead, omit encrypted_regex:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\nThe public recipient can instead come from SOPS_AGE_RECIPIENTS. When that variable is always set for encryption, omit age from the creation rule:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nSee the official SOPS configuration format for rule matching and other key providers.",
-    "crumbs": [
-      "Setup",
-      "SOPS"
-    ]
-  },
-  {
-    "objectID": "sops.html#create-the-encrypted-config",
-    "href": "sops.html#create-the-encrypted-config",
-    "title": "SOPS",
-    "section": "Create the encrypted config",
-    "text": "Create the encrypted config\nUse config.sops.yaml as the conventional name. The CLI accepts another name, but it must match path_regex and be passed through --config or RESTIC_BACKUPS_CONFIG.\nCopy the template, then edit it through SOPS so secrets are encrypted when the editor closes:\ncp config.template.yaml config.sops.yaml\nsops config.sops.yaml\nConfirm the file is encrypted and validate it without contacting remote storage:\nsops filestatus config.sops.yaml\nuv run restic-backups --config config.sops.yaml --sops check-config\nCommit .sops.yaml and the encrypted config.sops.yaml. Do not commit a plain config.yaml, the age identity, or decrypted command output.",
-    "crumbs": [
-      "Setup",
-      "SOPS"
-    ]
-  },
-  {
-    "objectID": "sops.html#environment-variables",
-    "href": "sops.html#environment-variables",
-    "title": "SOPS",
-    "section": "Environment variables",
-    "text": "Environment variables\nThese variables avoid repeating the global CLI options:\n\n\n\n\n\n\n\n\nVariable\nPurpose\nSensitive\n\n\n\n\nRESTIC_BACKUPS_CONFIG\nPath to the encrypted application config\nNo\n\n\nRESTIC_BACKUPS_SOPS=1\nTell restic-backups to decrypt through SOPS\nNo\n\n\nSOPS_AGE_KEY_FILE\nPath to a file containing private age identities\nYes: protect the file\n\n\nSOPS_AGE_KEY\nPrivate age identities supplied directly by a secret manager\nYes\n\n\nSOPS_AGE_KEY_CMD\nCommand that prints private age identities\nDepends on the command\n\n\nSOPS_AGE_RECIPIENTS\nPublic recipients used when encrypting new files\nNo\n\n\nSOPS_CONFIG\nNon-default path to .sops.yaml\nNo\n\n\n\nNormally, set the identity file and the two restic-backups variables:\nexport SOPS_AGE_KEY_FILE=\"$HOME/.config/sops/age/keys.txt\"\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.sops.yaml\"\nexport RESTIC_BACKUPS_SOPS=1\n\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nSOPS_AGE_KEY_FILE, SOPS_AGE_KEY, and SOPS_AGE_KEY_CMD are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.",
-    "crumbs": [
-      "Setup",
-      "SOPS"
-    ]
-  },
-  {
-    "objectID": "sops.html#edit-and-rotate",
-    "href": "sops.html#edit-and-rotate",
-    "title": "SOPS",
-    "section": "Edit and rotate",
-    "text": "Edit and rotate\nWith mac_only_encrypted: true, ordinary text editors may change plaintext leaf values directly:\n$EDITOR config.sops.yaml\nuv run restic-backups check-config\nDo not replace an ENC[...] value manually. Use SOPS when changing a password, access key, or secret key, and for structural edits that add, remove, reorder, or rename branches containing encrypted values:\nsops edit config.sops.yaml\nFor a single value, sops set avoids opening the complete decrypted document:\nsops set config.sops.yaml \\\n  '[\"storage\"][0][\"description\"]' '\"Off-site object storage\"'\nThe encrypted file already records its public recipients. When recipients in .sops.yaml change, synchronize them with:\nsops updatekeys config.sops.yaml\nAdding or changing encrypted_regex or mac_only_encrypted in .sops.yaml does not alter an existing encrypted document. Decrypt and re-encrypt it once so the new rule is stored in the file. Keep plaintext in the pipe and replace the original only after encryption succeeds:\numask 077\nsops decrypt config.sops.yaml |\n  sops encrypt --filename-override config.sops.yaml \\\n    --input-type yaml --output-type yaml /dev/stdin &gt; config.sops.yaml.new\nmv config.sops.yaml.new config.sops.yaml\nValidate again after every key or rule change:\nuv run restic-backups check-config",
-    "crumbs": [
-      "Setup",
-      "SOPS"
+      "GitHub Repositories"
     ]
   },
   {
@@ -468,7 +545,7 @@
     "href": "cli.html",
     "title": "CLI",
     "section": "",
-    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Generic backups, Voice Memos, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
+    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Generic backups, GitHub repositories, Voice Memos, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
     "crumbs": [
       "Setup",
       "CLI"
@@ -479,7 +556,7 @@
     "href": "cli.html#audit-log",
     "title": "CLI",
     "section": "Audit log",
-    "text": "Audit log\nCommand auditing is enabled by default. restic-backups appends compact JSON objects to audit-log.json in the directory where it was started. Each command has two linked records:\n\na started event containing an id, start-time, hostname, command, and its exact args;\na finished event containing started-id, end-time, and successful.\n\nThe started-id links completion to the corresponding started event. A started event without a matching finished event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (0600). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with [REDACTED].\nThe log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:\nexport RESTIC_BACKUPS_AUDIT=0\nThe values false, no, and off are also accepted, case-insensitively.",
+    "text": "Audit log\nCommand auditing is enabled by default. restic-backups appends compact JSON objects to audit-log.json in the directory where it was started. Each command has two linked records:\n\na started event containing an id, start-time, hostname, command, and its exact args;\na finished event containing started-id, end-time, and successful. Workflows may also add non-secret component and destination results under details.\n\nThe started-id links completion to the corresponding started event. A started event without a matching finished event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (0600). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. GitHub repository jobs likewise record every raw git, git lfs, gh, and restic command. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with [REDACTED].\nThe log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:\nexport RESTIC_BACKUPS_AUDIT=0\nThe values false, no, and off are also accepted, case-insensitively.",
     "crumbs": [
       "Setup",
       "CLI"
@@ -490,7 +567,7 @@
     "href": "cli.html#root-commands",
     "title": "CLI",
     "section": "Root commands",
-    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\nvoice-memos ...\nRun the macOS Voice Memos workflow\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups generic --help\nuv run restic-backups voice-memos --help",
+    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\ngithub-repository ...\nUpdate and snapshot a GitHub repository export\nDepends on subcommand\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\nvoice-memos ...\nRun the macOS Voice Memos workflow\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use GitHub Repositories for Git history and selected GitHub-hosted data. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups generic --help\nuv run restic-backups github-repository --help\nuv run restic-backups voice-memos --help",
     "crumbs": [
       "Setup",
       "CLI"
