@@ -5,6 +5,13 @@ with optional SOPS decryption. The package currently includes a complete macOS
 Voice Memos workflow for backup, transcription, summarisation, and speaker
 diarization.
 
+## Why
+
+Create encrypted, deduplicated **incremental backups** that upload only new or
+changed data. This makes reliable off-site backups practical with
+[cheaper storage options](docs/storage-costs.qmd), without maintaining a
+separate backup script for every repository.
+
 Backup payloads, generated metadata, model caches, and restores are excluded
 from Git by a default-deny `.gitignore`.
 
