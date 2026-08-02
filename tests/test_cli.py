@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+import questionary
 from click import unstyle
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
@@ -21,6 +22,13 @@ from restic_backups.generic.cli import (
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
+
+
+def choice_title(choice: questionary.Choice) -> str:
+    title = choice.title
+    return (
+        "".join(part[1] for part in title) if isinstance(title, list) else title or ""
+    )
 
 
 class VoiceMemosCliTest(unittest.TestCase):
@@ -75,8 +83,12 @@ class VoiceMemosCliTest(unittest.TestCase):
         root_menu()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertIn("Manage repositories", choices[0].title)
-        self.assertIn("transcribe", choices[1].title)
+        self.assertIn("Manage repositories", choice_title(choices[0]))
+        self.assertIn("transcribe", choice_title(choices[1]))
+        title = choices[0].title
+        self.assertIsInstance(title, list)
+        assert isinstance(title, list)
+        self.assertNotEqual(title[0][0], title[1][0])
         generic_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
@@ -90,8 +102,8 @@ class VoiceMemosCliTest(unittest.TestCase):
         list_command.assert_called_once_with()
         section_choices = select.call_args_list[0].kwargs["choices"]
         command_choices = select.call_args_list[1].kwargs["choices"]
-        self.assertIn("List, initialize", section_choices[0].title)
-        self.assertIn("storage destinations", command_choices[0].title)
+        self.assertIn("List, initialize", choice_title(section_choices[0]))
+        self.assertIn("storage destinations", choice_title(command_choices[0]))
 
     def test_voice_memos_menu_describes_and_prints_command(self) -> None:
         with (
@@ -114,7 +126,7 @@ class VoiceMemosCliTest(unittest.TestCase):
 
         choices = select.call_args_list[0].kwargs["choices"]
         backup_choice = next(choice for choice in choices if choice.value == "backup")
-        self.assertIn("Back up recordings", backup_choice.title)
+        self.assertIn("Back up recordings", choice_title(backup_choice))
         output = "\n".join(str(item.args[0]) for item in echo.call_args_list)
         self.assertIn("Usage:", output)
         self.assertIn(
@@ -474,7 +486,7 @@ backups:
         init_command()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertEqual(choices[0].title, "All repositories")
+        self.assertEqual(choice_title(choices[0]), "All repositories")
         command.assert_called_once_with(
             store, credential, ["cat", "config"], quiet=True
         )

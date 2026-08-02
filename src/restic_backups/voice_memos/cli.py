@@ -16,6 +16,14 @@ from ..generic import sops
 from . import parallel, pipeline, workflow
 
 
+def menu_choice(
+    label: str, description: str, value: str, width: int = 21
+) -> questionary.Choice:
+    return questionary.Choice(
+        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
+    )
+
+
 def operation(action: Callable[[], int | None]) -> None:
     try:
         code = action() or 0
@@ -32,19 +40,16 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             "Voice Memos command:",
             choices=[
                 *[
-                    questionary.Choice(
-                        f"{name:<20} {command.help or 'Run this Voice Memos command'}",
+                    menu_choice(
+                        name,
+                        command.help or "Run this Voice Memos command",
                         name,
                     )
                     for name, command in cli.commands.items()
                     if not command.hidden
                 ],
-                questionary.Choice(
-                    "help                 Show Voice Memos commands and flags", "help"
-                ),
-                questionary.Choice(
-                    "back                 Return to the previous menu", "back"
-                ),
+                menu_choice("Help", "Show Voice Memos commands and flags", "help"),
+                menu_choice("Back", "Return to the previous menu", "back"),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -63,14 +68,15 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             command_action = questionary.select(
                 f"voice-memos {selected}:",
                 choices=[
-                    questionary.Choice(
-                        "Enter arguments  Build and optionally run this command", "run"
+                    menu_choice(
+                        "Enter arguments",
+                        "Build and optionally run this command",
+                        "run",
+                        17,
                     ),
-                    questionary.Choice(
-                        "Help             Show full flags for this command", "help"
-                    ),
-                    questionary.Choice(
-                        "Back             Choose another Voice Memos command", "back"
+                    menu_choice("Help", "Show full flags for this command", "help", 17),
+                    menu_choice(
+                        "Back", "Choose another Voice Memos command", "back", 17
                     ),
                 ],
             ).ask()
@@ -110,12 +116,10 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                     choices=[
                         questionary.Choice("Run", "run"),
                         questionary.Choice("Print only", "print"),
-                        questionary.Choice(
-                            "Help        Show full flags for this command", "help"
+                        menu_choice(
+                            "Help", "Show full flags for this command", "help", 12
                         ),
-                        questionary.Choice(
-                            "Back        Change the command arguments", "back"
-                        ),
+                        menu_choice("Back", "Change the command arguments", "back", 12),
                         questionary.Choice("Cancel", "cancel"),
                     ],
                 ).ask()

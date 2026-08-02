@@ -35,6 +35,12 @@ VERBOSE_ENV = "RESTIC_BACKUPS_VERBOSE"
 error_console = Console(stderr=True)
 
 
+def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
+    return questionary.Choice(
+        [("fg:ansicyan bold", f"{label:<17}"), ("", description)], value
+    )
+
+
 @app.callback()
 def configure(
     context: typer.Context,
@@ -97,24 +103,23 @@ def interactive_menu() -> None:
         selected = questionary.select(
             "Workflow:",
             choices=[
-                questionary.Choice(
-                    "Generic backups  Manage repositories, backups, and snapshots",
+                menu_choice(
+                    "Generic backups",
+                    "Manage repositories, backups, and snapshots",
                     "generic",
                 ),
-                questionary.Choice(
-                    "Voice Memos      Back up, restore, transcribe, and diarize memos",
+                menu_choice(
+                    "Voice Memos",
+                    "Back up, restore, transcribe, and diarize memos",
                     "voice-memos",
                 ),
-                questionary.Choice(
-                    "Check config     Decrypt and validate configuration locally",
+                menu_choice(
+                    "Check config",
+                    "Decrypt and validate configuration locally",
                     "check-config",
                 ),
-                questionary.Choice(
-                    "Help             Show top-level commands and flags", "help"
-                ),
-                questionary.Choice(
-                    "Exit             Return without doing anything", "exit"
-                ),
+                menu_choice("Help", "Show top-level commands and flags", "help"),
+                menu_choice("Exit", "Return without doing anything", "exit"),
             ],
         ).ask()
         if selected in {None, "exit"}:

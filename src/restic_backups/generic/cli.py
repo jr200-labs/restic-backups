@@ -38,6 +38,14 @@ error_console = Console(stderr=True)
 ALL_REPOSITORIES = "__all_repositories__"
 
 
+def menu_choice(
+    label: str, description: str, value: str, width: int = 23
+) -> questionary.Choice:
+    return questionary.Choice(
+        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
+    )
+
+
 @app.callback()
 def menu(context: typer.Context) -> None:
     """Choose a generic backup operation when run interactively."""
@@ -55,27 +63,29 @@ def interactive_menu() -> None:
         selected = questionary.select(
             "Section:",
             choices=[
-                questionary.Choice(
-                    "Repositories     List, initialize, cache, or destroy repositories",
+                menu_choice(
+                    "Repositories",
+                    "List, initialize, cache, or destroy repositories",
                     "repository",
+                    17,
                 ),
-                questionary.Choice(
-                    "Backups          List or run configured backup jobs", "backup"
+                menu_choice(
+                    "Backups", "List or run configured backup jobs", "backup", 17
                 ),
-                questionary.Choice(
-                    "Snapshots        List or forget immutable restore points",
+                menu_choice(
+                    "Snapshots",
+                    "List or forget immutable restore points",
                     "snapshot",
+                    17,
                 ),
-                questionary.Choice(
-                    "Advanced restic  Run any command supported by installed restic",
+                menu_choice(
+                    "Advanced restic",
+                    "Run any command supported by installed restic",
                     "restic",
+                    17,
                 ),
-                questionary.Choice(
-                    "Help             Show help for generic commands", "help"
-                ),
-                questionary.Choice(
-                    "Back             Return to the previous menu", "back"
-                ),
+                menu_choice("Help", "Show help for generic commands", "help", 17),
+                menu_choice("Back", "Return to the previous menu", "back", 17),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -102,28 +112,28 @@ def repository_menu() -> None:
         selected = questionary.select(
             "Repository command:",
             choices=[
-                questionary.Choice(
-                    "List repositories      Show configured storage destinations",
+                menu_choice(
+                    "List repositories",
+                    "Show configured storage destinations",
                     "list",
                 ),
-                questionary.Choice(
-                    "Initialize repository  Create one repository, or explicitly all",
+                menu_choice(
+                    "Initialize repository",
+                    "Create one repository, or explicitly all",
                     "init",
                 ),
-                questionary.Choice(
-                    "Prime local cache      Download and validate repository metadata",
+                menu_choice(
+                    "Prime local cache",
+                    "Download and validate repository metadata",
                     "prime-cache",
                 ),
-                questionary.Choice(
-                    "Destroy repository     Permanently erase repository objects",
+                menu_choice(
+                    "Destroy repository",
+                    "Permanently erase repository objects",
                     "destroy",
                 ),
-                questionary.Choice(
-                    "Help                   Show repository command flags", "help"
-                ),
-                questionary.Choice(
-                    "Back                   Return to Generic sections", "back"
-                ),
+                menu_choice("Help", "Show repository command flags", "help"),
+                menu_choice("Back", "Return to Generic sections", "back"),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -149,22 +159,21 @@ def backup_menu() -> None:
         selected = questionary.select(
             "Backup command:",
             choices=[
-                questionary.Choice(
-                    "List backups      Show configured backup jobs", "list"
+                menu_choice("List backups", "Show configured backup jobs", "list", 18),
+                menu_choice(
+                    "Run backup",
+                    "Create a snapshot from configured paths",
+                    "run",
+                    18,
                 ),
-                questionary.Choice(
-                    "Run backup        Create a snapshot from configured paths", "run"
-                ),
-                questionary.Choice(
-                    "Show data path    Print the managed local metadata directory",
+                menu_choice(
+                    "Show data path",
+                    "Print the managed local metadata directory",
                     "data-dir",
+                    18,
                 ),
-                questionary.Choice(
-                    "Help              Show backup command flags", "help"
-                ),
-                questionary.Choice(
-                    "Back              Return to Generic sections", "back"
-                ),
+                menu_choice("Help", "Show backup command flags", "help", 18),
+                menu_choice("Back", "Return to Generic sections", "back", 18),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -187,20 +196,20 @@ def snapshot_menu() -> None:
         selected = questionary.select(
             "Snapshot command:",
             choices=[
-                questionary.Choice(
-                    "List snapshots    Show restore points for a configured backup",
+                menu_choice(
+                    "List snapshots",
+                    "Show restore points for a configured backup",
                     "list",
+                    18,
                 ),
-                questionary.Choice(
-                    "Forget snapshot   Delete one restore point and prune data",
+                menu_choice(
+                    "Forget snapshot",
+                    "Delete one restore point and prune data",
                     "forget",
+                    18,
                 ),
-                questionary.Choice(
-                    "Help              Show snapshot command flags", "help"
-                ),
-                questionary.Choice(
-                    "Back              Return to Generic sections", "back"
-                ),
+                menu_choice("Help", "Show snapshot command flags", "help", 18),
+                menu_choice("Back", "Return to Generic sections", "back", 18),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -225,13 +234,13 @@ def restic_menu() -> None:
             "Restic command:",
             choices=[
                 *[
-                    questionary.Choice(f"{name:<12} {description}", name)
+                    menu_choice(name, description, name, 13)
                     for name, description in commands
                 ],
-                questionary.Choice(
-                    "help         Show help for advanced restic passthrough", "help"
+                menu_choice(
+                    "Help", "Show help for advanced restic passthrough", "help", 13
                 ),
-                questionary.Choice("back         Return to Generic sections", "back"),
+                menu_choice("Back", "Return to Generic sections", "back", 13),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -249,15 +258,14 @@ def restic_menu() -> None:
             action = questionary.select(
                 f"restic {command}:",
                 choices=[
-                    questionary.Choice(
-                        "Enter arguments  Build and optionally run this command", "run"
+                    menu_choice(
+                        "Enter arguments",
+                        "Build and optionally run this command",
+                        "run",
+                        17,
                     ),
-                    questionary.Choice(
-                        "Help             Show full flags for this command", "help"
-                    ),
-                    questionary.Choice(
-                        "Back             Choose another restic command", "back"
-                    ),
+                    menu_choice("Help", "Show full flags for this command", "help", 17),
+                    menu_choice("Back", "Choose another restic command", "back", 17),
                 ],
             ).ask()
             if action in {None, "back"}:
