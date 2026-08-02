@@ -11,7 +11,7 @@ from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
-from restic_backups.generic.cli import forget_command, run_args
+from restic_backups.generic.cli import forget_command, init_command, run_args
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 
@@ -308,7 +308,7 @@ backups:
         for text in ("Repositories", "Backups"):
             self.assertIn(text, legacy_list.output)
 
-        result = runner.invoke(app, ["generic", "repository", "init"])
+        result = runner.invoke(app, ["generic", "repository", "init", "--all"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("existing: checking repository", result.output)
@@ -332,6 +332,44 @@ backups:
                 ),
                 call(stores["new"], credentials["credentials"], ["init"]),
             ],
+        )
+
+        command.reset_mock()
+        command.side_effect = [0]
+        result = runner.invoke(app, ["generic", "repository", "init", "existing"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        command.assert_called_once_with(
+            stores["existing"],
+            credentials["credentials"],
+            ["cat", "config"],
+            quiet=True,
+        )
+
+    @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
+    @patch("restic_backups.generic.cli.questionary.select")
+    @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
+    @patch("restic_backups.generic.cli.validated")
+    def test_init_prompt_lists_all_first(self, validated, command, select, _) -> None:
+        credential = {"id": "credentials"}
+        store = {
+            "id": "store",
+            "enabled": True,
+            "credentials-id": "credentials",
+        }
+        validated.return_value = (
+            {},
+            {"credentials": credential},
+            {"store": store},
+            {},
+        )
+        select.return_value.ask.return_value = "store"
+
+        init_command()
+
+        choices = select.call_args.kwargs["choices"]
+        self.assertEqual(choices[0].title, "All repositories")
+        command.assert_called_once_with(
+            store, credential, ["cat", "config"], quiet=True
         )
 
 

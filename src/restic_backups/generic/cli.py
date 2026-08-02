@@ -35,6 +35,7 @@ app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(restic_app, name="restic")
 console = Console()
 error_console = Console(stderr=True)
+ALL_REPOSITORIES = "__all_repositories__"
 
 
 @app.callback()
@@ -301,10 +302,52 @@ def data_dir_command(
 
 @repository_app.command("init")
 @app.command("init", hidden=True)
-def init_command() -> None:
-    """Initialize every enabled restic store that does not already exist."""
+def init_command(
+    repository_id: Annotated[
+        str | None,
+        typer.Argument(help="Repository ID; prompts when omitted."),
+    ] = None,
+    all_repositories: Annotated[
+        bool,
+        typer.Option("--all", help="Initialize every enabled repository."),
+    ] = False,
+) -> None:
+    """Initialize one repository, or every enabled repository with --all."""
     _, credentials, stores, _ = validated()
-    for store_id, store in stores.items():
+    if repository_id is not None and all_repositories:
+        fail("repository ID and --all cannot be used together")
+    if repository_id is None and not all_repositories:
+        if not sys.stdin.isatty():
+            fail("repository ID or --all is required when stdin is not interactive")
+        selected = questionary.select(
+            "Repository to initialize:",
+            choices=[
+                questionary.Choice("All repositories", ALL_REPOSITORIES),
+                *[
+                    questionary.Choice(
+                        f"{store_id}{'' if store['enabled'] else ' (disabled)'}",
+                        store_id,
+                    )
+                    for store_id, store in stores.items()
+                ],
+            ],
+        ).ask()
+        if selected is None:
+            raise typer.Abort()
+        if selected == ALL_REPOSITORIES:
+            all_repositories = True
+        else:
+            repository_id = str(selected)
+
+    if all_repositories:
+        selected_stores = list(stores.items())
+    else:
+        store = stores.get(str(repository_id))
+        if store is None:
+            fail(f"repository '{repository_id}' not found in {config.config_path()}")
+        selected_stores = [(str(repository_id), store)]
+
+    for store_id, store in selected_stores:
         if not store["enabled"]:
             error_console.print(Text(f"{store_id}: disabled; skipping", style="yellow"))
             continue

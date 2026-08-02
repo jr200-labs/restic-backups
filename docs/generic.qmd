@@ -13,7 +13,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Group | Command | Purpose | Remote storage |
 |---|---|---|---|
 | Repository | `generic repository list` | Show configured repositories | No |
-| Repository | `generic repository init` | Initialize each new enabled repository | Yes |
+| Repository | `generic repository init [REPOSITORY] [--all]` | Initialize new repositories | Yes |
 | Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
 | Repository | `generic repository destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | Backup | `generic backup list` | Show configured backup jobs | No |
@@ -38,8 +38,9 @@ see the selected command's full options.
 `generic repository list` shows every store, even when no configured backup
 references it. `generic backup list` shows the configured backup jobs.
 
-`generic repository init` reports each configured store, skips disabled or
-already initialized stores, and initializes every enabled store that is missing.
+`generic repository init` prompts for one repository, with **All repositories**
+as the first option. Scripts must pass a repository ID or `--all`. Disabled or
+already initialized repositories are reported and skipped.
 
 `generic repository prime-cache` runs `restic check --with-cache` for one
 repository. It downloads repository indexes, snapshots, and tree metadata into
