@@ -65,33 +65,38 @@ restic-repositories:
       password: CHANGE_ME
       # cache-dir: .restic-cache/personal-local
 
-# Configured backup jobs. Each repository ID must match an ID above.
-backups:
+# Configured jobs. Common fields are identical; type selects how source is read.
+jobs:
     - job-id: documents
+      type: files
       description: Back up local documents.
       # One job can write independent snapshots to multiple repositories.
       restic-repository-ids:
           - personal-b2
           - personal-local
-      # Files and directories used by `generic backup run`; ~ is expanded.
-      paths:
-          - ~/Documents
+      source:
+          # Files and directories used by `job run`; ~ is expanded.
+          paths:
+              - ~/Documents
       # Optional restic snapshot tag; defaults to the job ID.
       # tag: documents
 
     - job-id: voice-memos
-      description: Back up macOS Voice Memos with the specialized subcommand.
+      type: voice-memos
+      description: Back up and process macOS Voice Memos.
       restic-repository-ids:
           - personal-b2
-      # The specialized workflow discovers its own source paths.
+      # Empty uses the standard macOS recording location and managed summaries.
+      source: {}
 
     - job-id: example-github-repository
+      type: github-repository
       description: Back up one GitHub repository and its selected GitHub data.
       restic-repository-ids:
           - personal-b2
           - personal-local
-      # GitHub jobs use a managed local workspace instead of paths.
-      github:
+      # GitHub jobs use a managed local workspace.
+      source:
           # github.com SSH and token-free HTTPS clone URLs are supported.
           repository-url: git@github.com:example/example-repository.git
           authentication:

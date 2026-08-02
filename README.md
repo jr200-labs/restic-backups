@@ -33,6 +33,7 @@ Use the built-in help for available commands and options:
 ```sh
 uv run restic-backups  # interactive arrow-key menu
 uv run restic-backups --help
+uv run restic-backups job --help
 uv run restic-backups github-repository --help
 uv run restic-backups generic --help
 uv run restic-backups voice-memos --help
@@ -68,13 +69,14 @@ The configuration separates:
   credentials kept on the relevant storage entry;
 - `restic-repositories`: encrypted repositories within storage, including the
   bucket/key prefix or local path, restic password, cache, and archive policy;
-- `backups`: jobs linked to one or more restic repositories, local source
-  paths or a managed GitHub source, and an optional snapshot tag (defaulting to
-  the job ID).
+- `jobs`: typed work linked to one or more restic repositories. `files`,
+  `github-repository`, and `voice-memos` jobs share the same destination and
+  snapshot fields while defining their input under `source`.
 
-Multiple restic repositories may use one storage backend, one backup job may
+Multiple restic repositories may use one storage backend, one job may
 write to several repositories, and several jobs may share one repository. The
-backup TUI requires destinations to be selected explicitly. Disabled
+job TUI preselects a sole enabled destination; multiple destinations start
+unchecked. Disabled
 repositories may contain `CHANGE_ME`; all placeholders must be replaced before
 enabling one.
 
@@ -88,11 +90,12 @@ data/<storage-id>/<repository-path>/<job-id>/
 
 This directory is created beside the selected configuration file. It is
 metadata/workspace organization, not a restriction on backup sources. Restic
-may back up absolute paths anywhere on the machine. Resolve a managed directory
-without exposing credentials with:
+may back up absolute paths anywhere on the machine. List or run every job type
+through the same commands:
 
 ```sh
-uv run restic-backups generic backup data-dir voice-memos
+uv run restic-backups job list
+uv run restic-backups job run documents
 ```
 
 ## AWS Glacier

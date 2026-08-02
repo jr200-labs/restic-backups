@@ -1,0 +1,95 @@
+---
+title: Jobs
+---
+
+A job is one configured unit of work. Every job has the same identity,
+destinations, optional restic tag, run command, status view, snapshot tools, and
+audit result. Its `type` determines how `source` is prepared before restic takes
+a snapshot.
+
+## Commands
+
+| Command | Purpose |
+|---|---|
+| `job list` | Show every configured job and its type |
+| `job run [JOB_ID] --repository ID... [--dry-run]` | Prepare and snapshot one job |
+| `job status [JOB_ID]` | Show the latest tagged snapshot at every destination |
+
+Run `uv run restic-backups` for the job-first arrow-key TUI. Choose **Jobs**,
+then select a job to run it, inspect status or snapshots, invoke advanced restic
+commands, or open its type-specific tools. A sole enabled destination starts
+checked; when several are available, they all start unchecked and must be
+selected with Space.
+
+For scripts, provide every destination explicitly:
+
+```sh
+uv run restic-backups job run documents \
+  --repository personal-b2 \
+  --repository personal-local
+```
+
+## Files
+
+```yaml
+jobs:
+  - job-id: documents
+    type: files
+    restic-repository-ids: [personal-b2, personal-local]
+    source:
+      paths:
+        - ~/Documents
+        - ~/Desktop
+```
+
+Paths are passed to `restic backup`; `~` is expanded. Restic creates a complete
+snapshot view while uploading only data not already present in that destination
+repository.
+
+## GitHub repository
+
+```yaml
+jobs:
+  - job-id: source-code
+    type: github-repository
+    restic-repository-ids: [personal-local]
+    source:
+      repository-url: git@github.com:example/source-code.git
+      components:
+        git: true
+        lfs: false
+        wiki: false
+        metadata: false
+        release-assets: false
+      migration-timeout-seconds: 3600
+```
+
+The job updates a managed mirror and selected GitHub data before snapshotting
+that workspace. See [GitHub Repositories](github-repositories.qmd) for
+components and credentials.
+
+## Voice Memos
+
+```yaml
+jobs:
+  - job-id: memos
+    type: voice-memos
+    restic-repository-ids: [personal-b2]
+    source: {}
+```
+
+An empty source uses the standard macOS recordings location and the managed
+summaries directory. Optional `recordings-dir` and `summaries-dir` fields
+override them. Transcription and diarization remain type-specific tools on this
+job; creating its backup snapshot still uses `job run`.
+
+## Restic tags and snapshots
+
+Every job applies its `tag`, which defaults to `job-id`. The tag groups that
+job's snapshots when several jobs share a restic repository. Restic assigns a
+new immutable snapshot ID to every successful run; snapshot IDs are not
+configuration values.
+
+`job status` includes all job types. Repository status is read once and matched
+by tag, so a GitHub job cannot disappear merely because it has a different
+source preparation workflow.

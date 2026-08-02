@@ -9,9 +9,10 @@ uv run restic-backups
 ```
 
 In an interactive terminal, running without a command opens a described
-arrow-key menu for **Generic backups**, **GitHub repositories**, **Voice
-Memos**, and configuration validation. Each workflow opens another described arrow-key menu. Explicit
-subcommands remain available for scripts and scheduled jobs.
+arrow-key menu for **Jobs**, **Repositories**, and configuration validation.
+Choose a job before choosing run, status, snapshots, advanced restic, or its
+type-specific tools. Explicit subcommands remain available for scripts and
+scheduled jobs.
 
 Every menu level includes **Help** and **Back**. **Help** shows the commands and
 flags for the current level, then returns to the same menu; it does not load the
@@ -31,7 +32,7 @@ options before the command:
 
 ```sh
 uv run restic-backups --config config.yaml generic repository list
-uv run restic-backups --config config.sops.yaml --sops generic backup list
+uv run restic-backups --config config.sops.yaml --sops job list
 ```
 
 The equivalent environment variables are `RESTIC_BACKUPS_CONFIG` and
@@ -85,9 +86,10 @@ The values `false`, `no`, and `off` are also accepted, case-insensitively.
 | Command | Purpose | Repository access |
 |---|---|---|
 | `check-config` | Load and validate configuration | No |
-| `github-repository ...` | Update and snapshot a GitHub repository export | Depends on subcommand |
+| `job ...` | List, run, and inspect every configured job type | Depends on subcommand |
 | `generic ...` | Run generic configured repository commands | Depends on subcommand |
-| `voice-memos ...` | Run the macOS Voice Memos workflow | Depends on subcommand |
+| `github-repository ...` | Compatibility and GitHub-specific commands | Depends on subcommand |
+| `voice-memos ...` | Compatibility and Voice Memos-specific tools | Depends on subcommand |
 
 Use [Generic Backups](generic.qmd) for restic passthrough, repository
 initialization, restores, and managed data directories. Use
@@ -98,6 +100,7 @@ GitHub-hosted data. Use
 Run subcommand help without loading a configuration:
 
 ```sh
+uv run restic-backups job --help
 uv run restic-backups generic --help
 uv run restic-backups github-repository --help
 uv run restic-backups voice-memos --help

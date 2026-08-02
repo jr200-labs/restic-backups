@@ -2,9 +2,20 @@
 title: Voice Memos Backups
 ---
 
-The `voice-memos` command backs up the macOS recording store and produces
+The `voice-memos` job type backs up the macOS recording store and produces
 private JSON transcripts, summaries, tags, indexes, and speaker diarization.
 There is no separate Voice Memos Makefile.
+
+```yaml
+jobs:
+  - job-id: memos
+    type: voice-memos
+    restic-repository-ids: [personal-b2]
+    source: {}
+```
+
+An empty source uses the standard recordings directory and managed summaries.
+Use `source.recordings-dir` or `source.summaries-dir` to override either path.
 
 Run without a Voice Memos subcommand to open a described arrow-key menu of all
 user-facing operations:
@@ -39,9 +50,9 @@ The default recording source is:
 
 ```sh
 uv run restic-backups voice-memos status
-uv run restic-backups voice-memos backup
+uv run restic-backups job run memos
 uv run restic-backups voice-memos transcribe
-uv run restic-backups voice-memos backup
+uv run restic-backups job run memos
 uv run restic-backups voice-memos check
 uv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore
 ```
@@ -53,7 +64,7 @@ deleting recordings from any device; iCloud synchronization is not a backup.
 
 | Command | Purpose |
 |---|---|
-| `backup` | Back up recordings and summaries together |
+| `backup` | Compatibility alias for backing up recordings and summaries |
 | `snapshots` | List repository snapshots |
 | `check` | Verify repository structure and metadata |
 | `stats` | Show latest tagged snapshot size and file count |
@@ -109,10 +120,5 @@ uv run restic-backups voice-memos dashboard
 
 ## Generated data
 
-The CLI derives the summary directory from the configured `voice-memos` backup:
-
-```sh
-uv run restic-backups generic backup data-dir voice-memos
-```
-
-All generated JSON and indexes remain beneath that ignored private directory.
+The CLI derives the summary directory from the selected `voice-memos` job. All
+generated JSON and indexes remain beneath that ignored private directory.

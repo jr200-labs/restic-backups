@@ -13,7 +13,8 @@ selected GitHub-hosted data.
 
 - [Quick Start](quick-start.qmd) creates, validates, and restores a first backup.
 - [Configuration](configuration.qmd) describes storage, restic repositories,
-  backup jobs, and Glacier policy.
+  jobs, and Glacier policy.
+- [Jobs](jobs.qmd) describes the shared model and commands for every job type.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
 - [GitHub Repositories](github-repositories.qmd) covers Git history, LFS, wikis,
@@ -27,6 +28,9 @@ selected GitHub-hosted data.
 restic_backups/
   cli.py                 root command wiring and global options
   config.py              YAML loading and validation
+  jobs/
+    cli.py               unified job commands and job-first TUI
+    workflow.py          type dispatch and common snapshot execution
   generic/
     cli.py               generic restic command definitions
     local.py             local repository destruction
@@ -45,8 +49,9 @@ restic_backups/
     dashboard.py         live Textual dashboard
 ```
 
-Command modules contain command definitions and option handling. Config, SOPS,
-repository, pipeline, workflow, and parallel modules perform the operational work.
+The root TUI and `job` command route every configured type through the common
+job dispatcher. Type-specific modules prepare source data; generic restic
+modules resolve destinations and execute restic.
 
 ## Private data boundary
 

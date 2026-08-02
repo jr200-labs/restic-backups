@@ -57,15 +57,15 @@ def required_text(item: dict[str, Any], field: str, owner: str) -> str:
     return value
 
 
-def backup_repository_ids(backup: dict[str, Any], backup_id: str) -> list[str]:
-    values = backup.get("restic-repository-ids")
-    legacy = backup.get("restic-repository-id")
+def job_repository_ids(job: dict[str, Any], job_id: str) -> list[str]:
+    values = job.get("restic-repository-ids")
+    legacy = job.get("restic-repository-id")
     if values is not None and legacy is not None:
         raise ConfigError(
-            f"{backup_id} cannot define both restic-repository-id and restic-repository-ids"
+            f"{job_id} cannot define both restic-repository-id and restic-repository-ids"
         )
     if values is None:
-        values = [required_text(backup, "restic-repository-id", backup_id)]
+        values = [required_text(job, "restic-repository-id", job_id)]
     if (
         not isinstance(values, list)
         or not values
@@ -73,9 +73,12 @@ def backup_repository_ids(backup: dict[str, Any], backup_id: str) -> list[str]:
         or len(values) != len(set(values))
     ):
         raise ConfigError(
-            f"{backup_id}.restic-repository-ids must be a non-empty list of unique IDs"
+            f"{job_id}.restic-repository-ids must be a non-empty list of unique IDs"
         )
     return values
+
+
+backup_repository_ids = job_repository_ids
 
 
 def credential_source(value: Any, owner: str) -> None:
@@ -111,73 +114,98 @@ def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
     return parts[0], parts[1], transport
 
 
-def validate_github(backup: dict[str, Any], backup_id: str) -> None:
-    if backup_id in {".", ".."} or "/" in backup_id or "\\" in backup_id:
-        raise ConfigError(f"{backup_id}.job-id must be a safe path component")
-    github = backup.get("github")
-    if not isinstance(github, dict):
-        raise ConfigError(f"{backup_id}.github must be a mapping")
+def validate_github(github: dict[str, Any], job_id: str) -> None:
     _, _, transport = github_repository_name(
-        required_text(github, "repository-url", f"{backup_id}.github"),
-        f"{backup_id}.github",
+        required_text(github, "repository-url", f"{job_id}.source"),
+        f"{job_id}.source",
     )
     components = github.get("components")
     fields = {"git", "lfs", "wiki", "metadata", "release-assets"}
     if not isinstance(components, dict) or set(components) != fields:
         raise ConfigError(
-            f"{backup_id}.github.components must define git, lfs, wiki, metadata, and release-assets"
+            f"{job_id}.source.components must define git, lfs, wiki, metadata, and release-assets"
         )
     if any(not isinstance(value, bool) for value in components.values()):
-        raise ConfigError(f"{backup_id}.github.components values must be true or false")
+        raise ConfigError(f"{job_id}.source.components values must be true or false")
     if not any(components.values()):
         raise ConfigError(
-            f"{backup_id}.github.components must enable at least one component"
+            f"{job_id}.source.components must enable at least one component"
         )
     if components["lfs"] and not components["git"]:
-        raise ConfigError(f"{backup_id}.github.components.lfs requires git")
+        raise ConfigError(f"{job_id}.source.components.lfs requires git")
     timeout = github.get("migration-timeout-seconds")
     if not isinstance(timeout, int) or isinstance(timeout, bool) or timeout <= 0:
         raise ConfigError(
-            f"{backup_id}.github.migration-timeout-seconds must be a positive integer"
+            f"{job_id}.source.migration-timeout-seconds must be a positive integer"
         )
 
     authentication = github.get("authentication", {})
     if not isinstance(authentication, dict):
-        raise ConfigError(f"{backup_id}.github.authentication must be a mapping")
+        raise ConfigError(f"{job_id}.source.authentication must be a mapping")
     unknown = set(authentication) - {"git", "api"}
     if unknown:
-        raise ConfigError(f"{backup_id}.github.authentication has unknown fields")
+        raise ConfigError(f"{job_id}.source.authentication has unknown fields")
     git_auth = authentication.get("git", {})
     if not isinstance(git_auth, dict) or set(git_auth) - {"ssh", "https"}:
-        raise ConfigError(f"{backup_id}.github.authentication.git is invalid")
+        raise ConfigError(f"{job_id}.source.authentication.git is invalid")
     if transport == "ssh" and "https" in git_auth:
-        raise ConfigError(f"{backup_id}: HTTPS authentication requires an HTTPS URL")
+        raise ConfigError(f"{job_id}: HTTPS authentication requires an HTTPS URL")
     if transport == "https" and "ssh" in git_auth:
-        raise ConfigError(f"{backup_id}: SSH authentication requires an SSH URL")
+        raise ConfigError(f"{job_id}: SSH authentication requires an SSH URL")
     if "ssh" in git_auth:
         ssh = git_auth["ssh"]
         if not isinstance(ssh, dict) or set(ssh) != {"private-key", "known-hosts"}:
             raise ConfigError(
-                f"{backup_id}.github.authentication.git.ssh must define private-key and known-hosts"
+                f"{job_id}.source.authentication.git.ssh must define private-key and known-hosts"
             )
-        credential_source(ssh["private-key"], f"{backup_id}.github SSH private-key")
-        credential_source(ssh["known-hosts"], f"{backup_id}.github SSH known-hosts")
+        credential_source(ssh["private-key"], f"{job_id}.source SSH private-key")
+        credential_source(ssh["known-hosts"], f"{job_id}.source SSH known-hosts")
     if "https" in git_auth:
         https = git_auth["https"]
         if not isinstance(https, dict) or set(https) != {"token"}:
             raise ConfigError(
-                f"{backup_id}.github.authentication.git.https must define token"
+                f"{job_id}.source.authentication.git.https must define token"
             )
-        credential_source(https["token"], f"{backup_id}.github HTTPS token")
+        credential_source(https["token"], f"{job_id}.source HTTPS token")
     api = authentication.get("api")
     if api is not None:
         if not isinstance(api, dict) or set(api) != {"token"}:
-            raise ConfigError(
-                f"{backup_id}.github.authentication.api must define token"
-            )
-        credential_source(api["token"], f"{backup_id}.github API token")
+            raise ConfigError(f"{job_id}.source.authentication.api must define token")
+        credential_source(api["token"], f"{job_id}.source API token")
     if (components["metadata"] or components["release-assets"]) and api is None:
-        raise ConfigError(f"{backup_id}.github.authentication.api.token is required")
+        raise ConfigError(f"{job_id}.source.authentication.api.token is required")
+
+
+def indexed_jobs(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
+    if "jobs" in config and "backups" in config:
+        raise ConfigError("configuration cannot define both jobs and backups")
+    legacy = "jobs" not in config
+    section = "backups" if legacy else "jobs"
+    result = indexed(config, section, "job-id")
+    normalized: dict[str, dict[str, Any]] = {}
+    for job_id, original in result.items():
+        job = dict(original)
+        if legacy:
+            if "github" in job:
+                job_type, source = "github-repository", job["github"]
+            elif "paths" in job:
+                job_type, source = "files", {"paths": job["paths"]}
+            elif job_id == "voice-memos":
+                job_type, source = "voice-memos", {}
+            else:
+                job_type, source = "files", {}
+        else:
+            job_type = required_text(job, "type", job_id)
+            source = job.get("source")
+            if not isinstance(source, dict):
+                raise ConfigError(f"{job_id}.source must be a mapping")
+        if job_type not in {"files", "github-repository", "voice-memos"}:
+            raise ConfigError(f"{job_id}.type is not a supported job type")
+        job["type"] = job_type
+        job["source"] = source
+        job["_legacy"] = legacy
+        normalized[job_id] = job
+    return normalized
 
 
 def indexed(
@@ -208,7 +236,7 @@ def validate(
 ]:
     storage = indexed(config, "storage")
     repositories = indexed(config, "restic-repositories")
-    backups = indexed(config, "backups", "job-id")
+    jobs = indexed_jobs(config)
 
     for storage_id, item in storage.items():
         storage_type = required_text(item, "type", storage_id)
@@ -286,28 +314,37 @@ def validate(
             raise ConfigError(f"{repository_id}.archive.restore.days must be positive")
         required_text(restore, "timeout", f"{repository_id}.archive.restore")
 
-    for backup_id, backup in backups.items():
-        repository_ids = backup_repository_ids(backup, backup_id)
-        if "tag" in backup:
-            required_text(backup, "tag", backup_id)
-        paths = backup.get("paths")
-        if paths is not None and (
-            not isinstance(paths, list)
-            or not paths
-            or any(not isinstance(path, str) or not path for path in paths)
+    for job_id, job in jobs.items():
+        if job_id in {".", ".."} or "/" in job_id or "\\" in job_id:
+            raise ConfigError(f"{job_id}.job-id must be a safe path component")
+        repository_ids = job_repository_ids(job, job_id)
+        if "tag" in job:
+            required_text(job, "tag", job_id)
+        source = job["source"]
+        paths = source.get("paths") if job["type"] == "files" else None
+        if (
+            job["type"] == "files"
+            and (paths is not None or not job["_legacy"])
+            and (
+                not isinstance(paths, list)
+                or not paths
+                or any(not isinstance(path, str) or not path for path in paths)
+            )
         ):
-            raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
-        if "github" in backup:
-            if paths is not None:
-                raise ConfigError(f"{backup_id} cannot define both github and paths")
-            validate_github(backup, backup_id)
+            raise ConfigError(f"{job_id}.source.paths must be a non-empty list")
+        if job["type"] == "github-repository":
+            validate_github(source, job_id)
+        if job["type"] == "voice-memos":
+            for field in ("recordings-dir", "summaries-dir"):
+                if field in source:
+                    required_text(source, field, f"{job_id}.source")
         for repository_id in repository_ids:
             if repository_id not in repositories:
                 raise ConfigError(
-                    f"{backup_id} references unknown restic repository '{repository_id}'"
+                    f"{job_id} references unknown restic repository '{repository_id}'"
                 )
 
-    return storage, repositories, backups
+    return storage, repositories, jobs
 
 
 def ensure_repository_ready(
@@ -346,15 +383,15 @@ def load_validated(
     logger.info("Loading configuration: %s%s", path, " (SOPS)" if use_sops else "")
     loaded = load_config(path, use_sops)
     try:
-        storage, repositories, backups = validate(
+        storage, repositories, jobs = validate(
             loaded, check_placeholders=check_placeholders
         )
     except ConfigError as exc:
         fail(f"invalid config in {path}: {exc}")
     logger.debug(
-        "Configuration loaded: storage=%d repositories=%d backups=%d",
+        "Configuration loaded: storage=%d repositories=%d jobs=%d",
         len(storage),
         len(repositories),
-        len(backups),
+        len(jobs),
     )
-    return loaded, storage, repositories, backups
+    return loaded, storage, repositories, jobs

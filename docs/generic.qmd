@@ -1,9 +1,9 @@
 ---
-title: Generic Backups
+title: Repositories and Restic
 ---
 
-The `generic` subcommand runs standard restic operations against any configured
-backup. Backup sources may be files or directories anywhere on the machine.
+The `generic` subcommand manages configured restic repositories, snapshots, and
+advanced restic passthrough. Use the unified `job` command to list and run jobs.
 
 Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 [Quick Start](quick-start.qmd) for a complete first backup.
@@ -17,8 +17,8 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
 | Repository | `generic repository prune [REPOSITORY] [OPTIONS]` | Prune or repack repository data | Yes |
 | Repository | `generic repository destroy [REPOSITORY] [--dry-run]` | Permanently erase one repository | Yes |
-| Backup | `generic backup list` | Show configured backup jobs | No |
-| Backup | `generic backup run [JOB_ID] --repository ID... [--dry-run]` | Create snapshots in selected repositories | Yes |
+| Job | `job list` | Show every configured job type | No |
+| Job | `job run [JOB_ID] --repository ID... [--dry-run]` | Create snapshots in selected repositories | Yes |
 | Backup | `generic backup data-dir [JOB_ID] [--repository ID]` | Print the managed private-data directory | No |
 | Snapshot | `generic snapshot list [JOB_ID] [--repository ID]` | List snapshots for a configured backup | Yes |
 | Snapshot | `generic snapshot forget [JOB_ID] [--repository ID] [--dry-run]` | Forget one tagged snapshot and prune | Yes |
@@ -30,7 +30,7 @@ enabled repositories. Non-interactive callers must provide the job ID and
 repository ID explicitly.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
-opens a section menu for repositories, backups, snapshots, and advanced restic
+opens the legacy section menu for repositories, jobs, snapshots, and advanced restic
 commands. Every section and command has a short description and is selectable
 with the arrow keys. Explicit subcommands remain available for scripts and
 scheduled jobs. **Advanced restic** reads the installed restic version's command
@@ -61,13 +61,13 @@ Explicit commands can pass `--dry-run` directly to the managed write commands:
 ```sh
 uv run restic-backups generic repository init personal --dry-run
 uv run restic-backups generic repository prune personal --dry-run
-uv run restic-backups generic backup run documents --dry-run
+uv run restic-backups job run documents --dry-run
 uv run restic-backups generic snapshot forget documents --dry-run
 uv run restic-backups generic repository destroy personal --dry-run
 ```
 
 `generic repository list` shows every restic repository, even when no configured
-backup references it. `generic backup list` shows the configured backup jobs.
+job references it. `job list` shows every job type.
 
 `generic repository init` prompts for one repository, with **All repositories**
 as the first option. Scripts must pass a repository ID or `--all`. Disabled or
@@ -116,26 +116,28 @@ transfer charges. Use **Metadata only**, **Minimize bandwidth**, or
 Configure the local source paths once, then select the backup by its ID:
 
 ```yaml
-backups:
+jobs:
   - job-id: documents
+    type: files
     restic-repository-ids:
       - personal-b2
       - personal-local
-    paths:
-      - ~/Documents
-      - ~/Desktop
+    source:
+      paths:
+        - ~/Documents
+        - ~/Desktop
 ```
 
 ```sh
-uv run restic-backups generic backup run documents
+uv run restic-backups job run documents
 ```
 
-The TUI shows every repository configured for the job with none selected. Use
-Space to select one or more destinations, then Enter to run. From a
+The TUI preselects a sole enabled repository. When several are available, none
+start selected; use Space to select one or more, then Enter to run. From a
 non-interactive shell, repeat `--repository` explicitly:
 
 ```sh
-uv run restic-backups generic backup run documents \
+uv run restic-backups job run documents \
   --repository personal-b2 \
   --repository personal-local
 ```

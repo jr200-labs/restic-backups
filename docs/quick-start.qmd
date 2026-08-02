@@ -23,14 +23,14 @@ Copy the commented template:
 cp config.template.yaml config.yaml
 ```
 
-Edit its first storage, restic repository, and backup entries:
+Edit its first storage, restic repository, and job entries:
 
 - replace every `CHANGE_ME` used by the enabled repository;
 - configure either S3 storage and credentials or an absolute local storage path;
 - configure the repository bucket and `key_prefix` for S3, or relative `path`
   for local storage;
 - give the backup job a useful `job-id` such as `documents`;
-- list the local files or directories under its `paths` field;
+- use `type: files` and list local files or directories under `source.paths`;
 - omit `tag` unless it should differ from the job ID;
 - list one or more enabled repository IDs under `restic-repository-ids`;
 - delete unused example entries if desired.
@@ -43,10 +43,10 @@ Set the config path once for the shell and validate it:
 export RESTIC_BACKUPS_CONFIG="$PWD/config.yaml"
 uv run restic-backups check-config
 uv run restic-backups generic repository list
-uv run restic-backups generic backup list
+uv run restic-backups job list
 ```
 
-The list output separates **Repositories** from **Backups**. Every configured
+The list output separates **Repositories** from **Jobs**. Every configured
 restic repository appears in the repository table, even before a configured
 backup references it.
 
@@ -61,15 +61,15 @@ uv run restic-backups generic repository init personal-b2
 Then create a snapshot from the paths configured for `documents`:
 
 ```sh
-uv run restic-backups generic backup run documents
+uv run restic-backups job run documents
 uv run restic-backups generic snapshot list documents
 ```
 
 Running `generic repository init` again is safe: an existing repository is
 detected and skipped. Omit the repository ID to choose interactively, or pass
-`--all` to initialize every enabled repository. `generic backup run` shows the
-repositories configured for the job with none selected; use Space to choose one
-or more destinations. The job's paths and default or configured tag are used
+`--all` to initialize every enabled repository. `job run` preselects a sole
+enabled destination; when several are available, use Space to choose one or
+more. The job's paths and default or configured tag are used
 for every selected repository.
 
 ## 4. Verify a restore

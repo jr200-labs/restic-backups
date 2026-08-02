@@ -22,6 +22,7 @@ website:
           - cli.qmd
       - section: Commands
         contents:
+          - jobs.qmd
           - github-repositories.qmd
           - generic.qmd
           - voice-memos.qmd

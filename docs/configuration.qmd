@@ -132,37 +132,40 @@ Every repository appears in the `generic repository list` table.
 `generic repository init` can initialize a selected enabled repository even
 when no backup references it; use `--all` to initialize every enabled
 repository. A backup entry is required before using that repository with
-`generic backup run` or
+`job run` or
 `generic restic run`.
 
-## `backups`
+## `jobs`
 
-`backups` defines the entries shown in the CLI's **Backups** table. Each entry
-lists one or more repositories under `restic-repository-ids`. Every value must
-match a `restic-repositories.id` value.
+`jobs` defines every backup shown by `job list` and the **Jobs** TUI. Each job
+has a `type`, a type-specific `source`, and one or more destinations under
+`restic-repository-ids`. Every destination must match a
+`restic-repositories.id` value.
 
 ```yaml
-backups:
+jobs:
   - job-id: documents
+    type: files
     description: Back up local documents.
     restic-repository-ids:
       - personal-b2
       - personal-local
-    paths:
-      - ~/Documents
-      - ~/Desktop
+    source:
+      paths:
+        - ~/Documents
+        - ~/Desktop
     # Optional; defaults to the job ID.
     # tag: documents
 ```
 
-`job-id` is the stable name used to select the configured backup job in commands and
-menus. `paths` is the non-empty list of local files or directories passed to
+`job-id` is the stable name used to select the job in commands and menus.
+For a `files` job, `source.paths` is the non-empty list passed to
 `restic backup`; `~` is expanded to the current user's home directory. Relative
 paths remain relative to the directory where the command is run.
 
-When a backup runs in the TUI, every configured repository starts deselected;
-select one or more with Space. This prevents a job from writing to an unintended
-destination. Non-interactive commands must repeat `--repository` for every
+When a job has one enabled repository, it starts selected in the TUI. When it
+has several, all start deselected and one or more must be selected with Space.
+Non-interactive commands must repeat `--repository` for every
 destination. Each repository remains independent and receives its own restic
 snapshot.
 
@@ -174,7 +177,7 @@ backup; a snapshot ID is not a configuration value.
 Run the configured backup with:
 
 ```sh
-uv run restic-backups generic backup run documents
+uv run restic-backups job run documents
 ```
 
 Restic scans the configured paths and creates a new snapshot. It stores only
@@ -184,23 +187,28 @@ state of those paths at that time.
 Several backups may share a restic repository. Their tags distinguish their
 snapshots inside it.
 
-Specialized workflows may discover their own sources and omit `paths`. For
-example, the `voice-memos` subcommand locates the macOS recording store itself.
-`generic backup run` reports an error if the selected backup has no configured
-paths.
+The supported types are `files`, `github-repository`, and `voice-memos`. They
+all use the same job list, destination picker, run command, status table,
+snapshot tools, and audit result. The `source` mapping is the only type-specific
+part. See [Jobs](jobs.qmd) for all three forms.
+
+For compatibility, one release accepts the previous `backups` section and
+normalizes its `paths` or `github` fields. Do not define both sections. New and
+updated configurations should use `jobs`, explicit `type`, and `source`.
 
 ### GitHub repository jobs
 
-A GitHub repository job replaces `paths` with a `github` mapping:
+A GitHub repository job uses a GitHub source mapping:
 
 ```yaml
-backups:
+jobs:
   - job-id: example-github-repository
+    type: github-repository
     description: Back up Git history and selected GitHub data.
     restic-repository-ids:
       - personal-b2
       - personal-local
-    github:
+    source:
       repository-url: git@github.com:example/example-repository.git
       authentication:
         api:

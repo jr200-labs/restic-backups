@@ -363,7 +363,7 @@ def backup(
     *,
     dry_run: bool = False,
 ) -> tuple[dict[str, str], dict[str, bool]]:
-    github = backup_config["github"]
+    github = backup_config["source"]
     owner, name, _ = config.github_repository_name(
         github["repository-url"], f"{job_id}.github"
     )
