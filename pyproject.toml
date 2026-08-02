@@ -8,12 +8,12 @@ dependencies = [
     "boto3>=1.43.62",
     "click>=8.4.2",
     "mlx-whisper>=0.4.3; platform_system == 'Darwin' and platform_machine == 'arm64'",
-    "pyannote.audio>=3.4.0",
+    "pyannote.audio>=4.0.7",
     "pyyaml>=6.0.3",
     "questionary>=2.1.1",
     "requests>=2.34.2",
-    "rich>=13.9.4",
-    "textual>=0.89.1",
+    "rich>=15.0.0",
+    "textual>=8.2.8",
     "torch>=2.13.0",
     "torchaudio>=2.11.0",
     "typer>=0.27.0",
@@ -25,7 +25,7 @@ Repository = "https://github.com/jr200-labs/restic-backups"
 
 [dependency-groups]
 dev = [
-    "mypy>=1.20.2",
+    "mypy>=2.3.0",
     "pytest>=9.1.1",
     "quarto-cli>=1.10.18",
     "ruff>=0.16.1",

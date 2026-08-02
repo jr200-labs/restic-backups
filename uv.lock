@@ -3732,12 +3732,12 @@ requires-dist = [
     { name = "boto3", specifier = ">=1.43.62" },
     { name = "click", specifier = ">=8.4.2" },
     { name = "mlx-whisper", marker = "platform_machine == 'arm64' and sys_platform == 'darwin'", specifier = ">=0.4.3" },
-    { name = "pyannote-audio", specifier = ">=3.4.0" },
+    { name = "pyannote-audio", specifier = ">=4.0.7" },
     { name = "pyyaml", specifier = ">=6.0.3" },
     { name = "questionary", specifier = ">=2.1.1" },
     { name = "requests", specifier = ">=2.34.2" },
-    { name = "rich", specifier = ">=13.9.4" },
-    { name = "textual", specifier = ">=0.89.1" },
+    { name = "rich", specifier = ">=15.0.0" },
+    { name = "textual", specifier = ">=8.2.8" },
     { name = "torch", specifier = ">=2.13.0" },
     { name = "torchaudio", specifier = ">=2.11.0" },
     { name = "typer", specifier = ">=0.27.0" },
@@ -3745,7 +3745,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "mypy", specifier = ">=1.20.2" },
+    { name = "mypy", specifier = ">=2.3.0" },
     { name = "pytest", specifier = ">=9.1.1" },
     { name = "quarto-cli", specifier = ">=1.10.18" },
     { name = "ruff", specifier = ">=0.16.1" },
