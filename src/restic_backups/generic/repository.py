@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, NoReturn
 
-from ..config import config_path
+from ..config import backup_repository_ids, config_path
 from ..errors import BackupError
 
 
@@ -18,11 +18,21 @@ def resolve(
     storage: dict[str, dict[str, Any]],
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
+    repository_id: str | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     backup = backups.get(backup_id)
     if backup is None:
         fail(f"backup job '{backup_id}' not found in {config_path()}")
-    restic_repository = repositories[backup["restic-repository-id"]]
+    repository_ids = backup_repository_ids(backup, backup_id)
+    if repository_id is None:
+        if len(repository_ids) != 1:
+            fail(f"backup job '{backup_id}' requires a repository selection")
+        repository_id = repository_ids[0]
+    if repository_id not in repository_ids:
+        fail(
+            f"repository '{repository_id}' is not configured for backup job '{backup_id}'"
+        )
+    restic_repository = repositories[repository_id]
     if not restic_repository["enabled"]:
         fail(f"restic repository '{restic_repository['id']}' is disabled")
     return restic_repository, storage[restic_repository["storage-id"]]

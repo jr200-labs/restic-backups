@@ -195,6 +195,34 @@ Usage:
         with self.assertRaisesRegex(config.ConfigError, "unknown restic repository"):
             config.validate(config_data)
 
+    def test_backup_can_reference_multiple_repositories(self) -> None:
+        config_data: dict[str, Any] = {
+            "storage": [{"id": "disk", "type": "local", "path": "/Volumes/disk"}],
+            "restic-repositories": [
+                {
+                    "id": repository_id,
+                    "storage-id": "disk",
+                    "enabled": False,
+                    "path": f"restic/{repository_id}",
+                    "password": "CHANGE_ME",
+                }
+                for repository_id in ("first", "second")
+            ],
+            "backups": [
+                {
+                    "job-id": "files",
+                    "restic-repository-ids": ["first", "second"],
+                    "paths": ["/data"],
+                }
+            ],
+        }
+
+        _, _, backups = config.validate(config_data)
+        self.assertEqual(
+            config.backup_repository_ids(backups["files"], "files"),
+            ["first", "second"],
+        )
+
     def test_repository_readiness_is_checked_at_execution(self) -> None:
         config_data: dict[str, Any] = {
             "storage": [{"id": "disk", "type": "local", "path": "/Volumes/unfinished"}],

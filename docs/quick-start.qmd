@@ -32,7 +32,7 @@ Edit its first storage, restic repository, and backup entries:
 - give the backup job a useful `job-id` such as `documents`;
 - list the local files or directories under its `paths` field;
 - omit `tag` unless it should differ from the job ID;
-- make its `restic-repository-id` match the enabled repository ID;
+- list one or more enabled repository IDs under `restic-repository-ids`;
 - delete unused example entries if desired.
 
 Keep the repository password safe: restic cannot decrypt snapshots without it.
@@ -67,8 +67,10 @@ uv run restic-backups generic snapshot list documents
 
 Running `generic repository init` again is safe: an existing repository is
 detected and skipped. Omit the repository ID to choose interactively, or pass
-`--all` to initialize every enabled repository. `generic backup run` uses the
-selected backup's repository, paths, and default or configured tag.
+`--all` to initialize every enabled repository. `generic backup run` shows the
+repositories configured for the job with none selected; use Space to choose one
+or more destinations. The job's paths and default or configured tag are used
+for every selected repository.
 
 ## 4. Verify a restore
 

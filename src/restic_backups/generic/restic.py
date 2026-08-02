@@ -97,9 +97,10 @@ def command(
     backups: dict[str, dict[str, Any]],
     *,
     quiet: bool = False,
+    repository_id: str | None = None,
 ) -> int:
     restic_repository, backend = repository.resolve(
-        backup_id, storage, repositories, backups
+        backup_id, storage, repositories, backups, repository_id
     )
     if args and args[0] == "backup":
         tag = str(backups[backup_id].get("tag", backup_id))
@@ -124,9 +125,10 @@ def command_output(
     storage: dict[str, dict[str, Any]],
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
+    repository_id: str | None = None,
 ) -> str:
     restic_repository, backend = repository.resolve(
-        backup_id, storage, repositories, backups
+        backup_id, storage, repositories, backups, repository_id
     )
     code, output = repository_run(
         restic_repository, backend, args, quiet=True, capture=True

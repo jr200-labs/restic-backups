@@ -138,14 +138,16 @@ repository. A backup entry is required before using that repository with
 ## `backups`
 
 `backups` defines the entries shown in the CLI's **Backups** table. Each entry
-selects a repository by matching `restic-repository-id` to a
-`restic-repositories.id` value.
+lists one or more repositories under `restic-repository-ids`. Every value must
+match a `restic-repositories.id` value.
 
 ```yaml
 backups:
   - job-id: documents
     description: Back up local documents.
-    restic-repository-id: personal-b2
+    restic-repository-ids:
+      - personal-b2
+      - personal-local
     paths:
       - ~/Documents
       - ~/Desktop
@@ -157,6 +159,12 @@ backups:
 menus. `paths` is the non-empty list of local files or directories passed to
 `restic backup`; `~` is expanded to the current user's home directory. Relative
 paths remain relative to the directory where the command is run.
+
+When a backup runs in the TUI, every configured repository starts deselected;
+select one or more with Space. This prevents a job from writing to an unintended
+destination. Non-interactive commands must repeat `--repository` for every
+destination. Each repository remains independent and receives its own restic
+snapshot.
 
 `tag` is optional restic metadata applied automatically to every snapshot
 created through that job. It defaults to `job-id`, so it normally does not need

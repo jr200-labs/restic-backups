@@ -65,11 +65,14 @@ restic-repositories:
       password: CHANGE_ME
       # cache-dir: .restic-cache/personal-local
 
-# Configured backup jobs. restic-repository-id must match a repository ID above.
+# Configured backup jobs. Each repository ID must match an ID above.
 backups:
     - job-id: documents
       description: Back up local documents.
-      restic-repository-id: personal-b2
+      # One job can write independent snapshots to multiple repositories.
+      restic-repository-ids:
+          - personal-b2
+          - personal-local
       # Files and directories used by `generic backup run`; ~ is expanded.
       paths:
           - ~/Documents
@@ -78,5 +81,6 @@ backups:
 
     - job-id: voice-memos
       description: Back up macOS Voice Memos with the specialized subcommand.
-      restic-repository-id: personal-b2
+      restic-repository-ids:
+          - personal-b2
       # The specialized workflow discovers its own source paths.

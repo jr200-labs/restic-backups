@@ -18,14 +18,16 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Repository | `generic repository prune [REPOSITORY] [OPTIONS]` | Prune or repack repository data | Yes |
 | Repository | `generic repository destroy [REPOSITORY] [--dry-run]` | Permanently erase one repository | Yes |
 | Backup | `generic backup list` | Show configured backup jobs | No |
-| Backup | `generic backup run [JOB_ID] [--dry-run]` | Create a snapshot from configured paths | Yes |
-| Backup | `generic backup data-dir [JOB_ID]` | Print the managed private-data directory | No |
-| Snapshot | `generic snapshot list [JOB_ID]` | List snapshots for a configured backup | Yes |
-| Snapshot | `generic snapshot forget [JOB_ID] [--dry-run]` | Forget one tagged snapshot and prune | Yes |
-| Restic | `generic restic run --backup JOB_ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
+| Backup | `generic backup run [JOB_ID] --repository ID... [--dry-run]` | Create snapshots in selected repositories | Yes |
+| Backup | `generic backup data-dir [JOB_ID] [--repository ID]` | Print the managed private-data directory | No |
+| Snapshot | `generic snapshot list [JOB_ID] [--repository ID]` | List snapshots for a configured backup | Yes |
+| Snapshot | `generic snapshot forget [JOB_ID] [--repository ID] [--dry-run]` | Forget one tagged snapshot and prune | Yes |
+| Restic | `generic restic run --backup JOB_ID --repository ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
 Commands that accept `[JOB_ID]` prompt when it is omitted in an interactive
-terminal. Non-interactive callers must provide the job ID.
+terminal. Repository-specific operations also prompt when a job has several
+enabled repositories. Non-interactive callers must provide the job ID and
+repository ID explicitly.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
 opens a section menu for repositories, backups, snapshots, and advanced restic
@@ -116,7 +118,9 @@ Configure the local source paths once, then select the backup by its ID:
 ```yaml
 backups:
   - job-id: documents
-    restic-repository-id: personal-b2
+    restic-repository-ids:
+      - personal-b2
+      - personal-local
     paths:
       - ~/Documents
       - ~/Desktop
@@ -126,10 +130,20 @@ backups:
 uv run restic-backups generic backup run documents
 ```
 
-The command expands `~`, passes the paths to `restic backup`, and applies the
-job ID as the restic tag unless `tag` is explicitly configured. Every run
-creates a snapshot of the complete source state while restic uploads only new
-or changed file data.
+The TUI shows every repository configured for the job with none selected. Use
+Space to select one or more destinations, then Enter to run. From a
+non-interactive shell, repeat `--repository` explicitly:
+
+```sh
+uv run restic-backups generic backup run documents \
+  --repository personal-b2 \
+  --repository personal-local
+```
+
+The command expands `~`, runs `restic backup` independently for each selected
+repository, and applies the job ID as the restic tag unless `tag` is explicitly
+configured. Every destination gets its own snapshot while restic uploads only
+new or changed file data already absent from that repository.
 
 ## List snapshots
 
