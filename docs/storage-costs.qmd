@@ -36,7 +36,7 @@ and discounts. The 1 TB comparison uses 1,000 GB.
 Restic can list a snapshot without downloading the backed-up file contents:
 
 ```sh
-uv run restic-backups generic restic run --backup <job-id> ls <snapshot-id>
+uv run restic-backups generic restic run --backup <backup-id> ls <snapshot-id>
 ```
 
 The command downloads repository indexes, snapshot records, directory trees,

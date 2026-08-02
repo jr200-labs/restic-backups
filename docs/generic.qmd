@@ -17,14 +17,14 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
 | Repository | `generic repository destroy [REPOSITORY]` | Permanently erase one repository | Yes |
 | Backup | `generic backup list` | Show configured backup jobs | No |
-| Backup | `generic backup run [JOB_ID]` | Create a snapshot from configured paths | Yes |
-| Backup | `generic backup data-dir [JOB_ID]` | Print the managed private-data directory | No |
-| Snapshot | `generic snapshot list [JOB_ID]` | List snapshots for a configured backup | Yes |
-| Snapshot | `generic snapshot forget [JOB_ID]` | Forget one tagged snapshot and prune | Yes |
-| Restic | `generic restic run --backup JOB_ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
+| Backup | `generic backup run [BACKUP]` | Create a snapshot from configured paths | Yes |
+| Backup | `generic backup data-dir [BACKUP]` | Print the managed private-data directory | No |
+| Snapshot | `generic snapshot list [BACKUP]` | List snapshots for a configured backup | Yes |
+| Snapshot | `generic snapshot forget [BACKUP]` | Forget one tagged snapshot and prune | Yes |
+| Restic | `generic restic run --backup ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
 
-Commands that accept `[JOB_ID]` prompt when it is omitted in an interactive
-terminal. Non-interactive callers must provide the job ID.
+Commands that accept `[BACKUP]` prompt when it is omitted in an interactive
+terminal. Non-interactive callers must provide the backup ID.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
 opens a section menu for repositories, backups, snapshots, and advanced restic
@@ -59,7 +59,7 @@ Configure the local source paths once, then select the backup by its ID:
 
 ```yaml
 backups:
-  - job-id: documents
+  - id: documents
     restic-store-id: personal-store
     paths:
       - ~/Documents
@@ -71,7 +71,7 @@ uv run restic-backups generic backup run documents
 ```
 
 The command expands `~`, passes the paths to `restic backup`, and applies the
-job ID as the restic tag unless `tag` is explicitly configured. Every run
+backup ID as the restic tag unless `tag` is explicitly configured. Every run
 creates a snapshot of the complete source state while restic uploads only new
 or changed file data.
 
@@ -146,7 +146,7 @@ uv run restic-backups generic backup data-dir documents
 ```
 
 The result follows
-`data/<store-id>/<bucket>/<key-prefix>/<job-id>/` beside the selected config
+`data/<store-id>/<bucket>/<key-prefix>/<backup-id>/` beside the selected config
 file. It is for private generated metadata; generic backup sources do not need
 to live there.
 

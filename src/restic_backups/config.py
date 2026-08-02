@@ -55,9 +55,7 @@ def required_text(item: dict[str, Any], field: str, owner: str) -> str:
     return value
 
 
-def indexed(
-    config: dict[str, Any], section: str, id_field: str = "id"
-) -> dict[str, dict[str, Any]]:
+def indexed(config: dict[str, Any], section: str) -> dict[str, dict[str, Any]]:
     items = config.get(section)
     if not isinstance(items, list) or not items:
         raise ConfigError(f"{section} must be a non-empty list")
@@ -65,9 +63,9 @@ def indexed(
     for item in items:
         if not isinstance(item, dict):
             raise ConfigError(f"{section} entries must be mappings")
-        item_id = required_text(item, id_field, section)
+        item_id = required_text(item, "id", section)
         if item_id in result:
-            raise ConfigError(f"duplicate {section} {id_field} '{item_id}'")
+            raise ConfigError(f"duplicate {section} id '{item_id}'")
         result[item_id] = item
     return result
 
@@ -81,7 +79,7 @@ def validate(
 ]:
     credentials = indexed(config, "credentials")
     stores = indexed(config, "restic-stores")
-    backups = indexed(config, "backups", "job-id")
+    backups = indexed(config, "backups")
 
     for credential_id, credential in credentials.items():
         for field in ("access-key-id", "secret-access-key"):

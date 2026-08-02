@@ -45,7 +45,7 @@ repository, pipeline, workflow, and parallel modules perform the operational wor
 Managed artifacts use:
 
 ```text
-data/<store-id>/<bucket>/<key-prefix>/<job-id>/
+data/<store-id>/<bucket>/<key-prefix>/<backup-id>/
 ```
 
 This path is relative to the selected configuration file. It does not constrain

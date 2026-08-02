@@ -21,7 +21,7 @@ def resolve(
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     backup = backups.get(backup_id)
     if backup is None:
-        fail(f"backup job '{backup_id}' not found in {config_path()}")
+        fail(f"backup '{backup_id}' not found in {config_path()}")
     store = stores[backup["restic-store-id"]]
     if not store["enabled"]:
         fail(f"restic store '{store['id']}' is disabled")

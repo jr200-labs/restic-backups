@@ -46,18 +46,18 @@ restic-stores:
         storage-class: GLACIER_IR
         restore: null
 
-# Configured backup jobs. restic-store-id must match a store ID above.
+# Configured backups. restic-store-id must match a store ID above.
 backups:
-    - job-id: documents
+    - id: documents
       description: Back up local documents.
       restic-store-id: b2-store
       # Files and directories used by `generic backup run`; ~ is expanded.
       paths:
           - ~/Documents
-      # Optional restic snapshot tag; defaults to the job ID.
+      # Optional restic tag; defaults to the backup ID.
       # tag: documents
 
-    - job-id: voice-memos
+    - id: voice-memos
       description: Back up macOS Voice Memos with the specialized subcommand.
       restic-store-id: b2-store
       # The specialized workflow discovers its own source paths.

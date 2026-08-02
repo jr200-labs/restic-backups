@@ -200,7 +200,7 @@ restic-stores:
     key_prefix: CHANGE_ME
     password: CHANGE_ME
 backups:
-  - job-id: voice-memos
+  - id: voice-memos
     restic-store-id: store
 """
         with tempfile.TemporaryDirectory() as directory:
