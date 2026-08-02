@@ -305,37 +305,37 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>Backup</td>
-<td><code>generic backup run [JOB_ID]</code></td>
+<td><code>generic backup run [BACKUP]</code></td>
 <td>Create a snapshot from configured paths</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
 <td>Backup</td>
-<td><code>generic backup data-dir [JOB_ID]</code></td>
+<td><code>generic backup data-dir [BACKUP]</code></td>
 <td>Print the managed private-data directory</td>
 <td>No</td>
 </tr>
 <tr class="even">
 <td>Snapshot</td>
-<td><code>generic snapshot list [JOB_ID]</code></td>
+<td><code>generic snapshot list [BACKUP]</code></td>
 <td>List snapshots for a configured backup</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
 <td>Snapshot</td>
-<td><code>generic snapshot forget [JOB_ID]</code></td>
+<td><code>generic snapshot forget [BACKUP]</code></td>
 <td>Forget one tagged snapshot and prune</td>
 <td>Yes</td>
 </tr>
 <tr class="even">
 <td>Restic</td>
-<td><code>generic restic run --backup JOB_ID ...</code></td>
+<td><code>generic restic run --backup ID ...</code></td>
 <td>Pass trailing arguments directly to restic</td>
 <td>Depends on restic command</td>
 </tr>
 </tbody>
 </table>
-<p>Commands that accept <code>[JOB_ID]</code> prompt when it is omitted in an interactive terminal. Non-interactive callers must provide the job ID.</p>
+<p>Commands that accept <code>[BACKUP]</code> prompt when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.</p>
 <p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a section menu for repositories, backups, snapshots, and advanced restic commands. Every section and command has a short description and is selectable with the arrow keys. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Advanced restic</strong> reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable <code>uv run restic-backups</code> command. Choose <strong>Run</strong>, <strong>Print only</strong>, or <strong>Cancel</strong>. Choose <strong>Help</strong> at any level to see help for the current section or selected restic command and return to the same menu. Showing help does not load the configuration, select a backup, or contact the repository. <strong>Back</strong> returns one level without restarting the menu tree. Entering <code>--help</code> or <code>-h</code> in the argument prompt has the same local-help behavior.</p>
 <p><code>generic repository list</code> shows every store, even when no configured backup references it. <code>generic backup list</code> shows the configured backup jobs.</p>
 <p><code>generic repository init</code> prompts for one repository, with <strong>All repositories</strong> as the first option. Scripts must pass a repository ID or <code>--all</code>. Disabled or already initialized repositories are reported and skipped.</p>
@@ -345,13 +345,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="create-a-snapshot">Create a snapshot</h2>
 <p>Configure the local source paths once, then select the backup by its ID:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> documents</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-store-id</span><span class="kw">:</span><span class="at"> personal-store</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The command expands <code>~</code>, passes the paths to <code>restic backup</code>, and applies the job ID as the restic tag unless <code>tag</code> is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.</p>
+<p>The command expands <code>~</code>, passes the paths to <code>restic backup</code>, and applies the backup ID as the restic tag unless <code>tag</code> is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.</p>
 </section>
 <section id="list-snapshots" class="level2">
 <h2 class="anchored" data-anchor-id="list-snapshots">List snapshots</h2>
@@ -389,7 +389,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="managed-data-directory" class="level2">
 <h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;job-id&gt;/</code> beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.</p>
+<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;backup-id&gt;/</code> beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.</p>
 </section>
 <section id="cold-s3-storage" class="level2">
 <h2 class="anchored" data-anchor-id="cold-s3-storage">Cold S3 storage</h2>
