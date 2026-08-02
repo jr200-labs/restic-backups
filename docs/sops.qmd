@@ -42,10 +42,22 @@ creation_rules:
   - path_regex: config\.sops\.yaml$
     age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT
     encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+    mac_only_encrypted: true
 ```
 
 Storage and repository IDs, descriptions, endpoints, paths, and other operational
-settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree.
+settings remain readable. SOPS encrypts matching leaf values anywhere in the
+YAML tree. `mac_only_encrypted: true` allows those readable values to be edited
+directly without invalidating the SOPS message authentication code (MAC).
+
+::: {.callout-warning}
+With `mac_only_encrypted: true`, SOPS authenticates encrypted values but no
+longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job
+mappings. Review those changes through Git. Omit this setting when SOPS should
+protect the integrity of every value, accepting that all edits must then go
+through SOPS.
+:::
+
 SOPS also encrypts comments, so use the configuration's `description` fields
 for readable notes.
 
@@ -64,6 +76,7 @@ variable is always set for encryption, omit `age` from the creation rule:
 creation_rules:
   - path_regex: config\.sops\.yaml$
     encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+    mac_only_encrypted: true
 ```
 
 See the official [SOPS configuration format](https://github.com/getsops/sops#5-config-file-format)
@@ -125,10 +138,27 @@ SOPS's operating-system default age location, none of them is required.
 
 ## Edit and rotate
 
-Edit an existing file with:
+With `mac_only_encrypted: true`, ordinary text editors may change plaintext leaf
+values directly:
 
 ```sh
-sops config.sops.yaml
+$EDITOR config.sops.yaml
+uv run restic-backups check-config
+```
+
+Do not replace an `ENC[...]` value manually. Use SOPS when changing a password,
+access key, or secret key, and for structural edits that add, remove, reorder, or
+rename branches containing encrypted values:
+
+```sh
+sops edit config.sops.yaml
+```
+
+For a single value, `sops set` avoids opening the complete decrypted document:
+
+```sh
+sops set config.sops.yaml \
+  '["storage"][0]["description"]' '"Off-site object storage"'
 ```
 
 The encrypted file already records its public recipients. When recipients in
@@ -138,9 +168,10 @@ The encrypted file already records its public recipients. When recipients in
 sops updatekeys config.sops.yaml
 ```
 
-Changing `encrypted_regex` requires decrypting and re-encrypting the document.
-Keep plaintext in the pipe and replace the original only after encryption
-succeeds:
+Adding or changing `encrypted_regex` or `mac_only_encrypted` in `.sops.yaml`
+does not alter an existing encrypted document. Decrypt and re-encrypt it once so
+the new rule is stored in the file. Keep plaintext in the pipe and replace the
+original only after encryption succeeds:
 
 ```sh
 umask 077
