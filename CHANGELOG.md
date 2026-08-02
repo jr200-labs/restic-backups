@@ -1,5 +1,19 @@
 # Changelog
 
+## [0.1.5](https://github.com/jr200-labs/restic-backups/compare/v0.1.4...v0.1.5) (2026-08-02)
+
+
+### Features
+
+* add repository maintenance TUI ([#25](https://github.com/jr200-labs/restic-backups/issues/25)) ([d391c31](https://github.com/jr200-labs/restic-backups/commit/d391c31a0b9fcc218b24efb802a33ad2a7e6e69e))
+* support local restic repositories ([#24](https://github.com/jr200-labs/restic-backups/issues/24)) ([880dba7](https://github.com/jr200-labs/restic-backups/commit/880dba72b86a0151c8c16f83387acb9fb344c0bd))
+
+
+### Bug Fixes
+
+* make TUI keyboard exits consistent ([#22](https://github.com/jr200-labs/restic-backups/issues/22)) ([9e47da6](https://github.com/jr200-labs/restic-backups/commit/9e47da66f238eda8f0d1643d329821eeb8b66531))
+* validate only selected repository ([#27](https://github.com/jr200-labs/restic-backups/issues/27)) ([bc68648](https://github.com/jr200-labs/restic-backups/commit/bc6864889fa0baeac22284b5cc6f81b85024d38e))
+
 ## [0.1.4](https://github.com/jr200-labs/restic-backups/compare/v0.1.3...v0.1.4) (2026-08-02)
 
 
