@@ -285,8 +285,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">age</span><span class="kw">:</span><span class="at"> age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT</span></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Storage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. SOPS also encrypts comments, so use the configuration’s <code>description</code> fields for readable notes.</p>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">mac_only_encrypted</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Storage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. <code>mac_only_encrypted: true</code> allows those readable values to be edited directly without invalidating the SOPS message authentication code (MAC).</p>
+<div class="callout callout-style-default callout-warning callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Warning
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>With <code>mac_only_encrypted: true</code>, SOPS authenticates encrypted values but no longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job mappings. Review those changes through Git. Omit this setting when SOPS should protect the integrity of every value, accepting that all edits must then go through SOPS.</p>
+</div>
+</div>
+<p>SOPS also encrypts comments, so use the configuration’s <code>description</code> fields for readable notes.</p>
 <p>To encrypt every value instead, omit <code>encrypted_regex</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
 <span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
@@ -294,7 +309,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The public recipient can instead come from <code>SOPS_AGE_RECIPIENTS</code>. When that variable is always set for encryption, omit <code>age</code> from the creation rule:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">creation_rules</span><span class="kw">:</span></span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">path_regex</span><span class="kw">:</span><span class="at"> config\.sops\.yaml$</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">encrypted_regex</span><span class="kw">:</span><span class="at"> </span><span class="st">'^(access-key-id|secret-access-key|password)$'</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">mac_only_encrypted</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>See the official <a href="https://github.com/getsops/sops#5-config-file-format">SOPS configuration format</a> for rule matching and other key providers.</p>
 </section>
 <section id="create-the-encrypted-config" class="level2">
@@ -373,18 +389,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="edit-and-rotate" class="level2">
 <h2 class="anchored" data-anchor-id="edit-and-rotate">Edit and rotate</h2>
-<p>Edit an existing file with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>With <code>mac_only_encrypted: true</code>, ordinary text editors may change plaintext leaf values directly:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="va">$EDITOR</span> config.sops.yaml</span>
+<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Do not replace an <code>ENC[...]</code> value manually. Use SOPS when changing a password, access key, or secret key, and for structural edits that add, remove, reorder, or rename branches containing encrypted values:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> edit config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For a single value, <code>sops set</code> avoids opening the complete decrypted document:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> set config.sops.yaml <span class="dt">\</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a>  <span class="st">'["storage"][0]["description"]'</span> <span class="st">'"Off-site object storage"'</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The encrypted file already records its public recipients. When recipients in <code>.sops.yaml</code> change, synchronize them with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> updatekeys config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Changing <code>encrypted_regex</code> requires decrypting and re-encrypting the document. Keep plaintext in the pipe and replace the original only after encryption succeeds:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="bu">umask</span> 077</span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> decrypt config.sops.yaml <span class="kw">|</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">sops</span> encrypt <span class="at">--filename-override</span> config.sops.yaml <span class="dt">\</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--input-type</span> yaml <span class="at">--output-type</span> yaml /dev/stdin <span class="op">&gt;</span> config.sops.yaml.new</span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> config.sops.yaml.new config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> updatekeys config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Adding or changing <code>encrypted_regex</code> or <code>mac_only_encrypted</code> in <code>.sops.yaml</code> does not alter an existing encrypted document. Decrypt and re-encrypt it once so the new rule is stored in the file. Keep plaintext in the pipe and replace the original only after encryption succeeds:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="bu">umask</span> 077</span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="ex">sops</span> decrypt config.sops.yaml <span class="kw">|</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a>  <span class="ex">sops</span> encrypt <span class="at">--filename-override</span> config.sops.yaml <span class="dt">\</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">--input-type</span> yaml <span class="at">--output-type</span> yaml /dev/stdin <span class="op">&gt;</span> config.sops.yaml.new</span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="fu">mv</span> config.sops.yaml.new config.sops.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Validate again after every key or rule change:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
