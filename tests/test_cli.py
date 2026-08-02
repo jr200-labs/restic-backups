@@ -89,6 +89,8 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertIsInstance(title, list)
         assert isinstance(title, list)
         self.assertNotEqual(title[0][0], title[1][0])
+        self.assertIsInstance(choices[-1], questionary.Separator)
+        self.assertEqual(choices[-1].title, " ")
         generic_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)

@@ -120,6 +120,7 @@ def interactive_menu() -> None:
                 ),
                 menu_choice("Help", "Show top-level commands and flags", "help"),
                 menu_choice("Exit", "Return without doing anything", "exit"),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "exit"}:

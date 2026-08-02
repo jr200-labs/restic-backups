@@ -86,6 +86,7 @@ def interactive_menu() -> None:
                 ),
                 menu_choice("Help", "Show help for generic commands", "help", 17),
                 menu_choice("Back", "Return to the previous menu", "back", 17),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -134,6 +135,7 @@ def repository_menu() -> None:
                 ),
                 menu_choice("Help", "Show repository command flags", "help"),
                 menu_choice("Back", "Return to Generic sections", "back"),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -174,6 +176,7 @@ def backup_menu() -> None:
                 ),
                 menu_choice("Help", "Show backup command flags", "help", 18),
                 menu_choice("Back", "Return to Generic sections", "back", 18),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -210,6 +213,7 @@ def snapshot_menu() -> None:
                 ),
                 menu_choice("Help", "Show snapshot command flags", "help", 18),
                 menu_choice("Back", "Return to Generic sections", "back", 18),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -241,6 +245,7 @@ def restic_menu() -> None:
                     "Help", "Show help for advanced restic passthrough", "help", 13
                 ),
                 menu_choice("Back", "Return to Generic sections", "back", 13),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -266,6 +271,7 @@ def restic_menu() -> None:
                     ),
                     menu_choice("Help", "Show full flags for this command", "help", 17),
                     menu_choice("Back", "Choose another restic command", "back", 17),
+                    questionary.Separator(" "),
                 ],
             ).ask()
             if action in {None, "back"}:
@@ -333,6 +339,7 @@ def choose_backup(
     ]
     if not choices:
         fail("no enabled backups are available")
+    choices.append(questionary.Separator(" "))
     selected = questionary.select("Backup:", choices=choices).ask()
     if selected is None:
         raise typer.Abort()
@@ -483,6 +490,7 @@ def init_command(
                     )
                     for store_id, store in stores.items()
                 ],
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected is None:
@@ -550,7 +558,8 @@ def prime_cache_command(
                 questionary.Choice(store_id, store_id)
                 for store_id, store in stores.items()
                 if store["enabled"]
-            ],
+            ]
+            + [questionary.Separator(" ")],
         ).ask()
         if selected is None:
             raise typer.Abort()
@@ -680,6 +689,7 @@ def forget_command(
             )
         )
 
+    choices.append(questionary.Separator(" "))
     selected = questionary.select("Snapshot to forget:", choices).ask()
     if selected is None:
         raise typer.Abort()
@@ -730,7 +740,8 @@ def destroy_command(
                     store_id,
                 )
                 for store_id, store in stores.items()
-            ],
+            ]
+            + [questionary.Separator(" ")],
         ).ask()
         if selected is None:
             raise typer.Abort()
@@ -814,6 +825,7 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
                 questionary.Choice("Run", "run"),
                 questionary.Choice("Print only", "print"),
                 questionary.Choice("Cancel", "cancel"),
+                questionary.Separator(" "),
             ],
         ).ask()
         if action != "run":

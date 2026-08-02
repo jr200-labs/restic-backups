@@ -50,6 +50,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 ],
                 menu_choice("Help", "Show Voice Memos commands and flags", "help"),
                 menu_choice("Back", "Return to the previous menu", "back"),
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected in {None, "back"}:
@@ -78,6 +79,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                     menu_choice(
                         "Back", "Choose another Voice Memos command", "back", 17
                     ),
+                    questionary.Separator(" "),
                 ],
             ).ask()
             if command_action in {None, "back"}:
@@ -121,6 +123,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                         ),
                         menu_choice("Back", "Change the command arguments", "back", 12),
                         questionary.Choice("Cancel", "cancel"),
+                        questionary.Separator(" "),
                     ],
                 ).ask()
                 if action == "help":
