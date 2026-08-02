@@ -42,6 +42,10 @@ at the current level and does not load configuration or access a repository.
 Generic write actions also offer a Space-toggleable **Dry run** checkbox so the
 operation can be inspected without changing repository data.
 
+Command auditing is enabled by default and appends JSON records to
+`audit-log.json` in the current directory. Set `RESTIC_BACKUPS_AUDIT=0` to
+disable it. Passwords and other secret-like argument values are redacted.
+
 ## Configuration
 
 Pass a plain YAML file explicitly:

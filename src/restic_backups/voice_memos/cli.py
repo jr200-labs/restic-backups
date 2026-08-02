@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 import questionary
 
-from .. import config
+from .. import audit, config
 from ..errors import BackupError
 from ..generic import sops
 from . import parallel, pipeline, workflow
@@ -31,6 +31,13 @@ def operation(action: Callable[[], int | None]) -> None:
         raise click.ClickException(str(exc)) from exc
     if code:
         raise click.exceptions.Exit(code)
+
+
+def audit_command(*args: str) -> None:
+    try:
+        audit.record("restic-backups", ["voice-memos", *args])
+    except BackupError as exc:
+        raise click.ClickException(str(exc)) from exc
 
 
 def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
@@ -135,6 +142,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                     if action == "cancel":
                         click.echo("Cancelled; nothing was run.", err=True)
                     return
+                audit_command(str(selected), *args)
                 if before_run is not None:
                     before_run()
                 cli.main(
