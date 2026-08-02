@@ -44,8 +44,8 @@ creation_rules:
     encrypted_regex: '^(access-key-id|secret-access-key|password)$'
 ```
 
-Credential IDs, descriptions, endpoints, paths, and other operational settings
-remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree.
+Storage and repository IDs, descriptions, endpoints, paths, and other operational
+settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree.
 SOPS also encrypts comments, so use the configuration's `description` fields
 for readable notes.
 

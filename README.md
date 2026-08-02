@@ -22,9 +22,9 @@ make install-deps  # Homebrew: restic, sops, uv, ffmpeg, jq, coreutils
 make install       # uv sync, including the dev group and Quarto
 ```
 
-`make init` loads the selected configuration and initializes each enabled store
-that does not already exist. It reports and skips disabled or initialized
-stores, and does not back up files.
+`make init` loads the selected configuration and initializes each enabled restic
+repository that does not already exist. It reports and skips disabled or
+initialized repositories, and does not back up files.
 
 ## CLI
 
@@ -61,22 +61,23 @@ For SOPS, add `--sops`. The equivalent environment variables are
 
 The configuration separates:
 
-- `credentials`: reusable S3-compatible authentication;
-- `restic-stores`: endpoint, region, bucket, key prefix/password, and optional
-  cache directory and archive policy;
-- `backups`: CLI selections linked to a store, local source paths, and an
-  optional restic snapshot tag (defaulting to the job ID).
+- `storage`: S3-compatible services and mounted local filesystems, with S3
+  credentials kept on the relevant storage entry;
+- `restic-repositories`: encrypted repositories within storage, including the
+  bucket/key prefix or local path, restic password, cache, and archive policy;
+- `backups`: jobs linked to a restic repository, local source paths, and an
+  optional snapshot tag (defaulting to the job ID).
 
-One credential may serve many stores, and multiple backups may share a store.
-Disabled stores may contain `CHANGE_ME`; all placeholders must be replaced
-before enabling one.
+Multiple restic repositories may use one storage backend, and multiple backup
+jobs may share one restic repository. Disabled repositories may contain
+`CHANGE_ME`; all placeholders must be replaced before enabling one.
 
 ## Data and source paths
 
 Managed local artifacts use:
 
 ```text
-data/<store-id>/<bucket>/<key-prefix>/<job-id>/
+data/<storage-id>/<repository-path>/<job-id>/
 ```
 
 This directory is created beside the selected configuration file. It is
@@ -91,8 +92,8 @@ uv run restic-backups generic backup data-dir voice-memos
 ## AWS Glacier
 
 Use `GLACIER_IR` with `restore: null` for normal immediate restic access. Cold
-`GLACIER` and `DEEP_ARCHIVE` stores require a configured retrieval tier, days,
-and timeout. Retrieval must also be acknowledged at runtime:
+`GLACIER` and `DEEP_ARCHIVE` repositories require a configured retrieval tier,
+days, and timeout. Retrieval must also be acknowledged at runtime:
 
 ```sh
 ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \

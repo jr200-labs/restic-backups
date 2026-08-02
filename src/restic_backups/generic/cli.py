@@ -18,7 +18,7 @@ from rich.text import Text
 
 from .. import audit, config
 from ..errors import BackupError
-from . import repository, restic, s3, sops
+from . import local, repository, restic, s3, sops
 from .tui import select
 
 app = typer.Typer(
@@ -360,7 +360,7 @@ def audit_command(*args: str) -> None:
 
 def choose_backup(
     backup_id: str | None,
-    stores: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> str:
     if backup_id is not None:
@@ -371,11 +371,11 @@ def choose_backup(
         fail("job ID is required when stdin is not interactive")
     choices = [
         questionary.Choice(
-            f"{item_id}  ({stores[item['restic-store-id']]['endpoint']})",
+            f"{item_id}  ({item['restic-repository-id']})",
             value=item_id,
         )
         for item_id, item in backups.items()
-        if stores[item["restic-store-id"]]["enabled"]
+        if repositories[item["restic-repository-id"]]["enabled"]
     ]
     if not choices:
         fail("no enabled backups are available")
@@ -386,25 +386,33 @@ def choose_backup(
     return str(selected)
 
 
-def show_repositories(stores: dict[str, dict[str, Any]]) -> None:
+def show_repositories(
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+) -> None:
     store_table = Table(title="Repositories", box=box.ROUNDED)
     store_table.add_column("ID", style="cyan", no_wrap=True)
     store_table.add_column("Description")
-    store_table.add_column("Endpoint")
+    store_table.add_column("Storage")
+    store_table.add_column("Type")
+    store_table.add_column("Location")
     store_table.add_column("State")
-    for store_id, store in stores.items():
-        state = "enabled" if store["enabled"] else "disabled"
+    for repository_id, restic_repository in repositories.items():
+        backend = storage[restic_repository["storage-id"]]
+        state = "enabled" if restic_repository["enabled"] else "disabled"
         store_table.add_row(
-            Text(store_id),
-            Text(str(store.get("description", "—"))),
-            Text(str(store["endpoint"])),
-            Text(state, style="green" if store["enabled"] else "yellow"),
+            Text(repository_id),
+            Text(str(restic_repository.get("description", "—"))),
+            Text(str(backend["id"])),
+            Text(str(backend["type"])),
+            Text(repository.location(restic_repository, backend)),
+            Text(state, style="green" if restic_repository["enabled"] else "yellow"),
         )
     console.print(store_table)
 
 
 def show_backups(
-    stores: dict[str, dict[str, Any]], backups: dict[str, dict[str, Any]]
+    repositories: dict[str, dict[str, Any]], backups: dict[str, dict[str, Any]]
 ) -> None:
     backup_table = Table(title="Backups", box=box.ROUNDED)
     backup_table.add_column("Job ID", style="cyan", no_wrap=True)
@@ -414,15 +422,15 @@ def show_backups(
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
-        store = stores[backup["restic-store-id"]]
-        state = "enabled" if store["enabled"] else "disabled"
+        restic_repository = repositories[backup["restic-repository-id"]]
+        state = "enabled" if restic_repository["enabled"] else "disabled"
         backup_table.add_row(
             Text(backup_id),
             Text(str(backup.get("description", "—"))),
-            Text(str(store["id"])),
+            Text(str(restic_repository["id"])),
             Text("\n".join(backup.get("paths", [])) or "—"),
             Text(str(backup.get("tag", backup_id))),
-            Text(state, style="green" if store["enabled"] else "yellow"),
+            Text(state, style="green" if restic_repository["enabled"] else "yellow"),
         )
     console.print(backup_table)
 
@@ -431,25 +439,25 @@ def show_backups(
 def repository_list_command() -> None:
     """Show configured restic repositories."""
     audit_command("repository", "list")
-    _, _, stores, _ = validated()
-    show_repositories(stores)
+    _, storage, repositories, _ = validated()
+    show_repositories(storage, repositories)
 
 
 @backup_app.command("list")
 def backup_list_command() -> None:
     """Show configured backup jobs."""
     audit_command("backup", "list")
-    _, _, stores, backups = validated()
-    show_backups(stores, backups)
+    _, _, repositories, backups = validated()
+    show_backups(repositories, backups)
 
 
 @app.command("list", hidden=True)
 def list_command() -> None:
     """Show configured repositories and backups."""
     audit_command("list")
-    _, _, stores, backups = validated()
-    show_repositories(stores)
-    show_backups(stores, backups)
+    _, storage, repositories, backups = validated()
+    show_repositories(storage, repositories)
+    show_backups(repositories, backups)
 
 
 @backup_app.command("run")
@@ -465,8 +473,8 @@ def backup_command(
     ] = False,
 ) -> None:
     """Create a snapshot from a backup job's configured paths."""
-    _, credentials, stores, backups = validated()
-    backup_id = choose_backup(backup, stores, backups)
+    _, storage, repositories, backups = validated()
+    backup_id = choose_backup(backup, repositories, backups)
     paths = backups[backup_id].get("paths")
     if not paths:
         fail(f"backup job '{backup_id}' has no configured paths")
@@ -484,8 +492,8 @@ def backup_command(
         code = restic.command(
             backup_id,
             args,
-            credentials,
-            stores,
+            storage,
+            repositories,
             backups,
         )
     except BackupError as exc:
@@ -504,12 +512,14 @@ def data_dir_command(
     ),
 ) -> None:
     """Print the managed local data directory for a backup."""
-    _, credentials, stores, backups = validated()
-    backup_id = choose_backup(backup, stores, backups)
+    _, storage, repositories, backups = validated()
+    backup_id = choose_backup(backup, repositories, backups)
     audit_command("backup", "data-dir", backup_id)
     try:
-        store, _ = repository.resolve(backup_id, credentials, stores, backups)
-        typer.echo(repository.data_dir(backup_id, store))
+        restic_repository, backend = repository.resolve(
+            backup_id, storage, repositories, backups
+        )
+        typer.echo(repository.data_dir(backup_id, restic_repository, backend))
     except BackupError as exc:
         fail(str(exc))
 
@@ -531,7 +541,7 @@ def init_command(
     ] = False,
 ) -> None:
     """Initialize one repository, or every enabled repository with --all."""
-    _, credentials, stores, _ = validated()
+    _, storage, repositories, _ = validated()
     if repository_id is not None and all_repositories:
         fail("repository ID and --all cannot be used together")
     if repository_id is None and not all_repositories:
@@ -543,10 +553,10 @@ def init_command(
                 questionary.Choice("All repositories", ALL_REPOSITORIES),
                 *[
                     questionary.Choice(
-                        f"{store_id}{'' if store['enabled'] else ' (disabled)'}",
-                        store_id,
+                        f"{repository_id}{'' if item['enabled'] else ' (disabled)'}",
+                        repository_id,
                     )
-                    for store_id, store in stores.items()
+                    for repository_id, item in repositories.items()
                 ],
                 questionary.Separator(" "),
             ],
@@ -559,15 +569,15 @@ def init_command(
             repository_id = str(selected)
 
     if all_repositories:
-        selected_stores = list(stores.items())
+        selected_repositories = list(repositories.items())
         audit_command(
             "repository", "init", "--all", *(["--dry-run"] if dry_run else [])
         )
     else:
-        store = stores.get(str(repository_id))
-        if store is None:
+        restic_repository = repositories.get(str(repository_id))
+        if restic_repository is None:
             fail(f"repository '{repository_id}' not found in {config.config_path()}")
-        selected_stores = [(str(repository_id), store)]
+        selected_repositories = [(str(repository_id), restic_repository)]
         audit_command(
             "repository",
             "init",
@@ -575,22 +585,27 @@ def init_command(
             *(["--dry-run"] if dry_run else []),
         )
 
-    for store_id, store in selected_stores:
-        if not store["enabled"]:
-            error_console.print(Text(f"{store_id}: disabled; skipping", style="yellow"))
+    for repository_id, restic_repository in selected_repositories:
+        if not restic_repository["enabled"]:
+            error_console.print(
+                Text(f"{repository_id}: disabled; skipping", style="yellow")
+            )
             continue
-        credential = credentials[store["credentials-id"]]
-        error_console.print(Text(f"{store_id}: checking repository", style="cyan"))
+        backend = storage[restic_repository["storage-id"]]
+        error_console.print(Text(f"{repository_id}: checking repository", style="cyan"))
         try:
-            code = restic.store_command(
-                store,
-                credential,
+            code = restic.repository_command(
+                restic_repository,
+                backend,
                 ["cat", "config"],
                 quiet=True,
             )
             if code == 0:
                 error_console.print(
-                    Text(f"{store_id}: already initialized; skipping", style="yellow")
+                    Text(
+                        f"{repository_id}: already initialized; skipping",
+                        style="yellow",
+                    )
                 )
                 continue
             if code != 10:
@@ -598,20 +613,20 @@ def init_command(
             if dry_run:
                 error_console.print(
                     Text(
-                        f"{store_id}: dry run; would initialize repository",
+                        f"{repository_id}: dry run; would initialize repository",
                         style="green",
                     )
                 )
                 continue
             error_console.print(
-                Text(f"{store_id}: not initialized; initializing", style="cyan")
+                Text(f"{repository_id}: not initialized; initializing", style="cyan")
             )
-            code = restic.store_command(store, credential, ["init"])
+            code = restic.repository_command(restic_repository, backend, ["init"])
         except BackupError as exc:
             fail(str(exc))
         if code:
             raise typer.Exit(code)
-        error_console.print(Text(f"{store_id}: initialized", style="green"))
+        error_console.print(Text(f"{repository_id}: initialized", style="green"))
 
 
 @repository_app.command("prime-cache")
@@ -623,34 +638,34 @@ def prime_cache_command(
     ] = None,
 ) -> None:
     """Download and validate repository metadata into its local cache."""
-    _, credentials, stores, _ = validated()
+    _, storage, repositories, _ = validated()
     if repository_id is None:
         if not sys.stdin.isatty():
             fail("repository ID is required when stdin is not interactive")
         selected = select(
             "Repository cache to prime:",
             choices=[
-                questionary.Choice(store_id, store_id)
-                for store_id, store in stores.items()
-                if store["enabled"]
+                questionary.Choice(repository_id, repository_id)
+                for repository_id, item in repositories.items()
+                if item["enabled"]
             ]
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
         repository_id = str(selected)
-    store = stores.get(repository_id)
-    if store is None:
+    restic_repository = repositories.get(repository_id)
+    if restic_repository is None:
         fail(f"repository '{repository_id}' not found in {config.config_path()}")
-    if not store["enabled"]:
-        fail(f"restic store '{repository_id}' is disabled")
+    if not restic_repository["enabled"]:
+        fail(f"restic repository '{repository_id}' is disabled")
 
     audit_command("repository", "prime-cache", repository_id)
     error_console.print(Text(f"{repository_id}: priming local cache", style="cyan"))
     try:
-        code = restic.store_command(
-            store,
-            credentials[store["credentials-id"]],
+        code = restic.repository_command(
+            restic_repository,
+            storage[restic_repository["storage-id"]],
             ["check", "--with-cache"],
         )
     except BackupError as exc:
@@ -662,8 +677,8 @@ def prime_cache_command(
 
 def load_snapshots(
     backup_id: str,
-    credentials: dict[str, dict[str, Any]],
-    stores: dict[str, dict[str, Any]],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> tuple[str, list[dict[str, Any]]]:
     tag = str(backups[backup_id].get("tag", backup_id))
@@ -672,8 +687,8 @@ def load_snapshots(
             restic.command_output(
                 backup_id,
                 ["snapshots", "--tag", tag, "--json"],
-                credentials,
-                stores,
+                storage,
+                repositories,
                 backups,
             )
         )
@@ -696,10 +711,10 @@ def snapshots_command(
     ] = None,
 ) -> None:
     """List snapshots for a configured backup."""
-    _, credentials, stores, backups = validated()
-    backup_id = choose_backup(backup, stores, backups)
+    _, storage, repositories, backups = validated()
+    backup_id = choose_backup(backup, repositories, backups)
     audit_command("snapshot", "list", backup_id)
-    tag, snapshots = load_snapshots(backup_id, credentials, stores, backups)
+    tag, snapshots = load_snapshots(backup_id, storage, repositories, backups)
     if not snapshots:
         error_console.print(
             Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
@@ -745,9 +760,9 @@ def forget_command(
     """Forget one snapshot and prune its unreferenced data."""
     if not sys.stdin.isatty():
         fail("forget requires an interactive terminal")
-    _, credentials, stores, backups = validated()
-    backup_id = choose_backup(backup, stores, backups)
-    tag, snapshots = load_snapshots(backup_id, credentials, stores, backups)
+    _, storage, repositories, backups = validated()
+    backup_id = choose_backup(backup, repositories, backups)
+    tag, snapshots = load_snapshots(backup_id, storage, repositories, backups)
     if not snapshots:
         error_console.print(
             Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
@@ -800,8 +815,8 @@ def forget_command(
         code = restic.command(
             backup_id,
             args,
-            credentials,
-            stores,
+            storage,
+            repositories,
             backups,
         )
     except BackupError as exc:
@@ -828,33 +843,30 @@ def destroy_command(
         typer.Option("--dry-run", help="Show the target without deleting objects."),
     ] = False,
 ) -> None:
-    """Permanently erase a configured repository from S3."""
+    """Permanently erase a configured restic repository."""
     if not sys.stdin.isatty():
         fail("destroy requires an interactive terminal")
-    _, credentials, stores, _ = validated()
+    _, storage, repositories, _ = validated()
     if repository_id is None:
         selected = select(
             "Repository to permanently destroy:",
             choices=[
                 questionary.Choice(
-                    f"{store_id}  ({store['endpoint']}/{store['bucket']}/{store['key_prefix']})",
-                    store_id,
+                    f"{repository_id}  ({repository.location(item, storage[item['storage-id']])})",
+                    repository_id,
                 )
-                for store_id, store in stores.items()
+                for repository_id, item in repositories.items()
             ]
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
         repository_id = str(selected)
-    store = stores.get(repository_id)
-    if store is None:
+    restic_repository = repositories.get(repository_id)
+    if restic_repository is None:
         fail(f"repository '{repository_id}' not found in {config.config_path()}")
-
-    target = (
-        f"{store['endpoint'].rstrip('/')}/{store['bucket']}/"
-        f"{store['key_prefix'].strip('/')}"
-    )
+    backend = storage[restic_repository["storage-id"]]
+    target = repository.location(restic_repository, backend)
     if dry_run:
         audit_command("repository", "destroy", repository_id, "--dry-run")
         error_console.print(
@@ -878,11 +890,13 @@ def destroy_command(
         fail("repository ID did not match; nothing was destroyed")
 
     audit_command("repository", "destroy", repository_id)
-    credential = credentials[store["credentials-id"]]
-    deleted = s3.delete_repository(store, credential)
+    delete_repository = (
+        local.delete_repository if backend["type"] == "local" else s3.delete_repository
+    )
+    deleted = delete_repository(restic_repository, backend)
     error_console.print(
         Text(
-            f"{repository_id}: permanently destroyed {deleted} objects and versions",
+            f"{repository_id}: permanently destroyed {deleted} entries",
             style="bold green",
         )
     )
@@ -925,8 +939,8 @@ def copyable_command(backup_id: str, args: list[str]) -> str:
 
 
 def run_args(backup: str | None, args: list[str], *, interactive: bool = False) -> None:
-    _, credentials, stores, backups = validated()
-    backup_id = choose_backup(backup, stores, backups)
+    _, storage, repositories, backups = validated()
+    backup_id = choose_backup(backup, repositories, backups)
     if not args:
         fail("a restic command is required after 'run'")
     if interactive:
@@ -949,6 +963,8 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
             return
     audit_command("restic", "run", "--backup", backup_id, *args)
     try:
-        raise typer.Exit(restic.command(backup_id, args, credentials, stores, backups))
+        raise typer.Exit(
+            restic.command(backup_id, args, storage, repositories, backups)
+        )
     except BackupError as exc:
         fail(str(exc))

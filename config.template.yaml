@@ -1,56 +1,75 @@
 # Copy this file and pass it with --config. Add --sops after encrypting it.
 # Do not commit real credentials or an unencrypted copy.
 
-# Reusable provider credentials. IDs are arbitrary, but must be unique here.
-credentials:
-    - id: b2-credentials
+# Storage backends. S3 credentials belong to their storage entry; local storage
+# needs only an absolute path to an existing mounted directory.
+storage:
+    - id: backblaze-b2
       # Optional user note; does not affect backup behavior.
-      description: Backblaze B2 application credentials.
-      access-key-id: CHANGE_ME
-      secret-access-key: CHANGE_ME
-
-    - id: aws-credentials
-      description: AWS S3 access credentials.
-      access-key-id: CHANGE_ME
-      secret-access-key: CHANGE_ME
-
-
-# Restic repositories. credentials-id must match an ID above.
-restic-stores:
-    - id: b2-store
-      description: Backblaze B2 restic repository.
-      credentials-id: b2-credentials
-      # Set false to ignore this store; disabled stores may retain CHANGE_ME.
-      enabled: true
+      description: Backblaze B2 S3-compatible storage.
+      type: s3
       endpoint: CHANGE_ME # For example: https://s3.us-west-004.backblazeb2.com
       region: CHANGE_ME
+      credentials:
+          access-key-id: CHANGE_ME
+          secret-access-key: CHANGE_ME
+
+    - id: aws-s3
+      description: AWS S3 storage.
+      type: s3
+      endpoint: https://s3.us-east-1.amazonaws.com
+      region: us-east-1
+      credentials:
+          access-key-id: CHANGE_ME
+          secret-access-key: CHANGE_ME
+
+    - id: external-disk
+      description: Mounted external backup disk.
+      type: local
+      # Must be absolute. Commands fail if this directory is not mounted.
+      path: /Volumes/CHANGE_ME
+
+# Encrypted restic repositories within the storage backends above.
+restic-repositories:
+    - id: personal-b2
+      description: Personal restic repository on Backblaze B2.
+      storage-id: backblaze-b2
+      # Set false to ignore this repository; disabled entries may retain CHANGE_ME.
+      enabled: true
       bucket: CHANGE_ME
       # Object-key prefix for the restic repository inside the bucket.
       key_prefix: restic
       # Optional restic cache; relative paths are resolved beside this file.
-      # cache-dir: .restic-cache/b2-store
-      # Restic repository encryption password, not the provider password.
+      # cache-dir: .restic-cache/personal-b2
+      # Restic repository encryption password, not the storage password.
       password: CHANGE_ME
 
-    - id: aws-store
-      description: AWS S3 restic repository.
-      credentials-id: aws-credentials
+    - id: archive-aws
+      description: AWS S3 Glacier restic repository.
+      storage-id: aws-s3
       enabled: false
-      endpoint: https://s3.us-east-1.amazonaws.com
-      region: us-east-1
       bucket: CHANGE_ME
       key_prefix: CHANGE_ME
       password: CHANGE_ME
       # Optional AWS archive policy. Omit for the provider's default storage.
       archive:
-        storage-class: GLACIER_IR
-        restore: null
+          storage-class: GLACIER_IR
+          restore: null
 
-# Configured backup jobs. restic-store-id must match a store ID above.
+    - id: personal-local
+      description: Restic repository on the mounted external disk.
+      storage-id: external-disk
+      enabled: false
+      # Relative directory inside storage.path. Restic creates it during init.
+      path: restic/personal
+      password: CHANGE_ME
+      # cache-dir: .restic-cache/personal-local
+
+# Configured backup jobs. restic-repository-id must match a repository ID above.
 backups:
     - job-id: documents
       description: Back up local documents.
-      restic-store-id: b2-store
+      restic-repository-id: personal-b2
       # Files and directories used by `generic backup run`; ~ is expanded.
       paths:
           - ~/Documents
@@ -59,5 +78,5 @@ backups:
 
     - job-id: voice-memos
       description: Back up macOS Voice Memos with the specialized subcommand.
-      restic-store-id: b2-store
+      restic-repository-id: personal-b2
       # The specialized workflow discovers its own source paths.

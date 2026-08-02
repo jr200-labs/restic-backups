@@ -7,7 +7,7 @@ help:
 	@echo "Targets:"
 	@echo "  make install        install uv project dependencies"
 	@echo "  make install-deps   brew bundle dependencies from ./Brewfile"
-	@echo "  make init      init each enabled restic store that does not exist"
+	@echo "  make init      init each enabled restic repository that does not exist"
 	@echo "  make config-check  validate config references and Glacier policy"
 	@echo "  make lint       run Ruff checks"
 	@echo "  make check      run ruff and mypy"
@@ -26,7 +26,7 @@ install-deps:
 	brew bundle --file ./Brewfile
 
 init:
-	@echo ">> init: initialize each enabled restic store that does not exist"
+	@echo ">> init: initialize each enabled restic repository that does not exist"
 	@uv run --quiet restic-backups generic repository init --all
 
 config-check:

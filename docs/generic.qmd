@@ -10,7 +10,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 ## Commands
 
-| Group | Command | Purpose | Remote storage |
+| Group | Command | Purpose | Repository access |
 |---|---|---|---|
 | Repository | `generic repository list` | Show configured repositories | No |
 | Repository | `generic repository init [REPOSITORY] [--all] [--dry-run]` | Initialize new repositories | Yes |
@@ -62,8 +62,8 @@ uv run restic-backups generic snapshot forget documents --dry-run
 uv run restic-backups generic repository destroy personal --dry-run
 ```
 
-`generic repository list` shows every store, even when no configured backup
-references it. `generic backup list` shows the configured backup jobs.
+`generic repository list` shows every restic repository, even when no configured
+backup references it. `generic backup list` shows the configured backup jobs.
 
 `generic repository init` prompts for one repository, with **All repositories**
 as the first option. Scripts must pass a repository ID or `--all`. Disabled or
@@ -82,7 +82,7 @@ Configure the local source paths once, then select the backup by its ID:
 ```yaml
 backups:
   - job-id: documents
-    restic-store-id: personal-store
+    restic-repository-id: personal-b2
     paths:
       - ~/Documents
       - ~/Desktop
@@ -128,14 +128,15 @@ snapshots distinct in the picker.
 uv run restic-backups generic repository destroy
 ```
 
-Destruction is interactive-only. The CLI shows the full S3 target, asks for a
-yes/no confirmation, then requires the exact repository ID. It deletes every
-object, object version, and delete marker below the configured `bucket` and
-`key_prefix`. It does not delete the bucket or change the YAML configuration.
+Destruction is interactive-only. The CLI shows the full target, asks for a
+yes/no confirmation, then requires the exact repository ID. For S3 it deletes
+every object, object version, and delete marker below the configured `bucket`
+and `key_prefix`; it does not delete the bucket. For local storage it removes
+the configured repository directory but not the storage root. It never changes
+the YAML configuration.
 
-The provider credentials need permission to list objects and versions and to
-delete objects and versions. An empty `key_prefix` is always rejected to prevent
-accidental bucket deletion.
+S3 credentials need permission to list and delete objects and versions. An
+empty `key_prefix` is always rejected to prevent accidental bucket deletion.
 
 ::: {.callout-danger}
 Repository deletion is irreversible. Snapshots, indexes, repository keys, and
@@ -157,9 +158,10 @@ uv run restic-backups generic restic run --backup documents \
 ```
 
 Arguments after the backup selection are passed to restic unchanged. The CLI
-exports the selected repository and credentials only to the child process and
-does not print them. For the `backup` command, it also adds the configured restic
-tag automatically; additional `--tag` arguments remain supported.
+exports the selected repository details, password, and any S3 credentials only
+to the child process and does not print them. For the `backup` command, it also
+adds the configured restic tag automatically; additional `--tag` arguments
+remain supported.
 
 ## Managed data directory
 
@@ -168,9 +170,10 @@ uv run restic-backups generic backup data-dir documents
 ```
 
 The result follows
-`data/<store-id>/<bucket>/<key-prefix>/<job-id>/` beside the selected config
-file. It is for private generated metadata; generic backup sources do not need
-to live there.
+`data/<storage-id>/<repository-path>/<job-id>/` beside the selected config file.
+For S3, the repository path is `<bucket>/<key-prefix>`; for local storage it is
+the repository's relative `path`. This directory is for private generated
+metadata; generic backup sources do not need to live there.
 
 ## Cold S3 storage
 

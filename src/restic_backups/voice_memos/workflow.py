@@ -18,7 +18,7 @@ HOST = "mac-icloud"
 
 def run_restic(args: list[str], *, tagged: bool = False) -> int:
     """Run restic against the configured Voice Memos repository."""
-    _, credentials, stores, backups = config.load_validated()
+    _, storage, repositories, backups = config.load_validated()
     if tagged and args:
         args = [
             args[0],
@@ -26,7 +26,7 @@ def run_restic(args: list[str], *, tagged: bool = False) -> int:
             str(backups[BACKUP_ID].get("tag", BACKUP_ID)),
             *args[1:],
         ]
-    return restic.command(BACKUP_ID, args, credentials, stores, backups)
+    return restic.command(BACKUP_ID, args, storage, repositories, backups)
 
 
 def backup(recordings_dir: Path = DEFAULT_RECORDINGS_DIR) -> int:
