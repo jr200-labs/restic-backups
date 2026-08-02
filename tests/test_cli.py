@@ -137,6 +137,11 @@ class VoiceMemosCliTest(unittest.TestCase):
                 "source": {"repository-urls": ["git@github.com:example/repo.git"]},
                 "restic-repository-ids": ["repo"],
             },
+            "organization": {
+                "type": "github-owner",
+                "source": {"owner-url": "https://github.com/example"},
+                "restic-repository-ids": ["repo"],
+            },
             "memos": {
                 "type": "voice-memos",
                 "source": {},
@@ -150,7 +155,14 @@ class VoiceMemosCliTest(unittest.TestCase):
             result = CliRunner().invoke(app, ["job", "list"])
 
         self.assertEqual(result.exit_code, 0, result.output)
-        for value in ("documents", "source-co", "memos", "github-re"):
+        for value in (
+            "documents",
+            "source-co",
+            "organizat",
+            "memos",
+            "github-re",
+            "github-ow",
+        ):
             self.assertIn(value, unstyle(result.output))
 
     def test_help_exposes_workflows(self) -> None:

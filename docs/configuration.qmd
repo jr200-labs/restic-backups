@@ -187,16 +187,16 @@ state of those paths at that time.
 Several backups may share a restic repository. Their tags distinguish their
 snapshots inside it.
 
-The supported types are `files`, `github-repository`, and `voice-memos`. They
-all use the same job list, destination picker, run command, status table,
-snapshot tools, and audit result. The `source` mapping is the only type-specific
-part. See [Jobs](jobs.qmd) for all three forms.
+The supported types are `files`, `github-repository`, `github-owner`, and
+`voice-memos`. They all use the same job list, destination picker, run command,
+status table, snapshot tools, and audit result. The `source` mapping is the only
+type-specific part. See [Jobs](jobs.qmd) for all forms.
 
 For compatibility, one release accepts the previous `backups` section and
 normalizes its `paths` or `github` fields. Do not define both sections. New and
 updated configurations should use `jobs`, explicit `type`, and `source`.
 
-### GitHub repository jobs
+### GitHub jobs
 
 A GitHub repository job uses a GitHub source mapping:
 
@@ -226,15 +226,39 @@ jobs:
 ```
 
 All component flags are required and at least one must be enabled. `lfs`
-requires `git`. API authentication is required for `metadata` and
-`release-assets`; Git-only jobs do not require `gh` or an API token. Secret
-sources contain exactly one `env` or `file` key, so secret values remain outside
-the YAML. `repository-urls` must be a non-empty list identifying distinct
-GitHub repositories. The previous singular `repository-url` is accepted
-temporarily for migration, but new configurations should use the list. See
+requires `git`. On a laptop, omit `authentication` to use `gh auth login` and
+the normal Git/SSH configuration. Configure explicit Git or API credential
+sources only when those local credentials are unavailable, such as in a
+container or Kubernetes CronJob. Secret sources contain exactly one `env` or
+`file` key, so secret values remain outside the YAML. `repository-urls` must be
+a non-empty list identifying distinct GitHub repositories. The previous
+singular `repository-url` is accepted temporarily for migration, but new
+configurations should use the list. See
 [GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
 Git authentication, migration permissions, commands, workspace layout, and
 restore steps.
+
+To discover every repository owned by one organization or user on each run,
+use `type: github-owner` and replace `repository-urls` with:
+
+```yaml
+source:
+  owner-url: https://github.com/example
+  clone-protocol: ssh
+  components:
+    git: true
+    lfs: false
+    wiki: false
+    metadata: false
+    release-assets: false
+  migration-timeout-seconds: 3600
+```
+
+`clone-protocol` defaults to `ssh`. Owner discovery uses the current
+`gh auth login` credentials when `authentication.api.token` is omitted; an
+unattended environment can supply that token through an `env` or `file` secret
+source. Owner-job dry runs contact GitHub read-only to report the repositories
+they would process, but never run Git or contact restic.
 
 ## Optional archive policy
 

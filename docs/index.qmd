@@ -7,7 +7,8 @@ repositories, with optional SOPS decryption. It supports S3-compatible services,
 mounted local storage, multiple repositories and backup jobs, managed private
 metadata directories, and a complete macOS Voice Memos workflow.
 It can also maintain and snapshot complete GitHub repository mirrors and
-selected GitHub-hosted data.
+selected GitHub-hosted data, either from an explicit URL list or by discovering
+every repository owned by an organization or user.
 
 ## Start here
 
@@ -17,8 +18,9 @@ selected GitHub-hosted data.
 - [Jobs](jobs.qmd) describes the shared model and commands for every job type.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
-- [GitHub Repositories](github-repositories.qmd) covers Git history, LFS, wikis,
-  metadata, release assets, and unattended credentials.
+- [GitHub Backups](github-repositories.qmd) covers explicit repository lists,
+  organization or user discovery, Git history, LFS, wikis, metadata, release
+  assets, and unattended credentials.
 - [Voice Memos Backups](voice-memos.qmd) covers backup, transcription, recovery,
   and diarization on macOS.
 

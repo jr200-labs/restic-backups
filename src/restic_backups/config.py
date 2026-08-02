@@ -114,6 +114,24 @@ def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
     return parts[0], parts[1], transport
 
 
+def github_owner_name(url: str, owner: str) -> str:
+    """Validate an https://github.com/OWNER URL and return the owner name."""
+    parsed = urlparse(url)
+    path = parsed.path.strip("/")
+    if (
+        parsed.scheme != "https"
+        or parsed.hostname != "github.com"
+        or parsed.username is not None
+        or parsed.password is not None
+        or parsed.query
+        or parsed.fragment
+        or not re.fullmatch(r"[A-Za-z0-9_.-]+", path)
+        or path in {".", ".."}
+    ):
+        raise ConfigError(f"{owner} must be an https://github.com/OWNER URL")
+    return path
+
+
 def validate_github(github: dict[str, Any], job_id: str) -> None:
     urls = github.get("repository-urls")
     legacy_url = github.get("repository-url")
@@ -143,6 +161,12 @@ def validate_github(github: dict[str, Any], job_id: str) -> None:
         )
     transports = {transport for _, _, transport in parsed}
     github["repository-urls"] = urls
+    validate_github_settings(github, job_id, transports)
+
+
+def validate_github_settings(
+    github: dict[str, Any], job_id: str, transports: set[str]
+) -> None:
     components = github.get("components")
     fields = {"git", "lfs", "wiki", "metadata", "release-assets"}
     if not isinstance(components, dict) or set(components) != fields:
@@ -196,8 +220,18 @@ def validate_github(github: dict[str, Any], job_id: str) -> None:
         if not isinstance(api, dict) or set(api) != {"token"}:
             raise ConfigError(f"{job_id}.source.authentication.api must define token")
         credential_source(api["token"], f"{job_id}.source API token")
-    if (components["metadata"] or components["release-assets"]) and api is None:
-        raise ConfigError(f"{job_id}.source.authentication.api.token is required")
+
+
+def validate_github_owner(github: dict[str, Any], job_id: str) -> None:
+    github_owner_name(
+        required_text(github, "owner-url", f"{job_id}.source"),
+        f"{job_id}.source.owner-url",
+    )
+    protocol = github.get("clone-protocol", "ssh")
+    if protocol not in {"ssh", "https"}:
+        raise ConfigError(f"{job_id}.source.clone-protocol must be 'ssh' or 'https'")
+    github["clone-protocol"] = protocol
+    validate_github_settings(github, job_id, {protocol})
 
 
 def indexed_jobs(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
@@ -223,7 +257,12 @@ def indexed_jobs(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
             source = job.get("source")
             if not isinstance(source, dict):
                 raise ConfigError(f"{job_id}.source must be a mapping")
-        if job_type not in {"files", "github-repository", "voice-memos"}:
+        if job_type not in {
+            "files",
+            "github-owner",
+            "github-repository",
+            "voice-memos",
+        }:
             raise ConfigError(f"{job_id}.type is not a supported job type")
         job["type"] = job_type
         job["source"] = source
@@ -358,6 +397,8 @@ def validate(
             raise ConfigError(f"{job_id}.source.paths must be a non-empty list")
         if job["type"] == "github-repository":
             validate_github(source, job_id)
+        if job["type"] == "github-owner":
+            validate_github_owner(source, job_id)
         if job["type"] == "voice-memos":
             for field in ("recordings-dir", "summaries-dir"):
                 if field in source:

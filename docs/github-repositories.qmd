@@ -1,13 +1,14 @@
 ---
-title: GitHub Repositories
+title: GitHub Backups
 ---
 
-The `github-repository` job type incrementally maintains complete Git mirrors
-for one or more URLs and optionally collects Git LFS objects, wikis, repository
-metadata, and release assets. It then snapshots the combined managed workspace
-to one or more configured restic repositories.
+GitHub jobs incrementally maintain complete Git mirrors and optionally collect
+Git LFS objects, wikis, repository metadata, and release assets. Use
+`github-repository` for an explicit URL list or `github-owner` to discover every
+repository owned by an organization or user. Each job snapshots its combined
+managed workspace to one or more configured restic repositories.
 
-## Configure a job
+## Back up an explicit repository list
 
 GitHub jobs use the shared `jobs` section and a GitHub-specific `source`:
 
@@ -59,7 +60,53 @@ The URL list must be non-empty and identify distinct repositories; SSH and
 HTTPS URLs for the same repository cannot appear together. The previous
 singular `repository-url` field is accepted temporarily for migration.
 
+## Discover an organization or user
+
+Use `type: github-owner` to discover repositories instead of maintaining the
+URL list manually:
+
+```yaml
+jobs:
+  - job-id: example-organization
+    type: github-owner
+    restic-repository-ids:
+      - personal-local
+    source:
+      owner-url: https://github.com/example
+      clone-protocol: ssh
+      components:
+        git: true
+        lfs: false
+        wiki: false
+        metadata: false
+        release-assets: false
+      migration-timeout-seconds: 3600
+```
+
+The owner may be an organization or a user. Enumeration includes every public,
+private, archived, and fork repository visible to the active GitHub credentials
+and owned by that account. `clone-protocol` defaults to `ssh`; choose `https`
+when using HTTPS Git authentication. With no `authentication.api.token`,
+enumeration uses the current credentials from `gh auth login`. Containers and
+scheduled jobs can provide the token from an environment variable or mounted
+file. Cloning continues to use the separately configured Git credentials or SSH
+agent.
+
+The repository list is refreshed on every run. Newly discovered repositories
+get new owner/repository workspaces. Repositories no longer returned by GitHub
+are omitted from new snapshots but retained in older immutable snapshots; their
+unused local workspace is not deleted automatically.
+
+Owner-job dry runs contact GitHub read-only to show the precise discovered plan.
+They do not create local files, run Git, or contact Restic.
+
 ## Credentials
+
+On an interactive laptop, the simplest configuration omits `authentication`.
+GitHub API commands then use the current `gh auth login` session, while clone
+operations use the normal Git credential helper or SSH agent and configuration.
+Configure the explicit secret sources below only when those credentials are not
+available, such as in a container or Kubernetes CronJob.
 
 Every configured secret source contains exactly one `env` or `file` key. The
 environment variable or file is read again on every run, which works with
@@ -82,13 +129,19 @@ authentication:
         env: GITHUB_GIT_TOKEN
 ```
 
-The CLI supplies it through a temporary Git askpass helper. Public HTTPS
-repositories may omit Git authentication.
+The CLI supplies it through a temporary Git askpass helper. When this source is
+omitted, Git uses its existing credential configuration; public repositories
+need no authentication.
 
-The separate `authentication.api.token` is required when `metadata` or
-`release-assets` is enabled. GitHub's migration API currently requires a
-compatible **classic personal access token** and repository-owner access;
-fine-grained tokens and GitHub App tokens are not supported for this API. See
+When `authentication.api.token` is omitted, API-backed components use the
+current credentials from `gh auth login`. Containers and scheduled jobs without
+that login should configure a token from an environment variable or mounted
+file. GitHub's migration API currently requires a compatible **classic personal
+access token** and repository-owner access; fine-grained tokens and GitHub App
+tokens are not supported for this API. The default OAuth token created by
+`gh auth login` may therefore receive HTTP 403 even when it has `repo` and
+`admin:org` scopes. To keep using the local `gh` credential store, authenticate
+it with a compatible classic PAT through `gh auth login --with-token`. See
 GitHub's [organization migration API](https://docs.github.com/en/rest/migrations/orgs)
 and [user migration API](https://docs.github.com/en/rest/migrations/users).
 
@@ -116,17 +169,19 @@ with Homebrew for local use.
 
 | Component | Backed-up data | Update behavior |
 |---|---|---|
-| `git` | Every Git ref and object, including full branch and tag history | Initial `git clone --mirror`; later `git remote update --prune` |
+| `git` | Every object reachable through remote Git refs, including complete branch and tag history | Initial `git clone --mirror`; later `git remote update --prune` |
 | `lfs` | All Git LFS objects reachable from the mirror | `git lfs fetch --all origin` |
 | `wiki` | The repository wiki as a separate Git mirror | Missing or empty wikis are recorded as `not-present` |
 | `metadata` | GitHub's official migration export, including issues, pull requests, comments, attachments, and release metadata | A new migration archive is requested and downloaded each run |
 | `release-assets` | Binary files attached to releases | Missing or changed assets download atomically; remotely deleted assets are removed only after a complete successful update |
 
 A Git-only job sets `git: true` and every other component to `false`. It needs
-only Git authentication and never invokes `gh`. Git history contains commits,
-branches, and tags; it does **not** contain issue discussions, pull-request
-comments, or other GitHub database records. Without `lfs`, Git history still
-contains LFS pointer files but not the referenced large objects.
+only Git authentication and never invokes `gh` for an explicit repository-list
+job. Git history contains commits, branches, tags, trees, and normal Git file
+content. It does **not** contain issue discussions, pull-request comments,
+submodule repository contents, or commits already deleted from every remote ref.
+Without `lfs`, it contains LFS pointer files but not the referenced large
+objects. An owner job still invokes `gh` to discover its repository list.
 
 ## Run and inspect
 
@@ -161,8 +216,11 @@ command lists internal repository objects and requires an object type such as
 `packs`, `snapshots`, or `keys`; it does not list configured backup jobs.
 
 The TUI preselects a sole enabled destination. With several destinations, all
-start unchecked and must be selected with Space. A dry run validates the plan
-without calling Git, GitHub, or restic and without writing the workspace:
+start unchecked and must be selected with Space. An explicit-list dry run
+validates the plan without calling Git, GitHub, or restic and without writing
+the workspace. An owner dry run first contacts GitHub read-only to discover the
+exact repository list, but it likewise never runs Git, contacts restic, or
+writes the workspace:
 
 ```sh
 uv run restic-backups job run example-github-repository \
@@ -190,6 +248,13 @@ all selected destinations. Existing local component data is included as
 `stale`; the command creates the best available snapshot and exits nonzero when
 anything failed. Disabled cached components are not included.
 
+Before updating source data, the workflow checks that every selected restic
+repository exists and, when metadata is enabled, that the active GitHub
+credentials can read the migration endpoint. A job-wide path or authorization
+error therefore stops before repositories are fetched. Repository-specific
+component errors encountered after those checks still use the best-available
+snapshot behavior above.
+
 Restic splits input into content-defined chunks and deduplicates identical
 chunks **within each restic repository**. Stable Git pack files, LFS objects,
 migration files, and release assets therefore do not need to be uploaded again.
@@ -208,6 +273,28 @@ git clone "$(find /tmp/github-restore -type d \
   -path '*/example/example-repository/repository.git' -print -quit)" \
   restored-repository
 ```
+
+### Recovery expectations
+
+| Component | Recovery path | Limitation |
+|---|---|---|
+| `git` | Push the restored mirror to an empty repository | GitHub-managed refs may be rejected; branches and tags can be pushed separately |
+| `lfs` | Run `git lfs push --all` from the restored mirror | Available only when LFS was enabled for the backup |
+| `metadata` | Retain the extracted GitHub migration export for migration or manual recovery | No direct, self-service import back into GitHub.com |
+
+GitHub documents its migration archive as an export for moving repositories
+from GitHub.com to GitHub Enterprise Server. Imports cannot be started through
+the public REST API. See GitHub's
+[organization migration API](https://docs.github.com/en/rest/migrations/orgs)
+and
+[GitHub.com export guide](https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom).
+
+`restic-backups` stores the extracted migration contents and does not currently
+provide a metadata import command. Treat metadata snapshots as archival and
+disaster-recovery material rather than a guaranteed round trip into GitHub.com.
+Restoring metadata to GitHub.com may require GitHub-supported migration help or
+custom API recreation, which may not preserve original IDs, timestamps,
+authorship, or every relationship.
 
 ## Deliberate limits
 

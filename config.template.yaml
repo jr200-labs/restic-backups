@@ -102,7 +102,8 @@ jobs:
               - git@github.com:example/example-repository.git
               - git@github.com:example/another-repository.git
           authentication:
-              # Optional for SSH when an existing agent/config already works.
+              # Optional: omit authentication on a laptop configured with
+              # `gh auth login` and working Git/SSH credentials.
               git:
                   ssh:
                       # Each secret source contains exactly one env or file key.
@@ -111,7 +112,8 @@ jobs:
                       # Strict host verification is always enabled.
                       known-hosts:
                           file: /var/run/secrets/github/known-hosts
-              # Required only when metadata or release-assets is enabled.
+              # Configure explicit sources only when local credentials are not
+              # available, such as in a container or Kubernetes CronJob.
               api:
                   token:
                       env: GITHUB_MIGRATION_TOKEN
@@ -123,4 +125,26 @@ jobs:
               metadata: true
               release-assets: true
           # Maximum wait for GitHub to prepare a migration export.
+          migration-timeout-seconds: 3600
+
+    - job-id: example-github-owner
+      type: github-owner
+      description: Discover and back up every repository owned by a GitHub account.
+      restic-repository-ids:
+          - personal-local
+      source:
+          owner-url: https://github.com/example
+          # Clone discovered repositories over ssh (default) or https.
+          clone-protocol: ssh
+          # Optional: omit locally to use credentials from `gh auth login`.
+          # authentication:
+          #     api:
+          #         token:
+          #             env: GITHUB_TOKEN
+          components:
+              git: true
+              lfs: false
+              wiki: false
+              metadata: false
+              release-assets: false
           migration-timeout-seconds: 3600

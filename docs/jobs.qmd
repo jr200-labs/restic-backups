@@ -46,7 +46,7 @@ Paths are passed to `restic backup`; `~` is expanded. Restic creates a complete
 snapshot view while uploading only data not already present in that destination
 repository.
 
-## GitHub repository
+## Explicit GitHub repositories
 
 ```yaml
 jobs:
@@ -67,9 +67,44 @@ jobs:
 ```
 
 The job updates an independent managed mirror and selected GitHub data for each
-URL before snapshotting the complete job workspace. See
-[GitHub Repositories](github-repositories.qmd) for
+URL before snapshotting the complete job workspace. With only `git` enabled,
+each mirror contains all commits, branches, tags, trees, and file content
+reachable through remote Git refs. It does not contain Git LFS payloads, GitHub
+issues, pull-request discussions, submodule repositories, or history already
+deleted from every remote ref. See [GitHub Backups](github-repositories.qmd) for
 components and credentials.
+
+## GitHub organization or user
+
+```yaml
+jobs:
+  - job-id: example-organization
+    type: github-owner
+    restic-repository-ids: [personal-local]
+    source:
+      owner-url: https://github.com/example
+      clone-protocol: ssh
+      components:
+        git: true
+        lfs: false
+        wiki: false
+        metadata: false
+        release-assets: false
+      migration-timeout-seconds: 3600
+```
+
+This type enumerates every repository visible to the active GitHub credentials
+for the supplied organization or user, then delegates to the same
+multi-repository workflow. A single snapshot therefore represents the complete
+discovered set at run time.
+Archived repositories and forks are included. Private repositories are included
+when the active `gh` credentials can see them and the configured Git credentials
+can clone them. Local runs may use credentials from `gh auth login`; unattended
+runs may configure `authentication.api.token` from an environment variable or
+file.
+
+A dry run performs read-only enumeration and reports every planned repository
+component. It never creates workspaces, invokes Git, or contacts Restic.
 
 ## Voice Memos
 

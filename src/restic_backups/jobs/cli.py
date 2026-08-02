@@ -129,7 +129,7 @@ def job_menu(job_id: str) -> None:
             menu_choice("Snapshots", "List immutable restore points", "snapshots"),
             menu_choice("Advanced restic", "Run a native Restic command", "restic"),
         ]
-        if job["type"] == "github-repository":
+        if job["type"] in {"github-owner", "github-repository"}:
             choices.append(
                 menu_choice(
                     "Data directory", "Show the managed GitHub workspace", "data-dir"
@@ -188,6 +188,8 @@ def source_summary(job: dict[str, Any]) -> str:
         return "\n".join(source.get("paths", [])) or "—"
     if job["type"] == "github-repository":
         return "\n".join(source["repository-urls"])
+    if job["type"] == "github-owner":
+        return str(source["owner-url"])
     return str(source.get("recordings-dir", "macOS Voice Memos"))
 
 
@@ -295,7 +297,7 @@ def status_command(job: str | None = typer.Argument(None)) -> None:
     failed = False
     for job_id, item in selected_jobs.items():
         state = "—"
-        if item["type"] == "github-repository":
+        if item["type"] in {"github-owner", "github-repository"}:
             manifest = github_workflow.read_manifest(job_id)
             state = (
                 ", ".join(

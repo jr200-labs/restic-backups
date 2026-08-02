@@ -42,6 +42,20 @@ def github_job(**components: bool) -> dict[str, object]:
     }
 
 
+def github_owner_job() -> dict[str, object]:
+    job = github_job()
+    job["job-id"] = "example-owner"
+    job["type"] = "github-owner"
+    job["source"] = {
+        "owner-url": "https://github.com/example",
+        "clone-protocol": "ssh",
+        "authentication": {"api": {"token": {"env": "GITHUB_TOKEN"}}},
+        "components": cast(dict[str, Any], github_job()["source"])["components"],
+        "migration-timeout-seconds": 60,
+    }
+    return job
+
+
 def complete_config(job: dict[str, object]) -> dict[str, object]:
     return {
         "storage": [{"id": "disk", "type": "local", "path": "/Volumes/backup"}],
@@ -94,9 +108,117 @@ def test_github_config_validates_components_urls_and_credentials() -> None:
     with pytest.raises(config.ConfigError, match="unique repositories"):
         config.validate(complete_config(invalid))
 
-    invalid = github_job(metadata=True)
-    with pytest.raises(config.ConfigError, match="api.token is required"):
+
+def test_github_owner_config_requires_a_valid_owner_url() -> None:
+    config.validate(complete_config(github_owner_job()))
+
+    without_explicit_token = github_owner_job()
+    del cast(dict[str, Any], without_explicit_token["source"])["authentication"]
+    config.validate(complete_config(without_explicit_token))
+
+    invalid = github_owner_job()
+    cast(dict[str, Any], invalid["source"])["owner-url"] = (
+        "https://github.com/example/repository"
+    )
+    with pytest.raises(config.ConfigError, match="github.com/OWNER"):
         config.validate(complete_config(invalid))
+
+
+def test_github_owner_enumerates_all_visible_repositories(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "secret")
+    github = cast(dict[str, Any], github_owner_job()["source"])
+    with patch(
+        "restic_backups.github_repository.workflow._gh_json",
+        side_effect=[
+            {"type": "Organization"},
+            [
+                [
+                    {
+                        "full_name": "example/zeta",
+                        "ssh_url": "git@github.com:example/zeta.git",
+                    },
+                    {
+                        "full_name": "example/alpha",
+                        "ssh_url": "git@github.com:example/alpha.git",
+                    },
+                ]
+            ],
+        ],
+    ) as github_api:
+        urls = workflow.owner_repository_urls(github)
+
+    assert urls == [
+        "git@github.com:example/alpha.git",
+        "git@github.com:example/zeta.git",
+    ]
+    assert "--paginate" in github_api.call_args_list[1].args[0]
+    assert "orgs/example/repos" in github_api.call_args_list[1].args[0][-1]
+
+
+def test_github_user_enumeration_includes_owned_private_repositories(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("GITHUB_TOKEN", "secret")
+    github = cast(dict[str, Any], github_owner_job()["source"])
+    github["clone-protocol"] = "https"
+    with patch(
+        "restic_backups.github_repository.workflow._gh_json",
+        side_effect=[
+            {"type": "User"},
+            {"login": "example"},
+            [
+                [
+                    {
+                        "full_name": "example/private",
+                        "clone_url": "https://github.com/example/private.git",
+                    }
+                ]
+            ],
+        ],
+    ) as github_api:
+        urls = workflow.owner_repository_urls(github)
+
+    assert urls == ["https://github.com/example/private.git"]
+    assert "user/repos" in github_api.call_args_list[2].args[0][-1]
+
+
+def test_github_owner_dry_run_enumerates_without_writing_or_backing_up(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(config.CONFIG_ENV, str(tmp_path / "config.yaml"))
+    job = github_owner_job()
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.owner_repository_urls",
+            return_value=[
+                "git@github.com:example/alpha.git",
+                "git@github.com:example/zeta.git",
+            ],
+        ) as enumerate_repositories,
+        patch("restic_backups.github_repository.workflow._run") as run,
+        patch("restic_backups.github_repository.workflow.restic.command") as restic,
+    ):
+        statuses, destinations = workflow.backup_owner(
+            "example-owner",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-owner": job},
+            dry_run=True,
+        )
+
+    enumerate_repositories.assert_called_once()
+    assert statuses["example/alpha:git"] == "planned"
+    assert statuses["example/zeta:git"] == "planned"
+    assert destinations == {"first": True}
+    assert not (tmp_path / "data").exists()
+    run.assert_not_called()
+    restic.assert_not_called()
+
+    config.validate(complete_config(github_job(metadata=True)))
 
 
 def test_dry_run_does_not_write_or_run_commands(
@@ -272,8 +394,9 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
         ),
         patch(
             "restic_backups.github_repository.workflow.restic.command",
-            side_effect=[1, 0],
+            side_effect=[0, 0, 1, 0],
         ) as restic_command,
+        patch("restic_backups.github_repository.workflow._preflight_metadata"),
     ):
         statuses, destinations = workflow.backup(
             "example-repository",
@@ -287,7 +410,7 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
     assert statuses["example/example-repository:git"] == "failed"
     assert statuses["example/example-repository:metadata"] == "updated"
     assert destinations == {"first": False, "second": True}
-    assert restic_command.call_count == 2
+    assert restic_command.call_count == 4
     manifest = json.loads(
         (workflow.data_dir("example-repository") / "backup-manifest.json").read_text()
     )
@@ -377,6 +500,66 @@ def test_secret_values_never_enter_audit_log(
     contents = (tmp_path / "audit-log.json").read_text()
     assert "top-secret-value" not in contents
     assert '"command":"git"' in contents
+
+
+def test_command_failure_includes_redacted_stderr() -> None:
+    completed = subprocess.CompletedProcess(
+        [], 1, "", "Authorization failed for https://user:secret@example.com (HTTP 403)"
+    )
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.subprocess.run",
+            return_value=completed,
+        ),
+        pytest.raises(BackupError, match=r"Authorization failed.*HTTP 403") as error,
+    ):
+        workflow._run(["gh", "api"], env={})
+    assert "secret" not in str(error.value)
+
+
+def test_repository_preflight_failure_stops_before_source_updates() -> None:
+    job = github_job()
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.restic.command", return_value=10
+        ),
+        patch("restic_backups.github_repository.workflow._git_mirror") as mirror,
+        pytest.raises(BackupError, match="repository check failed"),
+    ):
+        workflow.backup(
+            "example-repository",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-repository": job},
+        )
+    mirror.assert_not_called()
+
+
+def test_metadata_preflight_failure_stops_before_source_updates() -> None:
+    job = github_job(metadata=True)
+    with (
+        patch("restic_backups.github_repository.workflow._preflight_destinations"),
+        patch(
+            "restic_backups.github_repository.workflow._gh_json",
+            side_effect=[
+                {"owner": {"type": "Organization"}},
+                BackupError("Authorization failed (HTTP 403)"),
+            ],
+        ),
+        patch("restic_backups.github_repository.workflow._git_mirror") as mirror,
+        pytest.raises(BackupError, match="Authorization failed.*403"),
+    ):
+        workflow.backup(
+            "example-repository",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-repository": job},
+        )
+    mirror.assert_not_called()
 
 
 def test_status_shows_latest_snapshot_for_every_destination() -> None:
