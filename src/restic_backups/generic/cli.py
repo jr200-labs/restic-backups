@@ -6,7 +6,6 @@ import json
 import os
 import shlex
 import sys
-from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -335,7 +334,7 @@ def snapshot_menu() -> None:
             continue
 
 
-def restic_menu() -> None:
+def restic_menu(backup_id: str | None = None) -> None:
     try:
         commands = restic.available_commands()
     except BackupError as exc:
@@ -411,7 +410,7 @@ def restic_menu() -> None:
             ):
                 args.insert(0, "--dry-run")
             try:
-                run_args(None, [command, *args], interactive=True)
+                run_args(backup_id, [command, *args], interactive=True)
                 return
             except typer.Abort:
                 continue
@@ -451,7 +450,7 @@ def choose_backup(
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
-        if not include_github and "github" in backups[backup_id]:
+        if not include_github and backups[backup_id]["type"] == "github-repository":
             fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
@@ -462,7 +461,7 @@ def choose_backup(
             value=item_id,
         )
         for item_id, item in backups.items()
-        if include_github or "github" not in item
+        if include_github or item["type"] != "github-repository"
         if any(
             repositories[value]["enabled"]
             for value in config.backup_repository_ids(item, item_id)
@@ -489,6 +488,7 @@ def choose_repositories(
     elif not sys.stdin.isatty():
         fail("at least one --repository is required when stdin is not interactive")
     else:
+        enabled = [value for value in configured if repositories[value]["enabled"]]
         selected = questionary.checkbox(
             "Repositories (Space to toggle, Enter to continue):",
             choices=[
@@ -498,7 +498,7 @@ def choose_repositories(
                     disabled=(
                         None if repositories[repository_id]["enabled"] else "disabled"
                     ),
-                    checked=False,
+                    checked=len(enabled) == 1 and repository_id == enabled[0],
                 )
                 for repository_id in configured
             ]
@@ -576,14 +576,13 @@ def show_backups(
 ) -> None:
     backup_table = Table(title="Backups", box=box.ROUNDED)
     backup_table.add_column("Job ID", style="cyan", no_wrap=True)
+    backup_table.add_column("Type")
     backup_table.add_column("Description")
     backup_table.add_column("Repositories")
     backup_table.add_column("Paths")
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
-        if "github" in backup:
-            continue
         repository_ids = config.backup_repository_ids(backup, backup_id)
         enabled = sum(repositories[value]["enabled"] for value in repository_ids)
         state = (
@@ -595,9 +594,10 @@ def show_backups(
         )
         backup_table.add_row(
             Text(backup_id),
+            Text(str(backup["type"])),
             Text(str(backup.get("description", "—"))),
             Text("\n".join(repository_ids)),
-            Text("\n".join(backup.get("paths", [])) or "—"),
+            Text("\n".join(backup["source"].get("paths", [])) or "—"),
             Text(str(backup.get("tag", backup_id))),
             Text(state, style="green" if enabled == len(repository_ids) else "yellow"),
         )
@@ -649,58 +649,10 @@ def backup_command(
         ),
     ] = None,
 ) -> None:
-    """Create a snapshot from a backup job's configured paths."""
-    _, storage, repositories, backups = validated()
-    backup_id = choose_backup(backup, repositories, backups, include_github=False)
-    selected_repositories = choose_repositories(
-        backup_id, repository_ids, repositories, backups
-    )
-    paths = backups[backup_id].get("paths")
-    if not paths:
-        fail(f"backup job '{backup_id}' has no configured paths")
-    audit_command(
-        "backup",
-        "run",
-        backup_id,
-        *[
-            value
-            for repository_id in selected_repositories
-            for value in ("--repository", repository_id)
-        ],
-        *(["--dry-run"] if dry_run else []),
-    )
-    expanded_paths = [str(Path(path).expanduser()) for path in paths]
-    mode = "dry run: scanning" if dry_run else "backing up"
-    error_console.print(
-        Text(
-            f"{backup_id}: {mode} {len(expanded_paths)} configured path(s)",
-            style="cyan",
-        )
-    )
-    args = ["backup", *(["--dry-run"] if dry_run else []), *expanded_paths]
-    for repository_id in selected_repositories:
-        error_console.print(
-            Text(f"{backup_id}: repository {repository_id}", style="cyan")
-        )
-        try:
-            code = restic.command(
-                backup_id,
-                args,
-                storage,
-                repositories,
-                backups,
-                repository_id=repository_id,
-            )
-        except BackupError as exc:
-            fail(str(exc))
-        if code:
-            raise typer.Exit(code)
-        message = (
-            "dry run complete; no snapshot created" if dry_run else "snapshot created"
-        )
-        error_console.print(
-            Text(f"{backup_id}: {repository_id}: {message}", style="bold green")
-        )
+    """Compatibility alias for job run."""
+    from ..jobs.cli import run_command
+
+    run_command(backup, dry_run, repository_ids)
 
 
 @backup_app.command("data-dir")

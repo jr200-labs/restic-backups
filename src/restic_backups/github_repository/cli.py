@@ -13,10 +13,10 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .. import audit, config
+from .. import config
 from ..errors import BackupError
 from ..generic import restic
-from ..generic.cli import choose_dry_run, choose_repositories, print_typer_help
+from ..generic.cli import choose_dry_run, print_typer_help
 from ..generic.tui import select
 from . import workflow
 
@@ -53,7 +53,11 @@ def validated() -> tuple[
 
 
 def github_jobs(backups: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    return {job_id: item for job_id, item in backups.items() if "github" in item}
+    return {
+        job_id: item
+        for job_id, item in backups.items()
+        if item["type"] == "github-repository"
+    }
 
 
 def choose_job(job_id: str | None, backups: dict[str, dict[str, Any]]) -> str:
@@ -70,7 +74,7 @@ def choose_job(job_id: str | None, backups: dict[str, dict[str, Any]]) -> str:
         "GitHub repository job:",
         choices=[
             questionary.Choice(
-                f"{item_id}  ({item['github']['repository-url']})", item_id
+                f"{item_id}  ({item['source']['repository-url']})", item_id
             )
             for item_id, item in jobs.items()
         ]
@@ -147,11 +151,11 @@ def list_command() -> None:
     table.add_column("Components")
     for job_id, item in github_jobs(backups).items():
         components = [
-            name for name, enabled in item["github"]["components"].items() if enabled
+            name for name, enabled in item["source"]["components"].items() if enabled
         ]
         table.add_row(
             job_id,
-            item["github"]["repository-url"],
+            item["source"]["repository-url"],
             "\n".join(config.backup_repository_ids(item, job_id)),
             ", ".join(components),
         )
@@ -177,68 +181,10 @@ def backup_command(
         ),
     ] = None,
 ) -> None:
-    """Update one GitHub export and snapshot it to selected repositories."""
-    _, storage, repositories, backups = validated()
-    job_id = choose_job(job, backups)
-    selected = choose_repositories(job_id, repository_ids, repositories, backups)
-    args = [
-        "github-repository",
-        "backup",
-        job_id,
-        *[
-            value
-            for repository_id in selected
-            for value in ("--repository", repository_id)
-        ],
-        *(["--dry-run"] if dry_run else []),
-    ]
-    event_id = audit.record("restic-backups", args)
-    statuses: dict[str, str] = {}
-    destinations: dict[str, bool] = {}
-    try:
-        statuses, destinations = workflow.backup(
-            job_id,
-            backups[job_id],
-            selected,
-            storage,
-            repositories,
-            backups,
-            dry_run=dry_run,
-        )
-    except (BackupError, OSError) as exc:
-        audit.finish(event_id, False)
-        fail(str(exc))
-    successful = all(
-        value not in {"failed", "stale"} for value in statuses.values()
-    ) and all(destinations.values())
-    audit.finish(
-        event_id,
-        successful,
-        {"components": statuses, "destinations": destinations},
-    )
-    for component, status in statuses.items():
-        style = (
-            "green"
-            if status in {"updated", "unchanged", "not-present", "planned"}
-            else "yellow"
-        )
-        error_console.print(Text(f"{job_id}: {component}: {status}", style=style))
-    for repository_id, result in destinations.items():
-        action = (
-            "would snapshot"
-            if dry_run
-            else "snapshot created"
-            if result
-            else "snapshot failed"
-        )
-        error_console.print(
-            Text(
-                f"{job_id}: {repository_id}: {action}",
-                style="green" if result else "red",
-            )
-        )
-    if not successful:
-        raise typer.Exit(1)
+    """Compatibility alias for job run."""
+    from ..jobs.cli import run_command
+
+    run_command(job, dry_run, repository_ids)
 
 
 @app.command("status")

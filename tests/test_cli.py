@@ -12,7 +12,7 @@ from click import unstyle
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
-from restic_backups.cli import app
+from restic_backups.cli import app, prepare_voice_memos
 from restic_backups.cli import interactive_menu as root_menu
 from restic_backups.generic.cli import (
     choose_dry_run,
@@ -37,6 +37,26 @@ def choice_title(choice: questionary.Choice) -> str:
 
 
 class VoiceMemosCliTest(unittest.TestCase):
+    def test_voice_memos_uses_configured_summary_directory(self) -> None:
+        from restic_backups.voice_memos import pipeline, workflow
+
+        path = Path("/tmp/configured-summaries")
+        jobs = {
+            "memos": {
+                "type": "voice-memos",
+                "source": {"summaries-dir": str(path)},
+            }
+        }
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("restic_backups.cli.validated", return_value=({}, {}, {}, jobs)),
+            patch.object(pipeline, "SUMMARIES_DIR"),
+            patch.object(workflow, "SUMMARIES_DIR"),
+        ):
+            prepare_voice_memos()
+            self.assertEqual(pipeline.SUMMARIES_DIR, path)
+            self.assertEqual(workflow.SUMMARIES_DIR, path)
+
     def test_dry_run_is_a_spacebar_checkbox(self) -> None:
         with patch("restic_backups.generic.cli.questionary.checkbox") as checkbox:
             checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
@@ -64,11 +84,25 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual([choice.value for choice in choices], ["first", "second"])
         self.assertTrue(all(choice.checked is False for choice in choices))
 
+    def test_single_backup_repository_is_checked_by_default(self) -> None:
+        repositories = {"only": {"enabled": True}}
+        jobs = {"documents": {"restic-repository-ids": ["only"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["only"]
+            selected = choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(selected, ["only"])
+        self.assertTrue(checkbox.call_args.kwargs["choices"][0].checked)
+
     def test_root_and_generic_help_expose_subcommands(self) -> None:
         runner = CliRunner()
         root = runner.invoke(app, ["--help"])
         self.assertEqual(root.exit_code, 0, root.output)
         root_help = unstyle(root.output)
+        self.assertIn("job", root_help)
         self.assertIn("generic", root_help)
         self.assertIn("github-repository", root_help)
         self.assertIn("voice-memos", root_help)
@@ -91,6 +125,34 @@ class VoiceMemosCliTest(unittest.TestCase):
             for command in commands:
                 self.assertIn(command, help_text)
 
+    def test_job_list_includes_every_job_type(self) -> None:
+        jobs = {
+            "documents": {
+                "type": "files",
+                "source": {"paths": ["/data"]},
+                "restic-repository-ids": ["repo"],
+            },
+            "source-code": {
+                "type": "github-repository",
+                "source": {"repository-url": "git@github.com:example/repo.git"},
+                "restic-repository-ids": ["repo"],
+            },
+            "memos": {
+                "type": "voice-memos",
+                "source": {},
+                "restic-repository-ids": ["repo"],
+            },
+        }
+        with patch(
+            "restic_backups.jobs.cli.validated",
+            return_value=({}, {}, {"repo": {"enabled": True}}, jobs),
+        ):
+            result = CliRunner().invoke(app, ["job", "list"])
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        for value in ("documents", "source-co", "memos", "github-re"):
+            self.assertIn(value, unstyle(result.output))
+
     def test_help_exposes_workflows(self) -> None:
         result = ClickCliRunner().invoke(voice_memos_cli, ["--help"])
         self.assertEqual(result.exit_code, 0, result.output)
@@ -108,27 +170,23 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(root.exit_code, 0, root.output)
         self.assertIn("generic", root.output)
 
-    @patch("restic_backups.cli.generic_cli.interactive_menu")
+    @patch("restic_backups.cli.jobs_cli.interactive_menu")
     @patch("restic_backups.cli.select")
-    def test_root_menu_selects_described_workflow(self, select, generic_menu) -> None:
-        select.return_value.unsafe_ask.side_effect = ["generic", "exit"]
+    def test_root_menu_selects_described_workflow(self, select, jobs_menu) -> None:
+        select.return_value.unsafe_ask.side_effect = ["jobs", "exit"]
 
         root_menu()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertIn("Manage repositories", choice_title(choices[0]))
-        self.assertIn("Git history", choice_title(choices[1]))
-        self.assertIn(
-            "GitHub repositories  Back up Git history", choice_title(choices[1])
-        )
-        self.assertIn("transcribe", choice_title(choices[2]))
+        self.assertIn("every configured job", choice_title(choices[0]))
+        self.assertIn("destroy repositories", choice_title(choices[1]))
         title = choices[0].title
         self.assertIsInstance(title, list)
         assert isinstance(title, list)
         self.assertNotEqual(title[0][0], title[1][0])
         self.assertIsInstance(choices[-1], questionary.Separator)
         self.assertEqual(choices[-1].title, " ")
-        generic_menu.assert_called_once_with()
+        jobs_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.select")
@@ -451,13 +509,14 @@ backups:
         repositories = {"first": {"enabled": True}, "second": {"enabled": True}}
         backups = {
             "documents": {
+                "type": "files",
                 "restic-repository-ids": ["first", "second"],
-                "paths": ["~/Documents", "/tmp/example"],
+                "source": {"paths": ["~/Documents", "/tmp/example"]},
             }
         }
         with (
             patch(
-                "restic_backups.generic.cli.validated",
+                "restic_backups.jobs.cli.validated",
                 return_value=({}, storage, repositories, backups),
             ),
             patch(
@@ -661,8 +720,9 @@ backups:
         repositories = {"store": {"enabled": True}}
         backups = {
             "github-repository": {
+                "type": "github-repository",
                 "restic-repository-id": "store",
-                "github": {},
+                "source": {},
             }
         }
         with (
@@ -753,7 +813,13 @@ backups:
                 "key_prefix": "new",
             },
         }
-        backups = {"first": {"restic-repository-id": "existing"}}
+        backups = {
+            "first": {
+                "type": "files",
+                "source": {},
+                "restic-repository-id": "existing",
+            }
+        }
         validated.return_value = ({}, storage, repositories, backups)
         command.side_effect = [0, 10, 0]
         runner = CliRunner()

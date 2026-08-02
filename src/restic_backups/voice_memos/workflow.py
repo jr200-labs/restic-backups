@@ -12,21 +12,36 @@ from ..errors import BackupError
 from ..generic import restic
 from .pipeline import DEFAULT_RECORDINGS_DIR, SUMMARIES_DIR
 
-BACKUP_ID = "voice-memos"
+JOB_ENV = "RESTIC_BACKUPS_JOB"
 HOST = "mac-icloud"
+
+
+def job_id(jobs: dict[str, dict[str, object]]) -> str:
+    requested = os.environ.get(JOB_ENV)
+    if requested is not None:
+        if requested not in jobs or jobs[requested]["type"] != "voice-memos":
+            raise BackupError(f"voice-memos job '{requested}' is not configured")
+        return requested
+    matches = [name for name, job in jobs.items() if job["type"] == "voice-memos"]
+    if len(matches) != 1:
+        raise BackupError(
+            "configure exactly one voice-memos job or set RESTIC_BACKUPS_JOB"
+        )
+    return matches[0]
 
 
 def run_restic(args: list[str], *, tagged: bool = False) -> int:
     """Run restic against the configured Voice Memos repository."""
-    _, storage, repositories, backups = config.load_validated()
+    _, storage, repositories, jobs = config.load_validated()
+    selected_job = job_id(jobs)
     if tagged and args:
         args = [
             args[0],
             "--tag",
-            str(backups[BACKUP_ID].get("tag", BACKUP_ID)),
+            str(jobs[selected_job].get("tag", selected_job)),
             *args[1:],
         ]
-    return restic.command(BACKUP_ID, args, storage, repositories, backups)
+    return restic.command(selected_job, args, storage, repositories, jobs)
 
 
 def backup(recordings_dir: Path = DEFAULT_RECORDINGS_DIR) -> int:

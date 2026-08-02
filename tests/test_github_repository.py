@@ -30,8 +30,9 @@ def github_job(**components: bool) -> dict[str, object]:
     }
     return {
         "job-id": "example-repository",
+        "type": "github-repository",
         "restic-repository-ids": ["first", "second"],
-        "github": {
+        "source": {
             "repository-url": "git@github.com:example/example-repository.git",
             "components": enabled,
             "migration-timeout-seconds": 60,
@@ -52,7 +53,7 @@ def complete_config(job: dict[str, object]) -> dict[str, object]:
             }
             for repository_id in ("first", "second")
         ],
-        "backups": [job],
+        "jobs": [job],
     }
 
 
@@ -64,7 +65,7 @@ def test_github_config_validates_components_urls_and_credentials() -> None:
         config.validate(complete_config(invalid))
 
     invalid = github_job()
-    invalid["github"]["repository-url"] = "https://token@github.com/example/repo.git"  # type: ignore[index]
+    invalid["source"]["repository-url"] = "https://token@github.com/example/repo.git"  # type: ignore[index]
     with pytest.raises(config.ConfigError, match="safe github.com URL"):
         config.validate(complete_config(invalid))
 
@@ -221,7 +222,7 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
     monkeypatch.setenv(config.CONFIG_ENV, str(tmp_path / "config.yaml"))
     monkeypatch.setenv("GITHUB_TOKEN", "secret")
     job = github_job(git=True, metadata=True)
-    job["github"]["authentication"] = {  # type: ignore[index]
+    job["source"]["authentication"] = {  # type: ignore[index]
         "git": {
             "ssh": {
                 "private-key": {"env": "MISSING_SSH_KEY"},

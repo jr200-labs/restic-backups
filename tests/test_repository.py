@@ -12,9 +12,81 @@ from unittest.mock import patch
 from restic_backups import config
 from restic_backups.errors import BackupError
 from restic_backups.generic import repository, restic
+from restic_backups.jobs import workflow as job_workflow
 
 
 class ConfigLoadingTest(unittest.TestCase):
+    def test_files_job_snapshots_every_selected_repository(self) -> None:
+        job = {"type": "files", "source": {"paths": ["~/Documents"]}}
+        with patch(
+            "restic_backups.jobs.workflow.restic.command", return_value=0
+        ) as run:
+            states, destinations = job_workflow.run(
+                "documents",
+                job,
+                ["first", "second"],
+                {},
+                {},
+                {"documents": job},
+                dry_run=True,
+            )
+
+        self.assertEqual(states, {"files": "planned"})
+        self.assertEqual(destinations, {"first": True, "second": True})
+        self.assertEqual(
+            [item.kwargs["repository_id"] for item in run.call_args_list],
+            ["first", "second"],
+        )
+        self.assertIn("--dry-run", run.call_args.args[1])
+
+    def test_jobs_are_typed_and_legacy_backups_are_normalized(self) -> None:
+        config_data: dict[str, Any] = {
+            "storage": [{"id": "disk", "type": "local", "path": "/Volumes/disk"}],
+            "restic-repositories": [
+                {
+                    "id": "repo",
+                    "storage-id": "disk",
+                    "enabled": False,
+                    "path": "restic/repo",
+                    "password": "CHANGE_ME",
+                }
+            ],
+            "jobs": [
+                {
+                    "job-id": "documents",
+                    "type": "files",
+                    "restic-repository-ids": ["repo"],
+                    "source": {"paths": ["~/Documents"]},
+                },
+                {
+                    "job-id": "memos",
+                    "type": "voice-memos",
+                    "restic-repository-ids": ["repo"],
+                    "source": {},
+                },
+            ],
+        }
+
+        _, _, jobs = config.validate(config_data)
+        self.assertEqual(set(jobs), {"documents", "memos"})
+        self.assertEqual(jobs["documents"]["source"]["paths"], ["~/Documents"])
+
+        config_data["backups"] = []
+        with self.assertRaisesRegex(config.ConfigError, "both jobs and backups"):
+            config.validate(config_data)
+
+        del config_data["jobs"]
+        config_data["backups"] = [
+            {
+                "job-id": "legacy",
+                "restic-repository-ids": ["repo"],
+                "paths": ["/data"],
+            }
+        ]
+        _, _, jobs = config.validate(config_data)
+        self.assertEqual(jobs["legacy"]["type"], "files")
+        self.assertEqual(jobs["legacy"]["source"], {"paths": ["/data"]})
+
     def test_available_commands_come_from_restic_help(self) -> None:
         result = subprocess.CompletedProcess(
             [],

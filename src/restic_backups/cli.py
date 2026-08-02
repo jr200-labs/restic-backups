@@ -22,6 +22,7 @@ from .generic import repository
 from .generic import sops as sops_module
 from .generic.tui import select
 from .github_repository import cli as github_repository_cli
+from .jobs import cli as jobs_cli
 
 app = typer.Typer(
     help="Configured backup commands.",
@@ -31,6 +32,12 @@ app = typer.Typer(
 app.add_typer(
     generic_cli.app,
     name="generic",
+    invoke_without_command=True,
+    no_args_is_help=False,
+)
+app.add_typer(
+    jobs_cli.app,
+    name="job",
     invoke_without_command=True,
     no_args_is_help=False,
 )
@@ -116,19 +123,14 @@ def interactive_menu() -> None:
             "Workflow:",
             choices=[
                 menu_choice(
-                    "Generic backups",
-                    "Manage repositories, backups, and snapshots",
-                    "generic",
+                    "Jobs",
+                    "List, run, and inspect every configured job",
+                    "jobs",
                 ),
                 menu_choice(
-                    "GitHub repositories",
-                    "Back up Git history and selected GitHub data",
-                    "github-repository",
-                ),
-                menu_choice(
-                    "Voice Memos",
-                    "Back up, restore, transcribe, and diarize memos",
-                    "voice-memos",
+                    "Repositories",
+                    "List, initialize, cache, prune, or destroy repositories",
+                    "repositories",
                 ),
                 menu_choice(
                     "Check config",
@@ -144,14 +146,10 @@ def interactive_menu() -> None:
             return
         if selected == "help":
             generic_cli.print_typer_help(app, "restic-backups")
-        elif selected == "generic":
-            generic_cli.interactive_menu()
-        elif selected == "github-repository":
-            github_repository_cli.interactive_menu()
-        elif selected == "voice-memos":
-            from .voice_memos.cli import interactive_menu as voice_memos_menu
-
-            voice_memos_menu(prepare_voice_memos)
+        elif selected == "jobs":
+            jobs_cli.interactive_menu()
+        elif selected == "repositories":
+            generic_cli.repository_menu()
         elif selected == "check-config":
             check_config_command()
             return
@@ -223,17 +221,33 @@ def voice_memos_command(context: typer.Context) -> None:
 def prepare_voice_memos() -> None:
     if "SUMMARIES_DIR" in os.environ:
         return
-    _, storage, repositories, backups = validated()
+    from .voice_memos import pipeline as voice_pipeline
+    from .voice_memos import workflow as voice_workflow
+
+    _, storage, repositories, jobs = validated()
     try:
+        job_id = voice_workflow.job_id(jobs)
+        source = jobs[job_id]["source"]
+        if "summaries-dir" in source:
+            path = Path(source["summaries-dir"]).expanduser()
+            os.environ["SUMMARIES_DIR"] = str(path)
+            voice_pipeline.SUMMARIES_DIR = path
+            voice_workflow.SUMMARIES_DIR = path
+            return
+        repository_id = next(
+            value
+            for value in config_module.job_repository_ids(jobs[job_id], job_id)
+            if repositories[value]["enabled"]
+        )
         restic_repository, backend = repository.resolve(
-            "voice-memos", storage, repositories, backups
+            job_id, storage, repositories, jobs, repository_id
         )
-        path = (
-            repository.data_dir("voice-memos", restic_repository, backend) / "summaries"
-        )
-    except BackupError as exc:
+        path = repository.data_dir(job_id, restic_repository, backend) / "summaries"
+    except (BackupError, StopIteration) as exc:
         fail(str(exc))
     os.environ["SUMMARIES_DIR"] = str(path)
+    voice_pipeline.SUMMARIES_DIR = path
+    voice_workflow.SUMMARIES_DIR = path
 
 
 def main() -> None:

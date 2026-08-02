@@ -2,24 +2,25 @@
 title: GitHub Repositories
 ---
 
-The **GitHub repositories** workflow incrementally maintains a complete Git
+The `github-repository` job type incrementally maintains a complete Git
 mirror and optionally collects Git LFS objects, the wiki, repository metadata,
 and release assets. It then snapshots the managed workspace to one or more
 configured restic repositories.
 
 ## Configure a job
 
-GitHub jobs live in `backups`, but use `github` instead of `paths`:
+GitHub jobs use the shared `jobs` section and a GitHub-specific `source`:
 
 ```yaml
-backups:
+jobs:
   - job-id: example-github-repository
+    type: github-repository
     description: Complete GitHub repository backup.
     restic-repository-ids:
       - personal-b2
       - personal-local
     tag: example-github-repository
-    github:
+    source:
       repository-url: git@github.com:example/example-repository.git
       authentication:
         git:
@@ -41,7 +42,7 @@ backups:
 ```
 
 Every component flag is required, and at least one must be `true`. `lfs`
-requires `git`. A GitHub job cannot also define `paths`. The optional restic
+requires `git`. The optional restic
 `tag` still defaults to `job-id`.
 
 Only `github.com` clone URLs are accepted:
@@ -127,11 +128,11 @@ contains LFS pointer files but not the referenced large objects.
 Use the described arrow-key TUI or explicit commands:
 
 ```sh
-uv run restic-backups github-repository list
-uv run restic-backups github-repository backup example-github-repository \
+uv run restic-backups job list
+uv run restic-backups job run example-github-repository \
   --repository personal-b2 --repository personal-local
-uv run restic-backups github-repository status
-uv run restic-backups github-repository status example-github-repository
+uv run restic-backups job status
+uv run restic-backups job status example-github-repository
 uv run restic-backups github-repository data-dir example-github-repository
 uv run restic-backups generic snapshot list example-github-repository \
   --repository personal-b2
@@ -139,7 +140,7 @@ uv run restic-backups generic restic run --backup example-github-repository \
   --repository personal-b2 ls latest --tag example-github-repository
 ```
 
-With no job ID, `status` shows one row for every GitHub job and destination,
+With no job ID, `job status` shows one row for every job and destination,
 including the latest snapshot ID and time, the local export time, and component
 states. Snapshots are matched using each job's configured tag, which defaults to
 its job ID. Each destination repository is queried only once, even when many
@@ -154,12 +155,12 @@ Use `restic ls` to browse files in a snapshot. The different `restic list`
 command lists internal repository objects and requires an object type such as
 `packs`, `snapshots`, or `keys`; it does not list configured backup jobs.
 
-The TUI starts with every configured destination unchecked. Select each desired
-restic repository with Space. A dry run validates the plan without calling Git,
-GitHub, or restic and without writing the workspace:
+The TUI preselects a sole enabled destination. With several destinations, all
+start unchecked and must be selected with Space. A dry run validates the plan
+without calling Git, GitHub, or restic and without writing the workspace:
 
 ```sh
-uv run restic-backups github-repository backup example-github-repository \
+uv run restic-backups job run example-github-repository \
   --repository personal-b2 --dry-run
 ```
 
