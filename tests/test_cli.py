@@ -15,6 +15,7 @@ from restic_backups.cli import app
 from restic_backups.cli import interactive_menu as root_menu
 from restic_backups.generic.cli import (
     choose_dry_run,
+    choose_repositories,
     destroy_command,
     forget_command,
     init_command,
@@ -43,6 +44,24 @@ class VoiceMemosCliTest(unittest.TestCase):
 
         self.assertIn("Space to toggle", checkbox.call_args.args[0])
         self.assertEqual(checkbox.call_args.kwargs["choices"][0].value, "dry-run")
+
+    def test_backup_repositories_are_explicit_unchecked_choices(self) -> None:
+        repositories = {
+            "first": {"enabled": True},
+            "second": {"enabled": True},
+        }
+        backups = {"documents": {"restic-repository-ids": ["first", "second"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["second"]
+            selected = choose_repositories("documents", None, repositories, backups)
+
+        self.assertEqual(selected, ["second"])
+        choices = checkbox.call_args.kwargs["choices"][:-1]
+        self.assertEqual([choice.value for choice in choices], ["first", "second"])
+        self.assertTrue(all(choice.checked is False for choice in choices))
 
     def test_root_and_generic_help_expose_subcommands(self) -> None:
         runner = CliRunner()
@@ -342,6 +361,7 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    "store",
                 ),
                 call(
                     "backup",
@@ -349,6 +369,7 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    "store",
                 ),
             ],
         )
@@ -361,6 +382,7 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    repository_id="store",
                 ),
                 call(
                     "backup",
@@ -368,6 +390,7 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    repository_id="store",
                 ),
             ],
         )
@@ -414,14 +437,15 @@ backups:
             storage,
             repositories,
             backups,
+            "store",
         )
 
     def test_generic_backup_uses_configured_paths(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
-        repositories = {"store": {"enabled": True}}
+        repositories = {"first": {"enabled": True}, "second": {"enabled": True}}
         backups = {
             "documents": {
-                "restic-repository-id": "store",
+                "restic-repository-ids": ["first", "second"],
                 "paths": ["~/Documents", "/tmp/example"],
             }
         }
@@ -434,9 +458,32 @@ backups:
                 "restic_backups.generic.cli.restic.command", return_value=0
             ) as command,
         ):
-            result = CliRunner().invoke(app, ["generic", "backup", "run", "documents"])
+            result = CliRunner().invoke(
+                app,
+                [
+                    "generic",
+                    "backup",
+                    "run",
+                    "documents",
+                    "--repository",
+                    "first",
+                    "--repository",
+                    "second",
+                ],
+            )
             dry_run = CliRunner().invoke(
-                app, ["generic", "backup", "run", "documents", "--dry-run"]
+                app,
+                [
+                    "generic",
+                    "backup",
+                    "run",
+                    "documents",
+                    "--repository",
+                    "first",
+                    "--repository",
+                    "second",
+                    "--dry-run",
+                ],
             )
 
         self.assertEqual(result.exit_code, 0, result.output)
@@ -450,6 +497,15 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    repository_id="first",
+                ),
+                call(
+                    "documents",
+                    ["backup", str(Path("~/Documents").expanduser()), "/tmp/example"],
+                    storage,
+                    repositories,
+                    backups,
+                    repository_id="second",
                 ),
                 call(
                     "documents",
@@ -462,6 +518,20 @@ backups:
                     storage,
                     repositories,
                     backups,
+                    repository_id="first",
+                ),
+                call(
+                    "documents",
+                    [
+                        "backup",
+                        "--dry-run",
+                        str(Path("~/Documents").expanduser()),
+                        "/tmp/example",
+                    ],
+                    storage,
+                    repositories,
+                    backups,
+                    repository_id="second",
                 ),
             ],
         )
@@ -576,7 +646,7 @@ backups:
         output = "\n".join(str(item.args[0]) for item in print_line.call_args_list)
         self.assertIn(
             f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
-            "--sops generic restic run --backup documents list snapshots",
+            "--sops generic restic run --backup documents --repository store list snapshots",
             output,
         )
 

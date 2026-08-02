@@ -55,6 +55,27 @@ def required_text(item: dict[str, Any], field: str, owner: str) -> str:
     return value
 
 
+def backup_repository_ids(backup: dict[str, Any], backup_id: str) -> list[str]:
+    values = backup.get("restic-repository-ids")
+    legacy = backup.get("restic-repository-id")
+    if values is not None and legacy is not None:
+        raise ConfigError(
+            f"{backup_id} cannot define both restic-repository-id and restic-repository-ids"
+        )
+    if values is None:
+        values = [required_text(backup, "restic-repository-id", backup_id)]
+    if (
+        not isinstance(values, list)
+        or not values
+        or any(not isinstance(value, str) or not value for value in values)
+        or len(values) != len(set(values))
+    ):
+        raise ConfigError(
+            f"{backup_id}.restic-repository-ids must be a non-empty list of unique IDs"
+        )
+    return values
+
+
 def indexed(
     config: dict[str, Any], section: str, id_field: str = "id"
 ) -> dict[str, dict[str, Any]]:
@@ -162,7 +183,7 @@ def validate(
         required_text(restore, "timeout", f"{repository_id}.archive.restore")
 
     for backup_id, backup in backups.items():
-        repository_id = required_text(backup, "restic-repository-id", backup_id)
+        repository_ids = backup_repository_ids(backup, backup_id)
         if "tag" in backup:
             required_text(backup, "tag", backup_id)
         paths = backup.get("paths")
@@ -172,10 +193,11 @@ def validate(
             or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
-        if repository_id not in repositories:
-            raise ConfigError(
-                f"{backup_id} references unknown restic repository '{repository_id}'"
-            )
+        for repository_id in repository_ids:
+            if repository_id not in repositories:
+                raise ConfigError(
+                    f"{backup_id} references unknown restic repository '{repository_id}'"
+                )
 
     return storage, repositories, backups
 

@@ -454,16 +454,88 @@ def choose_backup(
         fail("job ID is required when stdin is not interactive")
     choices = [
         questionary.Choice(
-            f"{item_id}  ({item['restic-repository-id']})",
+            f"{item_id}  ({', '.join(config.backup_repository_ids(item, item_id))})",
             value=item_id,
         )
         for item_id, item in backups.items()
-        if repositories[item["restic-repository-id"]]["enabled"]
+        if any(
+            repositories[value]["enabled"]
+            for value in config.backup_repository_ids(item, item_id)
+        )
     ]
     if not choices:
         fail("no enabled backups are available")
     choices.append(questionary.Separator(" "))
     selected = select("Backup job:", choices=choices).unsafe_ask()
+    if selected is None:
+        raise typer.Abort()
+    return str(selected)
+
+
+def choose_repositories(
+    backup_id: str,
+    requested: list[str] | None,
+    repositories: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+) -> list[str]:
+    configured = config.backup_repository_ids(backups[backup_id], backup_id)
+    if requested:
+        selected = requested
+    elif not sys.stdin.isatty():
+        fail("at least one --repository is required when stdin is not interactive")
+    else:
+        selected = questionary.checkbox(
+            "Repositories (Space to toggle, Enter to continue):",
+            choices=[
+                questionary.Choice(
+                    f"{repository_id}{'' if repositories[repository_id]['enabled'] else ' (disabled)'}",
+                    repository_id,
+                    disabled=(
+                        None if repositories[repository_id]["enabled"] else "disabled"
+                    ),
+                    checked=False,
+                )
+                for repository_id in configured
+            ]
+            + [questionary.Separator(" ")],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+    if not selected:
+        fail("select at least one repository")
+    if len(selected) != len(set(selected)):
+        fail("repository selections must be unique")
+    for repository_id in selected:
+        if repository_id not in configured:
+            fail(
+                f"repository '{repository_id}' is not configured for backup job '{backup_id}'"
+            )
+        if not repositories[repository_id]["enabled"]:
+            fail(f"restic repository '{repository_id}' is disabled")
+    return selected
+
+
+def choose_repository(
+    backup_id: str,
+    requested: str | None,
+    repositories: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+) -> str:
+    configured = config.backup_repository_ids(backups[backup_id], backup_id)
+    if requested is not None:
+        return choose_repositories(backup_id, [requested], repositories, backups)[0]
+    enabled = [value for value in configured if repositories[value]["enabled"]]
+    if not enabled:
+        fail(f"backup job '{backup_id}' has no enabled repositories")
+    if len(enabled) == 1:
+        return enabled[0]
+    if not sys.stdin.isatty():
+        fail("--repository is required when stdin is not interactive")
+    selected = select(
+        "Repository:",
+        choices=[questionary.Choice(value, value) for value in enabled]
+        + [questionary.Separator(" ")],
+    ).unsafe_ask()
     if selected is None:
         raise typer.Abort()
     return str(selected)
@@ -500,20 +572,27 @@ def show_backups(
     backup_table = Table(title="Backups", box=box.ROUNDED)
     backup_table.add_column("Job ID", style="cyan", no_wrap=True)
     backup_table.add_column("Description")
-    backup_table.add_column("Repository")
+    backup_table.add_column("Repositories")
     backup_table.add_column("Paths")
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
-        restic_repository = repositories[backup["restic-repository-id"]]
-        state = "enabled" if restic_repository["enabled"] else "disabled"
+        repository_ids = config.backup_repository_ids(backup, backup_id)
+        enabled = sum(repositories[value]["enabled"] for value in repository_ids)
+        state = (
+            "enabled"
+            if enabled == len(repository_ids)
+            else "disabled"
+            if enabled == 0
+            else "partially enabled"
+        )
         backup_table.add_row(
             Text(backup_id),
             Text(str(backup.get("description", "—"))),
-            Text(str(restic_repository["id"])),
+            Text("\n".join(repository_ids)),
             Text("\n".join(backup.get("paths", [])) or "—"),
             Text(str(backup.get("tag", backup_id))),
-            Text(state, style="green" if restic_repository["enabled"] else "yellow"),
+            Text(state, style="green" if enabled == len(repository_ids) else "yellow"),
         )
     console.print(backup_table)
 
@@ -554,14 +633,35 @@ def backup_command(
         bool,
         typer.Option("--dry-run", help="Show what would happen without writing."),
     ] = False,
+    repository_ids: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--repository",
+            "-r",
+            help="Repository ID; repeat to back up to multiple repositories.",
+        ),
+    ] = None,
 ) -> None:
     """Create a snapshot from a backup job's configured paths."""
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
+    selected_repositories = choose_repositories(
+        backup_id, repository_ids, repositories, backups
+    )
     paths = backups[backup_id].get("paths")
     if not paths:
         fail(f"backup job '{backup_id}' has no configured paths")
-    audit_command("backup", "run", backup_id, *(["--dry-run"] if dry_run else []))
+    audit_command(
+        "backup",
+        "run",
+        backup_id,
+        *[
+            value
+            for repository_id in selected_repositories
+            for value in ("--repository", repository_id)
+        ],
+        *(["--dry-run"] if dry_run else []),
+    )
     expanded_paths = [str(Path(path).expanduser()) for path in paths]
     mode = "dry run: scanning" if dry_run else "backing up"
     error_console.print(
@@ -571,20 +671,29 @@ def backup_command(
         )
     )
     args = ["backup", *(["--dry-run"] if dry_run else []), *expanded_paths]
-    try:
-        code = restic.command(
-            backup_id,
-            args,
-            storage,
-            repositories,
-            backups,
+    for repository_id in selected_repositories:
+        error_console.print(
+            Text(f"{backup_id}: repository {repository_id}", style="cyan")
         )
-    except BackupError as exc:
-        fail(str(exc))
-    if code:
-        raise typer.Exit(code)
-    message = "dry run complete; no snapshot created" if dry_run else "snapshot created"
-    error_console.print(Text(f"{backup_id}: {message}", style="bold green"))
+        try:
+            code = restic.command(
+                backup_id,
+                args,
+                storage,
+                repositories,
+                backups,
+                repository_id=repository_id,
+            )
+        except BackupError as exc:
+            fail(str(exc))
+        if code:
+            raise typer.Exit(code)
+        message = (
+            "dry run complete; no snapshot created" if dry_run else "snapshot created"
+        )
+        error_console.print(
+            Text(f"{backup_id}: {repository_id}: {message}", style="bold green")
+        )
 
 
 @backup_app.command("data-dir")
@@ -593,14 +702,19 @@ def data_dir_command(
     backup: str | None = typer.Argument(
         None, help="Job ID; prompts when omitted.", metavar="JOB_ID"
     ),
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Repository ID."),
+    ] = None,
 ) -> None:
     """Print the managed local data directory for a backup."""
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
-    audit_command("backup", "data-dir", backup_id)
+    repository_id = choose_repository(backup_id, repository_id, repositories, backups)
+    audit_command("backup", "data-dir", backup_id, "--repository", repository_id)
     try:
         restic_repository, backend = repository.resolve(
-            backup_id, storage, repositories, backups
+            backup_id, storage, repositories, backups, repository_id
         )
         typer.echo(repository.data_dir(backup_id, restic_repository, backend))
     except BackupError as exc:
@@ -866,6 +980,7 @@ def prune_command(
 
 def load_snapshots(
     backup_id: str,
+    repository_id: str,
     storage: dict[str, dict[str, Any]],
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
@@ -879,6 +994,7 @@ def load_snapshots(
                 storage,
                 repositories,
                 backups,
+                repository_id,
             )
         )
     except (BackupError, json.JSONDecodeError) as exc:
@@ -898,12 +1014,19 @@ def snapshots_command(
         str | None,
         typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Repository ID."),
+    ] = None,
 ) -> None:
     """List snapshots for a configured backup."""
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
-    audit_command("snapshot", "list", backup_id)
-    tag, snapshots = load_snapshots(backup_id, storage, repositories, backups)
+    repository_id = choose_repository(backup_id, repository_id, repositories, backups)
+    audit_command("snapshot", "list", backup_id, "--repository", repository_id)
+    tag, snapshots = load_snapshots(
+        backup_id, repository_id, storage, repositories, backups
+    )
     if not snapshots:
         error_console.print(
             Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
@@ -945,13 +1068,20 @@ def forget_command(
             "--dry-run", help="Show what would be forgotten without deleting."
         ),
     ] = False,
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Repository ID."),
+    ] = None,
 ) -> None:
     """Forget one snapshot and prune its unreferenced data."""
     if not sys.stdin.isatty():
         fail("forget requires an interactive terminal")
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
-    tag, snapshots = load_snapshots(backup_id, storage, repositories, backups)
+    repository_id = choose_repository(backup_id, repository_id, repositories, backups)
+    tag, snapshots = load_snapshots(
+        backup_id, repository_id, storage, repositories, backups
+    )
     if not snapshots:
         error_console.print(
             Text(f"{backup_id}: no snapshots tagged '{tag}'", style="yellow")
@@ -997,6 +1127,8 @@ def forget_command(
         "snapshot",
         "forget",
         backup_id,
+        "--repository",
+        repository_id,
         snapshot_id,
         *(["--dry-run"] if dry_run else []),
     )
@@ -1007,6 +1139,7 @@ def forget_command(
             storage,
             repositories,
             backups,
+            repository_id=repository_id,
         )
     except BackupError as exc:
         fail(str(exc))
@@ -1112,12 +1245,16 @@ def run_command(
             "--backup", "-b", help="Job ID; prompts when omitted.", metavar="JOB_ID"
         ),
     ] = None,
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Repository ID."),
+    ] = None,
 ) -> None:
     """Run restic with all trailing arguments passed through unchanged."""
-    run_args(backup, list(context.args))
+    run_args(backup, list(context.args), repository_id=repository_id)
 
 
-def copyable_command(backup_id: str, args: list[str]) -> str:
+def copyable_command(backup_id: str, repository_id: str, args: list[str]) -> str:
     command = [
         "uv",
         "run",
@@ -1127,18 +1264,38 @@ def copyable_command(backup_id: str, args: list[str]) -> str:
     ]
     if os.environ.get(sops.SOPS_ENV) == "1":
         command.append("--sops")
-    command.extend(["generic", "restic", "run", "--backup", backup_id, *args])
+    command.extend(
+        [
+            "generic",
+            "restic",
+            "run",
+            "--backup",
+            backup_id,
+            "--repository",
+            repository_id,
+            *args,
+        ]
+    )
     return shlex.join(command)
 
 
-def run_args(backup: str | None, args: list[str], *, interactive: bool = False) -> None:
+def run_args(
+    backup: str | None,
+    args: list[str],
+    *,
+    interactive: bool = False,
+    repository_id: str | None = None,
+) -> None:
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
+    repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     if not args:
         fail("a restic command is required after 'run'")
     if interactive:
         console.print(Text("Command:", style="bold"))
-        console.print(Text(copyable_command(backup_id, args), style="cyan"))
+        console.print(
+            Text(copyable_command(backup_id, repository_id, args), style="cyan")
+        )
         action = select(
             "Action:",
             choices=[
@@ -1154,10 +1311,25 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
             if action == "cancel":
                 error_console.print(Text("Cancelled; nothing was run.", style="yellow"))
             return
-    audit_command("restic", "run", "--backup", backup_id, *args)
+    audit_command(
+        "restic",
+        "run",
+        "--backup",
+        backup_id,
+        "--repository",
+        repository_id,
+        *args,
+    )
     try:
         raise typer.Exit(
-            restic.command(backup_id, args, storage, repositories, backups)
+            restic.command(
+                backup_id,
+                args,
+                storage,
+                repositories,
+                backups,
+                repository_id=repository_id,
+            )
         )
     except BackupError as exc:
         fail(str(exc))

@@ -65,12 +65,14 @@ The configuration separates:
   credentials kept on the relevant storage entry;
 - `restic-repositories`: encrypted repositories within storage, including the
   bucket/key prefix or local path, restic password, cache, and archive policy;
-- `backups`: jobs linked to a restic repository, local source paths, and an
-  optional snapshot tag (defaulting to the job ID).
+- `backups`: jobs linked to one or more restic repositories, local source
+  paths, and an optional snapshot tag (defaulting to the job ID).
 
-Multiple restic repositories may use one storage backend, and multiple backup
-jobs may share one restic repository. Disabled repositories may contain
-`CHANGE_ME`; all placeholders must be replaced before enabling one.
+Multiple restic repositories may use one storage backend, one backup job may
+write to several repositories, and several jobs may share one repository. The
+backup TUI requires destinations to be selected explicitly. Disabled
+repositories may contain `CHANGE_ME`; all placeholders must be replaced before
+enabling one.
 
 ## Data and source paths
 
