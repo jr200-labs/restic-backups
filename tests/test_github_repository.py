@@ -218,9 +218,7 @@ def test_github_owner_dry_run_enumerates_without_writing_or_backing_up(
     run.assert_not_called()
     restic.assert_not_called()
 
-    invalid = github_job(metadata=True)
-    with pytest.raises(config.ConfigError, match="api.token is required"):
-        config.validate(complete_config(invalid))
+    config.validate(complete_config(github_job(metadata=True)))
 
 
 def test_dry_run_does_not_write_or_run_commands(

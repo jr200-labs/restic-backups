@@ -220,8 +220,6 @@ def validate_github_settings(
         if not isinstance(api, dict) or set(api) != {"token"}:
             raise ConfigError(f"{job_id}.source.authentication.api must define token")
         credential_source(api["token"], f"{job_id}.source API token")
-    if (components["metadata"] or components["release-assets"]) and api is None:
-        raise ConfigError(f"{job_id}.source.authentication.api.token is required")
 
 
 def validate_github_owner(github: dict[str, Any], job_id: str) -> None:

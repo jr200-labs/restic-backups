@@ -102,6 +102,12 @@ They do not create local files, run Git, or contact Restic.
 
 ## Credentials
 
+On an interactive laptop, the simplest configuration omits `authentication`.
+GitHub API commands then use the current `gh auth login` session, while clone
+operations use the normal Git credential helper or SSH agent and configuration.
+Configure the explicit secret sources below only when those credentials are not
+available, such as in a container or Kubernetes CronJob.
+
 Every configured secret source contains exactly one `env` or `file` key. The
 environment variable or file is read again on every run, which works with
 rotated Kubernetes Secrets and other secret managers. Secret values are never
@@ -123,13 +129,16 @@ authentication:
         env: GITHUB_GIT_TOKEN
 ```
 
-The CLI supplies it through a temporary Git askpass helper. Public HTTPS
-repositories may omit Git authentication.
+The CLI supplies it through a temporary Git askpass helper. When this source is
+omitted, Git uses its existing credential configuration; public repositories
+need no authentication.
 
-The separate `authentication.api.token` is required when `metadata` or
-`release-assets` is enabled. GitHub's migration API currently requires a
-compatible **classic personal access token** and repository-owner access;
-fine-grained tokens and GitHub App tokens are not supported for this API. See
+When `authentication.api.token` is omitted, API-backed components use the
+current credentials from `gh auth login`. Containers and scheduled jobs without
+that login should configure a token from an environment variable or mounted
+file. GitHub's migration API currently requires a compatible **classic personal
+access token** and repository-owner access; fine-grained tokens and GitHub App
+tokens are not supported for this API. See
 GitHub's [organization migration API](https://docs.github.com/en/rest/migrations/orgs)
 and [user migration API](https://docs.github.com/en/rest/migrations/users).
 

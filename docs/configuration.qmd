@@ -226,12 +226,14 @@ jobs:
 ```
 
 All component flags are required and at least one must be enabled. `lfs`
-requires `git`. API authentication is required for `metadata` and
-`release-assets`; Git-only jobs do not require `gh` or an API token. Secret
-sources contain exactly one `env` or `file` key, so secret values remain outside
-the YAML. `repository-urls` must be a non-empty list identifying distinct
-GitHub repositories. The previous singular `repository-url` is accepted
-temporarily for migration, but new configurations should use the list. See
+requires `git`. On a laptop, omit `authentication` to use `gh auth login` and
+the normal Git/SSH configuration. Configure explicit Git or API credential
+sources only when those local credentials are unavailable, such as in a
+container or Kubernetes CronJob. Secret sources contain exactly one `env` or
+`file` key, so secret values remain outside the YAML. `repository-urls` must be
+a non-empty list identifying distinct GitHub repositories. The previous
+singular `repository-url` is accepted temporarily for migration, but new
+configurations should use the list. See
 [GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
 Git authentication, migration permissions, commands, workspace layout, and
 restore steps.
