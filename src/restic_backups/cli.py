@@ -21,6 +21,7 @@ from .generic import cli as generic_cli
 from .generic import repository
 from .generic import sops as sops_module
 from .generic.tui import select
+from .github_repository import cli as github_repository_cli
 
 app = typer.Typer(
     help="Configured backup commands.",
@@ -33,13 +34,19 @@ app.add_typer(
     invoke_without_command=True,
     no_args_is_help=False,
 )
+app.add_typer(
+    github_repository_cli.app,
+    name="github-repository",
+    invoke_without_command=True,
+    no_args_is_help=False,
+)
 VERBOSE_ENV = "RESTIC_BACKUPS_VERBOSE"
 error_console = Console(stderr=True)
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
     return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<17}"), ("", description)], value
+        [("fg:ansicyan bold", f"{label:<21}"), ("", description)], value
     )
 
 
@@ -114,6 +121,11 @@ def interactive_menu() -> None:
                     "generic",
                 ),
                 menu_choice(
+                    "GitHub repositories",
+                    "Back up Git history and selected GitHub data",
+                    "github-repository",
+                ),
+                menu_choice(
                     "Voice Memos",
                     "Back up, restore, transcribe, and diarize memos",
                     "voice-memos",
@@ -134,6 +146,8 @@ def interactive_menu() -> None:
             generic_cli.print_typer_help(app, "restic-backups")
         elif selected == "generic":
             generic_cli.interactive_menu()
+        elif selected == "github-repository":
+            github_repository_cli.interactive_menu()
         elif selected == "voice-memos":
             from .voice_memos.cli import interactive_menu as voice_memos_menu
 

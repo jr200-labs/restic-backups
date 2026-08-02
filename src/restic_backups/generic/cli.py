@@ -445,10 +445,14 @@ def choose_backup(
     backup_id: str | None,
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
+    *,
+    include_github: bool = True,
 ) -> str:
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
+        if not include_github and "github" in backups[backup_id]:
+            fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
@@ -458,6 +462,7 @@ def choose_backup(
             value=item_id,
         )
         for item_id, item in backups.items()
+        if include_github or "github" not in item
         if any(
             repositories[value]["enabled"]
             for value in config.backup_repository_ids(item, item_id)
@@ -577,6 +582,8 @@ def show_backups(
     backup_table.add_column("Tag")
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
+        if "github" in backup:
+            continue
         repository_ids = config.backup_repository_ids(backup, backup_id)
         enabled = sum(repositories[value]["enabled"] for value in repository_ids)
         state = (
@@ -644,7 +651,7 @@ def backup_command(
 ) -> None:
     """Create a snapshot from a backup job's configured paths."""
     _, storage, repositories, backups = validated()
-    backup_id = choose_backup(backup, repositories, backups)
+    backup_id = choose_backup(backup, repositories, backups, include_github=False)
     selected_repositories = choose_repositories(
         backup_id, repository_ids, repositories, backups
     )
@@ -709,7 +716,7 @@ def data_dir_command(
 ) -> None:
     """Print the managed local data directory for a backup."""
     _, storage, repositories, backups = validated()
-    backup_id = choose_backup(backup, repositories, backups)
+    backup_id = choose_backup(backup, repositories, backups, include_github=False)
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     audit_command("backup", "data-dir", backup_id, "--repository", repository_id)
     try:

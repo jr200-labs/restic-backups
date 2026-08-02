@@ -84,3 +84,36 @@ backups:
       restic-repository-ids:
           - personal-b2
       # The specialized workflow discovers its own source paths.
+
+    - job-id: example-github-repository
+      description: Back up one GitHub repository and its selected GitHub data.
+      restic-repository-ids:
+          - personal-b2
+          - personal-local
+      # GitHub jobs use a managed local workspace instead of paths.
+      github:
+          # github.com SSH and token-free HTTPS clone URLs are supported.
+          repository-url: git@github.com:example/example-repository.git
+          authentication:
+              # Optional for SSH when an existing agent/config already works.
+              git:
+                  ssh:
+                      # Each secret source contains exactly one env or file key.
+                      private-key:
+                          file: /var/run/secrets/github/ssh-private-key
+                      # Strict host verification is always enabled.
+                      known-hosts:
+                          file: /var/run/secrets/github/known-hosts
+              # Required only when metadata or release-assets is enabled.
+              api:
+                  token:
+                      env: GITHUB_MIGRATION_TOKEN
+          # All component flags are required. LFS requires git.
+          components:
+              git: true
+              lfs: true
+              wiki: true
+              metadata: true
+              release-assets: true
+          # Maximum wait for GitHub to prepare a migration export.
+          migration-timeout-seconds: 3600

@@ -82,6 +82,7 @@ uv run restic-backups generic restic run --backup documents \
 
 Inspect the restored files before relying on the backup. Continue with
 [Generic Backups](generic.qmd) for repository commands or
+[GitHub Repositories](github-repositories.qmd) for Git and GitHub data, or
 [Voice Memos Backups](voice-memos.qmd) for the macOS workflow.
 
 ::: {.callout-warning}

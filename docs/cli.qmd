@@ -9,8 +9,8 @@ uv run restic-backups
 ```
 
 In an interactive terminal, running without a command opens a described
-arrow-key menu for **Generic backups**, **Voice Memos**, and configuration
-validation. Each workflow opens another described arrow-key menu. Explicit
+arrow-key menu for **Generic backups**, **GitHub repositories**, **Voice
+Memos**, and configuration validation. Each workflow opens another described arrow-key menu. Explicit
 subcommands remain available for scripts and scheduled jobs.
 
 Every menu level includes **Help** and **Back**. **Help** shows the commands and
@@ -55,6 +55,8 @@ has two linked records:
 - a `started` event containing an `id`, `start-time`, `hostname`, `command`, and
   its exact `args`;
 - a `finished` event containing `started-id`, `end-time`, and `successful`.
+  Workflows may also add non-secret component and destination results under
+  `details`.
 
 The `started-id` links completion to the corresponding `started` event. A
 `started` event without a matching `finished` event indicates an interrupted
@@ -62,6 +64,8 @@ process. The file is append-only: existing records are never rewritten. It is
 created with owner-only permissions (`0600`).
 Interactive selections are recorded when run, and restic subprocess records
 contain the exact raw restic arguments, including generated repository options.
+GitHub repository jobs likewise record every raw `git`, `git lfs`, `gh`, and
+`restic` command.
 Credentials and repository passwords are passed through the environment rather
 than arguments. Values attached to password-, secret-, token-, credential-, and
 key-like arguments are replaced with `[REDACTED]`.
@@ -81,16 +85,20 @@ The values `false`, `no`, and `off` are also accepted, case-insensitively.
 | Command | Purpose | Repository access |
 |---|---|---|
 | `check-config` | Load and validate configuration | No |
+| `github-repository ...` | Update and snapshot a GitHub repository export | Depends on subcommand |
 | `generic ...` | Run generic configured repository commands | Depends on subcommand |
 | `voice-memos ...` | Run the macOS Voice Memos workflow | Depends on subcommand |
 
 Use [Generic Backups](generic.qmd) for restic passthrough, repository
 initialization, restores, and managed data directories. Use
+[GitHub Repositories](github-repositories.qmd) for Git history and selected
+GitHub-hosted data. Use
 [Voice Memos Backups](voice-memos.qmd) for the macOS-specific workflow.
 
 Run subcommand help without loading a configuration:
 
 ```sh
 uv run restic-backups generic --help
+uv run restic-backups github-repository --help
 uv run restic-backups voice-memos --help
 ```

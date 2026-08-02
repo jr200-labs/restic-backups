@@ -1,0 +1,208 @@
+---
+title: GitHub Repositories
+---
+
+The **GitHub repositories** workflow incrementally maintains a complete Git
+mirror and optionally collects Git LFS objects, the wiki, repository metadata,
+and release assets. It then snapshots the managed workspace to one or more
+configured restic repositories.
+
+## Configure a job
+
+GitHub jobs live in `backups`, but use `github` instead of `paths`:
+
+```yaml
+backups:
+  - job-id: example-github-repository
+    description: Complete GitHub repository backup.
+    restic-repository-ids:
+      - personal-b2
+      - personal-local
+    tag: example-github-repository
+    github:
+      repository-url: git@github.com:example/example-repository.git
+      authentication:
+        git:
+          ssh:
+            private-key:
+              file: /var/run/secrets/github/ssh-private-key
+            known-hosts:
+              file: /var/run/secrets/github/known-hosts
+        api:
+          token:
+            env: GITHUB_MIGRATION_TOKEN
+      components:
+        git: true
+        lfs: true
+        wiki: true
+        metadata: true
+        release-assets: true
+      migration-timeout-seconds: 3600
+```
+
+Every component flag is required, and at least one must be `true`. `lfs`
+requires `git`. A GitHub job cannot also define `paths`. The optional restic
+`tag` still defaults to `job-id`.
+
+Only `github.com` clone URLs are accepted:
+
+```text
+git@github.com:OWNER/REPOSITORY.git
+https://github.com/OWNER/REPOSITORY.git
+```
+
+Credentials, query strings, and fragments embedded in the URL are rejected.
+
+## Credentials
+
+Every configured secret source contains exactly one `env` or `file` key. The
+environment variable or file is read again on every run, which works with
+rotated Kubernetes Secrets and other secret managers. Secret values are never
+placed in command arguments, logs, manifests, or the audit log.
+
+For SSH clone URLs, omit `authentication.git` to use the existing SSH agent and
+configuration, or configure both a private key and `known_hosts`. Configured
+keys are copied to temporary owner-only files, and strict host verification is
+always enabled. Generate a pinned host entry according to GitHub's
+[SSH host key guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+
+For HTTPS clone URLs, use a token without putting it in the URL:
+
+```yaml
+authentication:
+  git:
+    https:
+      token:
+        env: GITHUB_GIT_TOKEN
+```
+
+The CLI supplies it through a temporary Git askpass helper. Public HTTPS
+repositories may omit Git authentication.
+
+The separate `authentication.api.token` is required when `metadata` or
+`release-assets` is enabled. GitHub's migration API currently requires a
+compatible **classic personal access token** and repository-owner access;
+fine-grained tokens and GitHub App tokens are not supported for this API. See
+GitHub's [organization migration API](https://docs.github.com/en/rest/migrations/orgs)
+and [user migration API](https://docs.github.com/en/rest/migrations/users).
+
+For a Kubernetes CronJob, mount files or inject environment variables from a
+Secret and point the job at their names—do not put secret values in YAML:
+
+```yaml
+env:
+  - name: GITHUB_MIGRATION_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: github-backup
+        key: api-token
+volumeMounts:
+  - name: github-ssh
+    mountPath: /var/run/secrets/github
+    readOnly: true
+```
+
+The container needs `git`, `git-lfs` when LFS is enabled, `gh` when API-backed
+components are enabled, and `restic`. `make install-deps` installs these tools
+with Homebrew for local use.
+
+## Components
+
+| Component | Backed-up data | Update behavior |
+|---|---|---|
+| `git` | Every Git ref and object, including full branch and tag history | Initial `git clone --mirror`; later `git remote update --prune` |
+| `lfs` | All Git LFS objects reachable from the mirror | `git lfs fetch --all origin` |
+| `wiki` | The repository wiki as a separate Git mirror | Missing or empty wikis are recorded as `not-present` |
+| `metadata` | GitHub's official migration export, including issues, pull requests, comments, attachments, and release metadata | A new migration archive is requested and downloaded each run |
+| `release-assets` | Binary files attached to releases | Missing or changed assets download atomically; remotely deleted assets are removed only after a complete successful update |
+
+A Git-only job sets `git: true` and every other component to `false`. It needs
+only Git authentication and never invokes `gh`. Git history contains commits,
+branches, and tags; it does **not** contain issue discussions, pull-request
+comments, or other GitHub database records. Without `lfs`, Git history still
+contains LFS pointer files but not the referenced large objects.
+
+## Run and inspect
+
+Use the described arrow-key TUI or explicit commands:
+
+```sh
+uv run restic-backups github-repository list
+uv run restic-backups github-repository backup example-github-repository \
+  --repository personal-b2 --repository personal-local
+uv run restic-backups github-repository status
+uv run restic-backups github-repository status example-github-repository
+uv run restic-backups github-repository data-dir example-github-repository
+uv run restic-backups generic snapshot list example-github-repository \
+  --repository personal-b2
+uv run restic-backups generic restic run --backup example-github-repository \
+  --repository personal-b2 ls latest --tag example-github-repository
+```
+
+With no job ID, `status` shows one row for every GitHub job and destination,
+including the latest snapshot ID and time, the local export time, and component
+states. Snapshots are matched using each job's configured tag, which defaults to
+its job ID. Each destination repository is queried only once, even when many
+jobs share it. Passing a job ID limits the snapshot table and adds that job's
+detailed component errors.
+
+The status table reads restic snapshot metadata, not backed-up file contents.
+It can contact remote storage when the required metadata is not already cached.
+
+GitHub jobs are also selectable from **Snapshots** and **Advanced restic**.
+Use `restic ls` to browse files in a snapshot. The different `restic list`
+command lists internal repository objects and requires an object type such as
+`packs`, `snapshots`, or `keys`; it does not list configured backup jobs.
+
+The TUI starts with every configured destination unchecked. Select each desired
+restic repository with Space. A dry run validates the plan without calling Git,
+GitHub, or restic and without writing the workspace:
+
+```sh
+uv run restic-backups github-repository backup example-github-repository \
+  --repository personal-b2 --dry-run
+```
+
+## Managed workspace and snapshots
+
+The reusable local workspace lives beside the selected config:
+
+```text
+data/github-repositories/<job-id>/
+  repository.git/
+  wiki.git/
+  github-export/
+  release-assets/
+  backup-manifest.json
+```
+
+The manifest records the source, update time, and a safe status for every
+component: `updated`, `unchanged`, `stale`, `not-present`, `failed`, or
+`disabled`. If one component fails, the workflow still attempts the others and
+all selected destinations. Existing local component data is included as
+`stale`; the command creates the best available snapshot and exits nonzero when
+anything failed. Disabled cached components are not included.
+
+Restic splits input into content-defined chunks and deduplicates identical
+chunks **within each restic repository**. Stable Git pack files, LFS objects,
+migration files, and release assets therefore do not need to be uploaded again.
+The workflow disables automatic Git maintenance and repacking because repacking
+can rewrite otherwise unchanged Git objects and reduce deduplication. Separate
+restic repositories do not share chunks, so two destinations each store their
+own copy. See restic's [repository design](https://restic.readthedocs.io/en/stable/100_references.html#repository-design).
+
+Restore a snapshot with the normal restic command, then clone the restored bare
+repository into a working tree:
+
+```sh
+uv run restic-backups generic restic run --backup example-github-repository \
+  restore latest --target /tmp/github-restore
+git clone /tmp/github-restore/repository.git restored-repository
+```
+
+## Deliberate limits
+
+This workflow does not export GitHub Actions artifacts, logs or caches,
+packages, secret values, forks as independent repositories, submodule
+repositories, or GitHub Enterprise. Configure another job for each independent
+Git or submodule repository that must be retained.

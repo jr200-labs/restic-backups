@@ -87,17 +87,22 @@ def record(command: str, args: list[str]) -> str | None:
     return event_id
 
 
-def finish(event_id: str | None, successful: bool) -> None:
+def finish(
+    event_id: str | None,
+    successful: bool,
+    details: Mapping[str, object] | None = None,
+) -> None:
     if event_id is None or event_id not in _pending:
         return
-    _append(
-        {
-            "event": "finished",
-            "started-id": event_id,
-            "end-time": datetime.now(UTC).isoformat(),
-            "successful": successful,
-        }
-    )
+    event: dict[str, object] = {
+        "event": "finished",
+        "started-id": event_id,
+        "end-time": datetime.now(UTC).isoformat(),
+        "successful": successful,
+    }
+    if details:
+        event["details"] = details
+    _append(event)
     _pending.remove(event_id)
 
 
