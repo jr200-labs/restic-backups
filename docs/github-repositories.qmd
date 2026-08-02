@@ -133,6 +133,10 @@ uv run restic-backups github-repository backup example-github-repository \
 uv run restic-backups github-repository status
 uv run restic-backups github-repository status example-github-repository
 uv run restic-backups github-repository data-dir example-github-repository
+uv run restic-backups generic snapshot list example-github-repository \
+  --repository personal-b2
+uv run restic-backups generic restic run --backup example-github-repository \
+  --repository personal-b2 ls latest --tag example-github-repository
 ```
 
 With no job ID, `status` shows one row for every GitHub job and destination,
@@ -144,6 +148,11 @@ detailed component errors.
 
 The status table reads restic snapshot metadata, not backed-up file contents.
 It can contact remote storage when the required metadata is not already cached.
+
+GitHub jobs are also selectable from **Snapshots** and **Advanced restic**.
+Use `restic ls` to browse files in a snapshot. The different `restic list`
+command lists internal repository objects and requires an object type such as
+`packs`, `snapshots`, or `keys`; it does not list configured backup jobs.
 
 The TUI starts with every configured destination unchecked. Select each desired
 restic repository with Space. A dry run validates the plan without calling Git,

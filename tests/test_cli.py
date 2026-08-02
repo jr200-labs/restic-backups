@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import Mock, call, patch
 
 import questionary
+import typer
 from click import unstyle
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
@@ -653,6 +654,41 @@ backups:
             f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
             "--sops generic restic run --backup documents --repository store list snapshots",
             output,
+        )
+
+    def test_advanced_restic_picker_includes_github_jobs(self) -> None:
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        backups = {
+            "github-repository": {
+                "restic-repository-id": "store",
+                "github": {},
+            }
+        }
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, storage, repositories, backups),
+            ),
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.select") as select,
+            patch(
+                "restic_backups.generic.cli.restic.command", return_value=0
+            ) as command,
+        ):
+            select.return_value.unsafe_ask.return_value = "github-repository"
+            with self.assertRaises(typer.Exit):
+                run_args(None, ["list", "snapshots"])
+
+        choices = select.call_args.kwargs["choices"]
+        self.assertEqual(choices[0].value, "github-repository")
+        command.assert_called_once_with(
+            "github-repository",
+            ["list", "snapshots"],
+            storage,
+            repositories,
+            backups,
+            repository_id="store",
         )
 
     def test_advanced_restic_menu_adds_selected_dry_run(self) -> None:
