@@ -110,7 +110,7 @@ Usage:
                     "cache-dir": "/tmp/restic-cache",
                 }
             ],
-            "backups": [{"id": "voice-memos", "restic-store-id": "store"}],
+            "backups": [{"job-id": "voice-memos", "restic-store-id": "store"}],
         }
         credentials, stores, backups = config.validate(config_data)
         result: subprocess.CompletedProcess[str] = subprocess.CompletedProcess([], 0)
@@ -173,6 +173,11 @@ Usage:
         config_data["backups"][0]["paths"] = ["/tmp/source"]
         config_data["restic-stores"][0]["cache-dir"] = 42
         with self.assertRaisesRegex(config.ConfigError, "store.cache-dir"):
+            config.validate(config_data)
+
+        config_data["restic-stores"][0]["cache-dir"] = "/tmp/restic-cache"
+        config_data["backups"][0]["id"] = config_data["backups"][0].pop("job-id")
+        with self.assertRaisesRegex(config.ConfigError, "backups.job-id"):
             config.validate(config_data)
 
 
