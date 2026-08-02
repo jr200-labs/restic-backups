@@ -222,7 +222,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">GitHub Repositories</span></a>
+ <span class="menu-text">GitHub Backups</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -253,7 +253,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <li><a href="#restic-repositories" id="toc-restic-repositories" class="nav-link" data-scroll-target="#restic-repositories"><code>restic-repositories</code></a></li>
   <li><a href="#jobs" id="toc-jobs" class="nav-link" data-scroll-target="#jobs"><code>jobs</code></a>
   <ul class="collapse">
-  <li><a href="#github-repository-jobs" id="toc-github-repository-jobs" class="nav-link" data-scroll-target="#github-repository-jobs">GitHub repository jobs</a></li>
+  <li><a href="#github-jobs" id="toc-github-jobs" class="nav-link" data-scroll-target="#github-jobs">GitHub jobs</a></li>
   </ul></li>
   <li><a href="#optional-archive-policy" id="toc-optional-archive-policy" class="nav-link" data-scroll-target="#optional-archive-policy">Optional archive policy</a>
   <ul class="collapse">
@@ -375,10 +375,10 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Restic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.</p>
 <p>Several backups may share a restic repository. Their tags distinguish their snapshots inside it.</p>
-<p>The supported types are <code>files</code>, <code>github-repository</code>, and <code>voice-memos</code>. They all use the same job list, destination picker, run command, status table, snapshot tools, and audit result. The <code>source</code> mapping is the only type-specific part. See <a href="./jobs.html">Jobs</a> for all three forms.</p>
+<p>The supported types are <code>files</code>, <code>github-repository</code>, <code>github-owner</code>, and <code>voice-memos</code>. They all use the same job list, destination picker, run command, status table, snapshot tools, and audit result. The <code>source</code> mapping is the only type-specific part. See <a href="./jobs.html">Jobs</a> for all forms.</p>
 <p>For compatibility, one release accepts the previous <code>backups</code> section and normalizes its <code>paths</code> or <code>github</code> fields. Do not define both sections. New and updated configurations should use <code>jobs</code>, explicit <code>type</code>, and <code>source</code>.</p>
-<section id="github-repository-jobs" class="level3">
-<h3 class="anchored" data-anchor-id="github-repository-jobs">GitHub repository jobs</h3>
+<section id="github-jobs" class="level3">
+<h3 class="anchored" data-anchor-id="github-jobs">GitHub jobs</h3>
 <p>A GitHub repository job uses a GitHub source mapping:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">jobs</span><span class="kw">:</span></span>
 <span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> example-github-repository</span></span>
@@ -402,39 +402,51 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb10-21"><a href="#cb10-21" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb10-22"><a href="#cb10-22" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>All component flags are required and at least one must be enabled. <code>lfs</code> requires <code>git</code>. API authentication is required for <code>metadata</code> and <code>release-assets</code>; Git-only jobs do not require <code>gh</code> or an API token. Secret sources contain exactly one <code>env</code> or <code>file</code> key, so secret values remain outside the YAML. <code>repository-urls</code> must be a non-empty list identifying distinct GitHub repositories. The previous singular <code>repository-url</code> is accepted temporarily for migration, but new configurations should use the list. See <a href="./github-repositories.html">GitHub Repositories</a> for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.</p>
+<p>All component flags are required and at least one must be enabled. <code>lfs</code> requires <code>git</code>. On a laptop, omit <code>authentication</code> to use <code>gh auth login</code> and the normal Git/SSH configuration. Configure explicit Git or API credential sources only when those local credentials are unavailable, such as in a container or Kubernetes CronJob. Secret sources contain exactly one <code>env</code> or <code>file</code> key, so secret values remain outside the YAML. <code>repository-urls</code> must be a non-empty list identifying distinct GitHub repositories. The previous singular <code>repository-url</code> is accepted temporarily for migration, but new configurations should use the list. See <a href="./github-repositories.html">GitHub Repositories</a> for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.</p>
+<p>To discover every repository owned by one organization or user on each run, use <code>type: github-owner</code> and replace <code>repository-urls</code> with:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span><span class="kw">:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">owner-url</span><span class="kw">:</span><span class="at"> https://github.com/example</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">clone-protocol</span><span class="kw">:</span><span class="at"> ssh</span></span>
+<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>clone-protocol</code> defaults to <code>ssh</code>. Owner discovery uses the current <code>gh auth login</code> credentials when <code>authentication.api.token</code> is omitted; an unattended environment can supply that token through an <code>env</code> or <code>file</code> secret source. Owner-job dry runs contact GitHub read-only to report the repositories they would process, but never run Git or contact restic.</p>
 </section>
 </section>
 <section id="optional-archive-policy" class="level2">
 <h2 class="anchored" data-anchor-id="optional-archive-policy">Optional archive policy</h2>
 <p>Restic repositories on AWS S3 storage may add an <code>archive</code> policy. <code>storage-class</code> controls how new objects are stored, and <code>restore</code> defines retrieval behavior for cold storage:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">storage</span><span class="kw">:</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> s3</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-east-1.amazonaws.com</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-east-1</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials</span><span class="kw">:</span></span>
-<span id="cb11-7"><a href="#cb11-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb11-8"><a href="#cb11-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb11-9"><a href="#cb11-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb11-10"><a href="#cb11-10" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-repositories</span><span class="kw">:</span></span>
-<span id="cb11-11"><a href="#cb11-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-archive</span></span>
-<span id="cb11-12"><a href="#cb11-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> AWS S3 restic repository.</span></span>
-<span id="cb11-13"><a href="#cb11-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">storage-id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
-<span id="cb11-14"><a href="#cb11-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb11-15"><a href="#cb11-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
-<span id="cb11-16"><a href="#cb11-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> backups</span></span>
-<span id="cb11-17"><a href="#cb11-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb11-18"><a href="#cb11-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb11-19"><a href="#cb11-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
-<span id="cb11-20"><a href="#cb11-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">storage</span><span class="kw">:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> s3</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-east-1.amazonaws.com</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-east-1</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials</span><span class="kw">:</span></span>
+<span id="cb12-7"><a href="#cb12-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb12-8"><a href="#cb12-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb12-9"><a href="#cb12-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb12-10"><a href="#cb12-10" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-repositories</span><span class="kw">:</span></span>
+<span id="cb12-11"><a href="#cb12-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-archive</span></span>
+<span id="cb12-12"><a href="#cb12-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> AWS S3 restic repository.</span></span>
+<span id="cb12-13"><a href="#cb12-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">storage-id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
+<span id="cb12-14"><a href="#cb12-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb12-15"><a href="#cb12-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
+<span id="cb12-16"><a href="#cb12-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> backups</span></span>
+<span id="cb12-17"><a href="#cb12-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb12-18"><a href="#cb12-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb12-19"><a href="#cb12-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
+<span id="cb12-20"><a href="#cb12-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Omit <code>archive</code> to use the storage provider’s default class.</p>
 <section id="s3-glacier-instant-retrieval-glacier_ir" class="level3">
 <h3 class="anchored" data-anchor-id="s3-glacier-instant-retrieval-glacier_ir">S3 Glacier Instant Retrieval (<code>GLACIER_IR</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/instant-retrieval/">S3 Glacier Instant Retrieval</a> is for rarely accessed data that must remain readable within milliseconds. Restic can access it normally, so it must not define a restore policy:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
-<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <ul>
 <li><strong>90-day minimum:</strong> Each uploaded object is billed for at least 90 days. If restic deletes or replaces it after 30 days, AWS still charges the remaining 60 days.</li>
 <li><strong>128 KB minimum:</strong> A 10 KB object is billed as 128 KB. This matters when a repository contains many small objects.</li>
@@ -445,27 +457,27 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="s3-glacier-flexible-retrieval-glacier">S3 Glacier Flexible Retrieval (<code>GLACIER</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Flexible Retrieval</a> is for backups read roughly once or twice per year. Objects require an archive restore before restic can read them. Expedited retrieval usually takes 1–5 minutes, Standard takes 3–5 hours, and Bulk takes 5–12 hours. Objects have a 90-day minimum storage duration and 40 KB of billable metadata overhead each.</p>
 <p>Configure the retrieval tier, the number of days to retain the temporary restored copy, and the maximum wait time:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER</span></span>
-<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
-<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
-<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
-<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 24h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER</span></span>
+<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
+<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
+<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
+<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 24h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>tier</code> accepts <code>Standard</code>, <code>Bulk</code>, or <code>Expedited</code>.</p>
 </section>
 <section id="s3-glacier-deep-archive-deep_archive" class="level3">
 <h3 class="anchored" data-anchor-id="s3-glacier-deep-archive-deep_archive">S3 Glacier Deep Archive (<code>DEEP_ARCHIVE</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Deep Archive</a> is the lowest-cost option for data read less than once per year. It has a 180-day minimum storage duration and 40 KB of billable metadata overhead per object. Standard retrieval typically completes within 12 hours; Bulk can take up to 48 hours.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> DEEP_ARCHIVE</span></span>
-<span id="cb14-3"><a href="#cb14-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
-<span id="cb14-4"><a href="#cb14-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
-<span id="cb14-5"><a href="#cb14-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
-<span id="cb14-6"><a href="#cb14-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 48h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> DEEP_ARCHIVE</span></span>
+<span id="cb15-3"><a href="#cb15-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
+<span id="cb15-4"><a href="#cb15-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
+<span id="cb15-5"><a href="#cb15-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
+<span id="cb15-6"><a href="#cb15-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 48h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>tier</code> accepts <code>Standard</code> or <code>Bulk</code>.</p>
 <p>Flexible Retrieval and Deep Archive commands that read repository data require an acknowledgement:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
-<span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb16"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb16-1"><a href="#cb16-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
+<span id="cb16-2"><a href="#cb16-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Changing a storage class affects new objects only. Use a new <code>key_prefix</code> rather than mixing storage policies in one repository.</p>
 </section>
 </section>
