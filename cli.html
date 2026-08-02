@@ -226,7 +226,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#root-commands" id="toc-root-commands" class="nav-link active" data-scroll-target="#root-commands">Root commands</a></li>
+  <li><a href="#audit-log" id="toc-audit-log" class="nav-link active" data-scroll-target="#audit-log">Audit log</a></li>
+  <li><a href="#root-commands" id="toc-root-commands" class="nav-link" data-scroll-target="#root-commands">Root commands</a></li>
   </ul>
 </nav>
     </div>
@@ -264,6 +265,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>The equivalent environment variables are <code>RESTIC_BACKUPS_CONFIG</code> and <code>RESTIC_BACKUPS_SOPS=1</code>. See <a href="./configuration.html">Configuration</a> for setup.</p>
 <p>Commands use colored, level-aware stderr logging for configuration and operation progress. Add <code>--verbose</code> before the command, or set <code>RESTIC_BACKUPS_VERBOSE=1</code>, to include command-level details without printing credentials or repository passwords:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--verbose</span> generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="audit-log" class="level2">
+<h2 class="anchored" data-anchor-id="audit-log">Audit log</h2>
+<p>Command auditing is enabled by default. <code>restic-backups</code> appends one compact JSON object per line to <code>audit-log.json</code> in the directory where it was started. Each record contains:</p>
+<ul>
+<li><code>date-time</code>: the UTC date and time;</li>
+<li><code>hostname</code>: the machine hostname;</li>
+<li><code>command</code>: the executable or CLI command;</li>
+<li><code>args</code>: its arguments.</li>
+</ul>
+<p>The file uses one JSON object per line so new records can be appended without rewriting existing records. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
+<p>The log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_AUDIT</span><span class="op">=</span>0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The values <code>false</code>, <code>no</code>, and <code>off</code> are also accepted, case-insensitively.</p>
+</section>
 <section id="root-commands" class="level2">
 <h2 class="anchored" data-anchor-id="root-commands">Root commands</h2>
 <table class="caption-top table">
@@ -299,8 +314,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </table>
 <p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
 <p>Run subcommand help without loading a configuration:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>
