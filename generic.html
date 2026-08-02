@@ -289,7 +289,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <th>Group</th>
 <th>Command</th>
 <th>Purpose</th>
-<th>Remote storage</th>
+<th>Repository access</th>
 </tr>
 </thead>
 <tbody>
@@ -366,7 +366,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents <span class="at">--dry-run</span></span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot forget documents <span class="at">--dry-run</span></span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy personal <span class="at">--dry-run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p><code>generic repository list</code> shows every store, even when no configured backup references it. <code>generic backup list</code> shows the configured backup jobs.</p>
+<p><code>generic repository list</code> shows every restic repository, even when no configured backup references it. <code>generic backup list</code> shows the configured backup jobs.</p>
 <p><code>generic repository init</code> prompts for one repository, with <strong>All repositories</strong> as the first option. Scripts must pass a repository ID or <code>--all</code>. Disabled or already initialized repositories are reported and skipped.</p>
 <p><code>generic repository prime-cache</code> runs <code>restic check --with-cache</code> for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when <code>--read-data</code> is requested explicitly.</p>
 </section>
@@ -376,7 +376,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Configure the local source paths once, then select the backup by its ID:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
 <span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-store-id</span><span class="kw">:</span><span class="at"> personal-store</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
 <span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
 <span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
 <span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -398,8 +398,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="permanently-destroy-a-repository" class="level2">
 <h2 class="anchored" data-anchor-id="permanently-destroy-a-repository">Permanently destroy a repository</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Destruction is interactive-only. The CLI shows the full S3 target, asks for a yes/no confirmation, then requires the exact repository ID. It deletes every object, object version, and delete marker below the configured <code>bucket</code> and <code>key_prefix</code>. It does not delete the bucket or change the YAML configuration.</p>
-<p>The provider credentials need permission to list objects and versions and to delete objects and versions. An empty <code>key_prefix</code> is always rejected to prevent accidental bucket deletion.</p>
+<p>Destruction is interactive-only. The CLI shows the full target, asks for a yes/no confirmation, then requires the exact repository ID. For S3 it deletes every object, object version, and delete marker below the configured <code>bucket</code> and <code>key_prefix</code>; it does not delete the bucket. For local storage it removes the configured repository directory but not the storage root. It never changes the YAML configuration.</p>
+<p>S3 credentials need permission to list and delete objects and versions. An empty <code>key_prefix</code> is always rejected to prevent accidental bucket deletion.</p>
 <div class="callout-danger">
 <p>Repository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.</p>
 </div>
@@ -414,12 +414,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
 <span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
 <span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the <code>backup</code> command, it also adds the configured restic tag automatically; additional <code>--tag</code> arguments remain supported.</p>
+<p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository details, password, and any S3 credentials only to the child process and does not print them. For the <code>backup</code> command, it also adds the configured restic tag automatically; additional <code>--tag</code> arguments remain supported.</p>
 </section>
 <section id="managed-data-directory" class="level2">
 <h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The result follows <code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;job-id&gt;/</code> beside the selected config file. It is for private generated metadata; generic backup sources do not need to live there.</p>
+<p>The result follows <code>data/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/</code> beside the selected config file. For S3, the repository path is <code>&lt;bucket&gt;/&lt;key-prefix&gt;</code>; for local storage it is the repository’s relative <code>path</code>. This directory is for private generated metadata; generic backup sources do not need to live there.</p>
 </section>
 <section id="cold-s3-storage" class="level2">
 <h2 class="anchored" data-anchor-id="cold-s3-storage">Cold S3 storage</h2>

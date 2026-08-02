@@ -266,7 +266,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>This guide creates one generic S3-compatible backup from a source checkout.</p>
+<p>This guide creates one generic S3-compatible backup. A mounted local disk uses the same workflow; see <a href="./configuration.html#storage">Configuration</a>.</p>
 <section id="install" class="level2">
 <h2 class="anchored" data-anchor-id="install">1. Install</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="fu">make</span> install-deps</span>
@@ -277,14 +277,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="configure-a-repository">2. Configure a repository</h2>
 <p>Copy the commented template:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> config.template.yaml config.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Edit its first credential, store, and backup entries. For a generic backup:</p>
+<p>Edit its first storage, restic repository, and backup entries:</p>
 <ul>
-<li>replace every <code>CHANGE_ME</code> used by the enabled store;</li>
-<li>set the store endpoint, region, bucket, and <code>key_prefix</code>;</li>
+<li>replace every <code>CHANGE_ME</code> used by the enabled repository;</li>
+<li>configure either S3 storage and credentials or an absolute local storage path;</li>
+<li>configure the repository bucket and <code>key_prefix</code> for S3, or relative <code>path</code> for local storage;</li>
 <li>give the backup job a useful <code>job-id</code> such as <code>documents</code>;</li>
 <li>list the local files or directories under its <code>paths</code> field;</li>
 <li>omit <code>tag</code> unless it should differ from the job ID;</li>
-<li>make its <code>restic-store-id</code> match the enabled store ID;</li>
+<li>make its <code>restic-repository-id</code> match the enabled repository ID;</li>
 <li>delete unused example entries if desired.</li>
 </ul>
 <p>Keep the repository password safe: restic cannot decrypt snapshots without it.</p>
@@ -293,12 +294,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups check-config</span>
 <span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository list</span>
 <span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The list output separates <strong>Repositories</strong> from <strong>Backups</strong>. Every configured store appears in the repository table, even before a configured backup references it.</p>
+<p>The list output separates <strong>Repositories</strong> from <strong>Backups</strong>. Every configured restic repository appears in the repository table, even before a configured backup references it.</p>
 </section>
 <section id="initialize-and-back-up" class="level2">
 <h2 class="anchored" data-anchor-id="initialize-and-back-up">3. Initialize and back up</h2>
 <p>Initialize a new repository once:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository init b2-store</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository init personal-b2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Then create a snapshot from the paths configured for <code>documents</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

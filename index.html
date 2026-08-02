@@ -230,12 +230,12 @@ ul.task-list li input[type="checkbox"] {
 </header>
 
 
-<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports reusable S3-compatible credentials, multiple buckets and key prefixes, managed private metadata directories, and a complete macOS Voice Memos workflow.</p>
+<p>Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow.</p>
 <section id="start-here" class="level2">
 <h2 class="anchored" data-anchor-id="start-here">Start here</h2>
 <ul>
 <li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
-<li><a href="./configuration.html">Configuration</a> describes credentials, stores, backups, and Glacier policy.</li>
+<li><a href="./configuration.html">Configuration</a> describes storage, restic repositories, backup jobs, and Glacier policy.</li>
 <li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
 <li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
 </ul>
@@ -247,6 +247,7 @@ ul.task-list li input[type="checkbox"] {
   config.py              YAML loading and validation
   generic/
     cli.py               generic restic command definitions
+    local.py             local repository destruction
     sops.py              SOPS decryption
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
@@ -262,7 +263,7 @@ ul.task-list li input[type="checkbox"] {
 <section id="private-data-boundary" class="level2">
 <h2 class="anchored" data-anchor-id="private-data-boundary">Private data boundary</h2>
 <p>Managed artifacts use:</p>
-<pre class="text"><code>data/&lt;store-id&gt;/&lt;bucket&gt;/&lt;key-prefix&gt;/&lt;job-id&gt;/</code></pre>
+<pre class="text"><code>data/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/</code></pre>
 <p>This path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below <code>data/</code> is ignored.</p>
 <div class="callout callout-style-default callout-warning callout-titled">
 <div class="callout-header d-flex align-content-center">

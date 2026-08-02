@@ -237,8 +237,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#credentials" id="toc-credentials" class="nav-link active" data-scroll-target="#credentials"><code>credentials</code></a></li>
-  <li><a href="#restic-stores" id="toc-restic-stores" class="nav-link" data-scroll-target="#restic-stores"><code>restic-stores</code></a></li>
+  <li><a href="#storage" id="toc-storage" class="nav-link active" data-scroll-target="#storage"><code>storage</code></a></li>
+  <li><a href="#restic-repositories" id="toc-restic-repositories" class="nav-link" data-scroll-target="#restic-repositories"><code>restic-repositories</code></a></li>
   <li><a href="#backups" id="toc-backups" class="nav-link" data-scroll-target="#backups"><code>backups</code></a></li>
   <li><a href="#optional-archive-policy" id="toc-optional-archive-policy" class="nav-link" data-scroll-target="#optional-archive-policy">Optional archive policy</a>
   <ul class="collapse">
@@ -287,83 +287,106 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_SOPS</span><span class="op">=</span>1</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>See <a href="./sops.html">SOPS</a> for age key setup, selective encryption, <code>.sops.yaml</code>, environment variables, and safe editing.</p>
 <p>The values of <code>id</code> fields are user-defined names. They only need to be unique within their section; references in other sections must match them exactly. Every item may also have an optional <code>description</code> for user notes. Descriptions do not affect backup behavior.</p>
-<section id="credentials" class="level2">
-<h2 class="anchored" data-anchor-id="credentials"><code>credentials</code></h2>
-<p><code>credentials</code> contains reusable S3 authentication details. Backblaze application key IDs and application keys use the same fields as AWS access keys.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">credentials</span><span class="kw">:</span></span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> b2-credentials</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Backblaze B2 application credentials.</span></span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>One credential may be referenced by several stores.</p>
+<section id="storage" class="level2">
+<h2 class="anchored" data-anchor-id="storage"><code>storage</code></h2>
+<p><code>storage</code> describes the underlying place where repository data lives. Supported types are <code>s3</code> for AWS S3 and S3-compatible services, and <code>local</code> for an existing local or mounted filesystem.</p>
+<p>An S3 storage entry owns its service credentials:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">storage</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> backblaze-b2</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Backblaze B2 S3-compatible storage.</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> s3</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-west-004.backblazeb2.com</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-west-004</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials</span><span class="kw">:</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Backblaze application key IDs and application keys use the same fields as AWS access keys. Several restic repositories may use one storage entry.</p>
+<p>A local storage entry gives an absolute filesystem root:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">storage</span><span class="kw">:</span></span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> sandisk-2tb</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Mounted external backup disk.</span></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> local</span></span>
+<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> /Volumes/SanDisk-2TB</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Commands that access a local repository fail before running restic when this path does not exist or is not a directory. This prevents an absent external disk from being silently replaced by a relative directory elsewhere.</p>
 </section>
-<section id="restic-stores" class="level2">
-<h2 class="anchored" data-anchor-id="restic-stores"><code>restic-stores</code></h2>
-<p><code>restic-stores</code> describes each restic repository and links it to an entry in <code>credentials</code> through <code>credentials-id</code>.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-stores</span><span class="kw">:</span></span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> b2-store</span></span>
-<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Backblaze B2 restic repository.</span></span>
-<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials-id</span><span class="kw">:</span><span class="at"> b2-credentials</span></span>
-<span id="cb5-5"><a href="#cb5-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
-<span id="cb5-6"><a href="#cb5-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-west-004.backblazeb2.com</span></span>
-<span id="cb5-7"><a href="#cb5-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-west-004</span></span>
-<span id="cb5-8"><a href="#cb5-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
-<span id="cb5-9"><a href="#cb5-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> voice-memos</span></span>
-<span id="cb5-10"><a href="#cb5-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">cache-dir</span><span class="kw">:</span><span class="at"> .restic-cache/b2-store</span></span>
-<span id="cb5-11"><a href="#cb5-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>All stores use restic’s S3 backend. <code>endpoint</code> identifies the S3-compatible service, <code>region</code> configures request signing, and <code>bucket</code> plus <code>key_prefix</code> locate the repository. <code>password</code> encrypts the restic repository. Disabled stores are ignored by commands and may retain <code>CHANGE_ME</code> placeholders. An enabled store fails validation until its store values and credentials are complete.</p>
-<p><code>cache-dir</code> optionally selects restic’s local cache for this repository. <code>~</code> is expanded, and a relative path is resolved beside the selected config file. If omitted, restic uses its operating-system default. A store-specific value takes precedence over <code>RESTIC_CACHE_DIR</code> from the process environment.</p>
-<p>Every store appears in the <code>generic repository list</code> table. <code>generic repository init</code> can initialize a selected enabled store even when no backup references it; use <code>--all</code> to initialize every enabled store. A backup entry is required before using that store with <code>generic backup run</code> or <code>generic restic run</code>.</p>
+<section id="restic-repositories" class="level2">
+<h2 class="anchored" data-anchor-id="restic-repositories"><code>restic-repositories</code></h2>
+<p><code>restic-repositories</code> defines the encrypted repositories inside <code>storage</code>. Every entry links to one backend through <code>storage-id</code> and owns its restic password and optional cache directory.</p>
+<p>An S3 repository selects a bucket and object-key prefix:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-repositories</span><span class="kw">:</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Personal restic repository on Backblaze B2.</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">storage-id</span><span class="kw">:</span><span class="at"> backblaze-b2</span></span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> voice-memos</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">cache-dir</span><span class="kw">:</span><span class="at"> .restic-cache/personal-b2</span></span>
+<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>For S3, the storage <code>endpoint</code> identifies the service, <code>region</code> configures request signing, and the repository’s <code>bucket</code> plus <code>key_prefix</code> locate its data.</p>
+<p>A local repository selects a relative directory inside the storage path:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-repositories</span><span class="kw">:</span></span>
+<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> personal-local</span></span>
+<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Personal restic repository on the external disk.</span></span>
+<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">storage-id</span><span class="kw">:</span><span class="at"> sandisk-2tb</span></span>
+<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">path</span><span class="kw">:</span><span class="at"> restic/personal</span></span>
+<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">cache-dir</span><span class="kw">:</span><span class="at"> .restic-cache/personal-local</span></span>
+<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Local repository paths must be relative and cannot contain <code>..</code>. Restic creates the repository directory during initialization, but the storage root itself must already exist. Every restic repository needs its own encryption password, including repositories on local disks. Losing it makes the snapshots irrecoverable.</p>
+<p>Disabled repositories are ignored by commands and may retain <code>CHANGE_ME</code> placeholders. An enabled repository fails validation until its repository and referenced storage values are complete.</p>
+<p><code>cache-dir</code> optionally selects restic’s local cache for this repository. <code>~</code> is expanded, and a relative path is resolved beside the selected config file. If omitted, restic uses its operating-system default. A repository-specific value takes precedence over <code>RESTIC_CACHE_DIR</code> from the process environment.</p>
+<p>Every repository appears in the <code>generic repository list</code> table. <code>generic repository init</code> can initialize a selected enabled repository even when no backup references it; use <code>--all</code> to initialize every enabled repository. A backup entry is required before using that repository with <code>generic backup run</code> or <code>generic restic run</code>.</p>
 </section>
 <section id="backups" class="level2">
 <h2 class="anchored" data-anchor-id="backups"><code>backups</code></h2>
-<p><code>backups</code> defines the entries shown in the CLI’s <strong>Backups</strong> table. Each entry selects a repository by matching <code>restic-store-id</code> to a <code>restic-stores.id</code> value.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Back up local documents.</span></span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-store-id</span><span class="kw">:</span><span class="at"> b2-store</span></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span>
-<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a><span class="co">    # Optional; defaults to the job ID.</span></span>
-<span id="cb6-9"><a href="#cb6-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # tag: documents</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p><code>backups</code> defines the entries shown in the CLI’s <strong>Backups</strong> table. Each entry selects a repository by matching <code>restic-repository-id</code> to a <code>restic-repositories.id</code> value.</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Back up local documents.</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">    # Optional; defaults to the job ID.</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # tag: documents</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>job-id</code> is the stable name used to select the configured backup job in commands and menus. <code>paths</code> is the non-empty list of local files or directories passed to <code>restic backup</code>; <code>~</code> is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.</p>
 <p><code>tag</code> is optional restic metadata applied automatically to every snapshot created through that job. It defaults to <code>job-id</code>, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.</p>
 <p>Run the configured backup with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Restic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.</p>
-<p>Several backups may share a restic store. Their tags distinguish their snapshots inside the shared repository.</p>
+<p>Several backups may share a restic repository. Their tags distinguish their snapshots inside it.</p>
 <p>Specialized workflows may discover their own sources and omit <code>paths</code>. For example, the <code>voice-memos</code> subcommand locates the macOS recording store itself. <code>generic backup run</code> reports an error if the selected backup has no configured paths.</p>
 </section>
 <section id="optional-archive-policy" class="level2">
 <h2 class="anchored" data-anchor-id="optional-archive-policy">Optional archive policy</h2>
-<p>AWS stores may add an <code>archive</code> policy. <code>storage-class</code> controls how new objects are stored, and <code>restore</code> defines retrieval behavior for cold storage:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">credentials</span><span class="kw">:</span></span>
-<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-credentials</span></span>
-<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> AWS S3 access credentials.</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-stores</span><span class="kw">:</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-store</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> AWS S3 restic repository.</span></span>
-<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials-id</span><span class="kw">:</span><span class="at"> aws-credentials</span></span>
-<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
-<span id="cb8-12"><a href="#cb8-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-east-1.amazonaws.com</span></span>
-<span id="cb8-13"><a href="#cb8-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-east-1</span></span>
-<span id="cb8-14"><a href="#cb8-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
-<span id="cb8-15"><a href="#cb8-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> backups</span></span>
-<span id="cb8-16"><a href="#cb8-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
-<span id="cb8-17"><a href="#cb8-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb8-18"><a href="#cb8-18" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
-<span id="cb8-19"><a href="#cb8-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Restic repositories on AWS S3 storage may add an <code>archive</code> policy. <code>storage-class</code> controls how new objects are stored, and <code>restore</code> defines retrieval behavior for cold storage:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">storage</span><span class="kw">:</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
+<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> s3</span></span>
+<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">endpoint</span><span class="kw">:</span><span class="at"> https://s3.us-east-1.amazonaws.com</span></span>
+<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">region</span><span class="kw">:</span><span class="at"> us-east-1</span></span>
+<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">credentials</span><span class="kw">:</span></span>
+<span id="cb10-7"><a href="#cb10-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">access-key-id</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb10-8"><a href="#cb10-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">secret-access-key</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb10-9"><a href="#cb10-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb10-10"><a href="#cb10-10" aria-hidden="true" tabindex="-1"></a><span class="fu">restic-repositories</span><span class="kw">:</span></span>
+<span id="cb10-11"><a href="#cb10-11" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">id</span><span class="kw">:</span><span class="at"> aws-archive</span></span>
+<span id="cb10-12"><a href="#cb10-12" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> AWS S3 restic repository.</span></span>
+<span id="cb10-13"><a href="#cb10-13" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">storage-id</span><span class="kw">:</span><span class="at"> aws-s3</span></span>
+<span id="cb10-14"><a href="#cb10-14" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">enabled</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb10-15"><a href="#cb10-15" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">bucket</span><span class="kw">:</span><span class="at"> example-bucket</span></span>
+<span id="cb10-16"><a href="#cb10-16" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">key_prefix</span><span class="kw">:</span><span class="at"> backups</span></span>
+<span id="cb10-17"><a href="#cb10-17" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">password</span><span class="kw">:</span><span class="at"> </span><span class="st">"..."</span></span>
+<span id="cb10-18"><a href="#cb10-18" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb10-19"><a href="#cb10-19" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
+<span id="cb10-20"><a href="#cb10-20" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Omit <code>archive</code> to use the storage provider’s default class.</p>
 <section id="s3-glacier-instant-retrieval-glacier_ir" class="level3">
 <h3 class="anchored" data-anchor-id="s3-glacier-instant-retrieval-glacier_ir">S3 Glacier Instant Retrieval (<code>GLACIER_IR</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/instant-retrieval/">S3 Glacier Instant Retrieval</a> is for rarely accessed data that must remain readable within milliseconds. Restic can access it normally, so it must not define a restore policy:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
-<span id="cb9-3"><a href="#cb9-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER_IR</span></span>
+<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span><span class="at"> </span><span class="ch">null</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <ul>
 <li><strong>90-day minimum:</strong> Each uploaded object is billed for at least 90 days. If restic deletes or replaces it after 30 days, AWS still charges the remaining 60 days.</li>
 <li><strong>128 KB minimum:</strong> A 10 KB object is billed as 128 KB. This matters when a repository contains many small objects.</li>
@@ -374,33 +397,33 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h3 class="anchored" data-anchor-id="s3-glacier-flexible-retrieval-glacier">S3 Glacier Flexible Retrieval (<code>GLACIER</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Flexible Retrieval</a> is for backups read roughly once or twice per year. Objects require an archive restore before restic can read them. Expedited retrieval usually takes 1–5 minutes, Standard takes 3–5 hours, and Bulk takes 5–12 hours. Objects have a 90-day minimum storage duration and 40 KB of billable metadata overhead each.</p>
 <p>Configure the retrieval tier, the number of days to retain the temporary restored copy, and the maximum wait time:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER</span></span>
-<span id="cb10-3"><a href="#cb10-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
-<span id="cb10-4"><a href="#cb10-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
-<span id="cb10-5"><a href="#cb10-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
-<span id="cb10-6"><a href="#cb10-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 24h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> GLACIER</span></span>
+<span id="cb12-3"><a href="#cb12-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
+<span id="cb12-4"><a href="#cb12-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
+<span id="cb12-5"><a href="#cb12-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
+<span id="cb12-6"><a href="#cb12-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 24h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>tier</code> accepts <code>Standard</code>, <code>Bulk</code>, or <code>Expedited</code>.</p>
 </section>
 <section id="s3-glacier-deep-archive-deep_archive" class="level3">
 <h3 class="anchored" data-anchor-id="s3-glacier-deep-archive-deep_archive">S3 Glacier Deep Archive (<code>DEEP_ARCHIVE</code>)</h3>
 <p><a href="https://aws.amazon.com/s3/storage-classes/glacier/">S3 Glacier Deep Archive</a> is the lowest-cost option for data read less than once per year. It has a 180-day minimum storage duration and 40 KB of billable metadata overhead per object. Standard retrieval typically completes within 12 hours; Bulk can take up to 48 hours.</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb11"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb11-1"><a href="#cb11-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
-<span id="cb11-2"><a href="#cb11-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> DEEP_ARCHIVE</span></span>
-<span id="cb11-3"><a href="#cb11-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
-<span id="cb11-4"><a href="#cb11-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
-<span id="cb11-5"><a href="#cb11-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
-<span id="cb11-6"><a href="#cb11-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 48h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb13"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb13-1"><a href="#cb13-1" aria-hidden="true" tabindex="-1"></a><span class="fu">archive</span><span class="kw">:</span></span>
+<span id="cb13-2"><a href="#cb13-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">storage-class</span><span class="kw">:</span><span class="at"> DEEP_ARCHIVE</span></span>
+<span id="cb13-3"><a href="#cb13-3" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">restore</span><span class="kw">:</span></span>
+<span id="cb13-4"><a href="#cb13-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">tier</span><span class="kw">:</span><span class="at"> Bulk</span></span>
+<span id="cb13-5"><a href="#cb13-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">days</span><span class="kw">:</span><span class="at"> </span><span class="dv">7</span></span>
+<span id="cb13-6"><a href="#cb13-6" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">timeout</span><span class="kw">:</span><span class="at"> 48h</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>tier</code> accepts <code>Standard</code> or <code>Bulk</code>.</p>
 <p>Flexible Retrieval and Deep Archive commands that read repository data require an acknowledgement:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb12"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
-<span id="cb12-2"><a href="#cb12-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb14"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb14-1"><a href="#cb14-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
+<span id="cb14-2"><a href="#cb14-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> restore latest <span class="at">--target</span> <span class="op">&lt;</span>dir<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Changing a storage class affects new objects only. Use a new <code>key_prefix</code> rather than mixing storage policies in one repository.</p>
 </section>
 </section>
 <section id="validation-rules" class="level2">
 <h2 class="anchored" data-anchor-id="validation-rules">Validation rules</h2>
-<p><code>check-config</code> also rejects duplicate IDs, unknown credential or store references, missing S3 fields, empty or invalid <code>paths</code>, and invalid Glacier retrieval tiers or durations. Managed-data resolution separately rejects unsafe path components.</p>
+<p><code>check-config</code> also rejects duplicate IDs, unknown storage or repository references, unsupported storage types, missing S3 fields, unsafe local paths, empty or invalid <code>paths</code>, and invalid Glacier retrieval tiers or durations.</p>
 
 
 </section>
