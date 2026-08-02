@@ -93,37 +93,43 @@ def configure(
 
 def interactive_menu() -> None:
     """Navigate all user-facing workflows with an arrow-key menu."""
-    selected = questionary.select(
-        "Workflow:",
-        choices=[
-            questionary.Choice(
-                "Generic backups  Manage repositories, backups, and snapshots",
-                "generic",
-            ),
-            questionary.Choice(
-                "Voice Memos      Back up, restore, transcribe, and diarize memos",
-                "voice-memos",
-            ),
-            questionary.Choice(
-                "Check config     Decrypt and validate configuration locally",
-                "check-config",
-            ),
-            questionary.Choice(
-                "Exit             Return without doing anything", "exit"
-            ),
-        ],
-    ).ask()
-    if selected == "generic":
-        generic_cli.interactive_menu()
-    elif selected == "voice-memos":
-        prepare_voice_memos()
-        from .voice_memos.cli import interactive_menu as voice_memos_menu
+    while True:
+        selected = questionary.select(
+            "Workflow:",
+            choices=[
+                questionary.Choice(
+                    "Generic backups  Manage repositories, backups, and snapshots",
+                    "generic",
+                ),
+                questionary.Choice(
+                    "Voice Memos      Back up, restore, transcribe, and diarize memos",
+                    "voice-memos",
+                ),
+                questionary.Choice(
+                    "Check config     Decrypt and validate configuration locally",
+                    "check-config",
+                ),
+                questionary.Choice(
+                    "Help             Show top-level commands and flags", "help"
+                ),
+                questionary.Choice(
+                    "Exit             Return without doing anything", "exit"
+                ),
+            ],
+        ).ask()
+        if selected in {None, "exit"}:
+            return
+        if selected == "help":
+            generic_cli.print_typer_help(app, "restic-backups")
+        elif selected == "generic":
+            generic_cli.interactive_menu()
+        elif selected == "voice-memos":
+            from .voice_memos.cli import interactive_menu as voice_memos_menu
 
-        voice_memos_menu()
-    elif selected == "check-config":
-        check_config_command()
-    elif selected is None:
-        raise typer.Abort()
+            voice_memos_menu(prepare_voice_memos)
+        elif selected == "check-config":
+            check_config_command()
+            return
 
 
 def fail(message: str) -> NoReturn:
@@ -165,8 +171,7 @@ def voice_memos_command(context: typer.Context) -> None:
 
     if not context.args:
         if sys.stdin.isatty():
-            prepare_voice_memos()
-            voice_memos_menu()
+            voice_memos_menu(prepare_voice_memos)
         else:
             cli.main(
                 args=["--help"],

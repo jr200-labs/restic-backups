@@ -15,7 +15,9 @@ uv run restic-backups voice-memos
 
 After selecting a command, the menu shows its usage, accepts optional arguments,
 prints the complete copyable command, and offers **Run**, **Print only**, or
-**Cancel**. Explicit subcommands remain available for scripts.
+**Cancel**. **Help** shows the commands or flags for the current menu level and
+then returns there; **Back** moves up one level. Configuration is loaded only
+when **Run** is selected. Explicit subcommands remain available for scripts.
 
 Set `RESTIC_BACKUPS_CONFIG` first; set `RESTIC_BACKUPS_SOPS=1` too when the
 file is SOPS-encrypted. See [Configuration](configuration.qmd).

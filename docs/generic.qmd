@@ -34,7 +34,11 @@ scheduled jobs. **Advanced restic** reads the installed restic version's command
 list and descriptions. After selection it shows the command's restic usage,
 prompts for arguments, and prints the complete copyable
 `uv run restic-backups` command. Choose **Run**, **Print only**, or **Cancel**.
-Enter `--help` as the arguments to see the selected command's full options.
+Choose **Help** at any level to see help for the current section or selected
+restic command and return to the same menu. Showing help does not load the
+configuration, select a backup, or contact the repository. **Back** returns one
+level without restarting the menu tree. Entering `--help` or `-h` in the
+argument prompt has the same local-help behavior.
 
 `generic repository list` shows every store, even when no configured backup
 references it. `generic backup list` shows the configured backup jobs.

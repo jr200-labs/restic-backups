@@ -25,70 +25,117 @@ def operation(action: Callable[[], int | None]) -> None:
         raise click.exceptions.Exit(code)
 
 
-def interactive_menu() -> None:
+def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
     """Navigate Voice Memos commands with an arrow-key menu."""
-    selected = questionary.select(
-        "Voice Memos command:",
-        choices=[
-            *[
+    while True:
+        selected = questionary.select(
+            "Voice Memos command:",
+            choices=[
+                *[
+                    questionary.Choice(
+                        f"{name:<20} {command.help or 'Run this Voice Memos command'}",
+                        name,
+                    )
+                    for name, command in cli.commands.items()
+                    if not command.hidden
+                ],
                 questionary.Choice(
-                    f"{name:<20} {command.help or 'Run this Voice Memos command'}",
-                    name,
-                )
-                for name, command in cli.commands.items()
-                if not command.hidden
+                    "help                 Show Voice Memos commands and flags", "help"
+                ),
+                questionary.Choice(
+                    "back                 Return to the previous menu", "back"
+                ),
             ],
-            questionary.Choice(
-                "exit                 Return without doing anything", "exit"
-            ),
-        ],
-    ).ask()
-    if selected in {None, "exit"}:
-        return
+        ).ask()
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            click.echo(
+                cli.get_help(click.Context(cli, info_name="restic-backups voice-memos"))
+            )
+            continue
 
-    command = cli.commands[str(selected)]
-    parent = click.Context(cli, info_name="restic-backups voice-memos")
-    context = click.Context(command, info_name=str(selected), parent=parent)
-    click.echo(command.get_usage(context).strip())
-    arguments = questionary.text(
-        f"Arguments for 'voice-memos {selected}' (optional; use --help for options):"
-    ).ask()
-    if arguments is None:
-        return
-    try:
-        args = shlex.split(arguments)
-    except ValueError as exc:
-        raise click.ClickException(f"invalid arguments: {exc}") from exc
+        command = cli.commands[str(selected)]
+        parent = click.Context(cli, info_name="restic-backups voice-memos")
+        context = click.Context(command, info_name=str(selected), parent=parent)
+        click.echo(command.get_usage(context).strip())
+        while True:
+            command_action = questionary.select(
+                f"voice-memos {selected}:",
+                choices=[
+                    questionary.Choice(
+                        "Enter arguments  Build and optionally run this command", "run"
+                    ),
+                    questionary.Choice(
+                        "Help             Show full flags for this command", "help"
+                    ),
+                    questionary.Choice(
+                        "Back             Choose another Voice Memos command", "back"
+                    ),
+                ],
+            ).ask()
+            if command_action in {None, "back"}:
+                break
+            if command_action == "help":
+                click.echo(command.get_help(context))
+                continue
+            arguments = questionary.text(
+                f"Arguments for 'voice-memos {selected}' (optional):"
+            ).ask()
+            if arguments is None:
+                continue
+            try:
+                args = shlex.split(arguments)
+            except ValueError as exc:
+                raise click.ClickException(f"invalid arguments: {exc}") from exc
+            if args in (["--help"], ["-h"]):
+                click.echo(command.get_help(context))
+                continue
 
-    copyable = [
-        "uv",
-        "run",
-        "restic-backups",
-        "--config",
-        str(config.config_path().resolve()),
-    ]
-    if os.environ.get(sops.SOPS_ENV) == "1":
-        copyable.append("--sops")
-    copyable.extend(["voice-memos", str(selected), *args])
-    click.echo("Command:")
-    click.echo(shlex.join(copyable))
-    action = questionary.select(
-        "Action:",
-        choices=[
-            questionary.Choice("Run", "run"),
-            questionary.Choice("Print only", "print"),
-            questionary.Choice("Cancel", "cancel"),
-        ],
-    ).ask()
-    if action != "run":
-        if action == "cancel":
-            click.echo("Cancelled; nothing was run.", err=True)
-        return
-    cli.main(
-        args=[str(selected), *args],
-        prog_name="restic-backups voice-memos",
-        standalone_mode=True,
-    )
+            copyable = [
+                "uv",
+                "run",
+                "restic-backups",
+                "--config",
+                str(config.config_path().resolve()),
+            ]
+            if os.environ.get(sops.SOPS_ENV) == "1":
+                copyable.append("--sops")
+            copyable.extend(["voice-memos", str(selected), *args])
+            click.echo("Command:")
+            click.echo(shlex.join(copyable))
+            while True:
+                action = questionary.select(
+                    "Action:",
+                    choices=[
+                        questionary.Choice("Run", "run"),
+                        questionary.Choice("Print only", "print"),
+                        questionary.Choice(
+                            "Help        Show full flags for this command", "help"
+                        ),
+                        questionary.Choice(
+                            "Back        Change the command arguments", "back"
+                        ),
+                        questionary.Choice("Cancel", "cancel"),
+                    ],
+                ).ask()
+                if action == "help":
+                    click.echo(command.get_help(context))
+                    continue
+                if action == "back":
+                    break
+                if action != "run":
+                    if action == "cancel":
+                        click.echo("Cancelled; nothing was run.", err=True)
+                    return
+                if before_run is not None:
+                    before_run()
+                cli.main(
+                    args=[str(selected), *args],
+                    prog_name="restic-backups voice-memos",
+                    standalone_mode=True,
+                )
+                return
 
 
 @click.group()
