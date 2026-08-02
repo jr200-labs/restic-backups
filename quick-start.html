@@ -264,9 +264,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <ul>
 <li>replace every <code>CHANGE_ME</code> used by the enabled store;</li>
 <li>set the store endpoint, region, bucket, and <code>key_prefix</code>;</li>
-<li>give the backup a useful ID such as <code>documents</code>;</li>
+<li>give the backup job a useful <code>job-id</code> such as <code>documents</code>;</li>
 <li>list the local files or directories under its <code>paths</code> field;</li>
-<li>omit <code>tag</code> unless it should differ from the backup ID;</li>
+<li>omit <code>tag</code> unless it should differ from the job ID;</li>
 <li>make its <code>restic-store-id</code> match the enabled store ID;</li>
 <li>delete unused example entries if desired.</li>
 </ul>
