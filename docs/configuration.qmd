@@ -94,23 +94,23 @@ value.
 
 ```yaml
 backups:
-  - id: documents
+  - job-id: documents
     description: Back up local documents.
     restic-store-id: b2-store
     paths:
       - ~/Documents
       - ~/Desktop
-    # Optional; defaults to the backup ID.
+    # Optional; defaults to the job ID.
     # tag: documents
 ```
 
-`id` is the stable name used to select the configured backup in commands and
+`job-id` is the stable name used to select the configured backup job in commands and
 menus. `paths` is the non-empty list of local files or directories passed to
 `restic backup`; `~` is expanded to the current user's home directory. Relative
 paths remain relative to the directory where the command is run.
 
 `tag` is optional restic metadata applied automatically to every snapshot
-created through that backup. It defaults to `id`, so it normally does not need
+created through that job. It defaults to `job-id`, so it normally does not need
 to be configured. Restic generates a unique snapshot ID after each successful
 backup; a snapshot ID is not a configuration value.
 
@@ -227,7 +227,7 @@ an acknowledgement:
 
 ```sh
 ALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \
-  --backup <backup-id> restore latest --target <dir>
+  --backup <job-id> restore latest --target <dir>
 ```
 
 Changing a storage class affects new objects only. Use a new `key_prefix`

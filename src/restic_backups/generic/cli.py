@@ -325,10 +325,10 @@ def choose_backup(
 ) -> str:
     if backup_id is not None:
         if backup_id not in backups:
-            fail(f"backup '{backup_id}' not found in {config.config_path()}")
+            fail(f"backup job '{backup_id}' not found in {config.config_path()}")
         return backup_id
     if not sys.stdin.isatty():
-        fail("backup ID is required when stdin is not interactive")
+        fail("job ID is required when stdin is not interactive")
     choices = [
         questionary.Choice(
             f"{item_id}  ({stores[item['restic-store-id']]['endpoint']})",
@@ -340,7 +340,7 @@ def choose_backup(
     if not choices:
         fail("no enabled backups are available")
     choices.append(questionary.Separator(" "))
-    selected = questionary.select("Backup:", choices=choices).ask()
+    selected = questionary.select("Backup job:", choices=choices).ask()
     if selected is None:
         raise typer.Abort()
     return str(selected)
@@ -367,7 +367,7 @@ def show_backups(
     stores: dict[str, dict[str, Any]], backups: dict[str, dict[str, Any]]
 ) -> None:
     backup_table = Table(title="Backups", box=box.ROUNDED)
-    backup_table.add_column("ID", style="cyan", no_wrap=True)
+    backup_table.add_column("Job ID", style="cyan", no_wrap=True)
     backup_table.add_column("Description")
     backup_table.add_column("Repository")
     backup_table.add_column("Paths")
@@ -414,15 +414,15 @@ def list_command() -> None:
 def backup_command(
     backup: Annotated[
         str | None,
-        typer.Argument(help="Backup ID; prompts when omitted."),
+        typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
 ) -> None:
-    """Create a snapshot from a backup's configured paths."""
+    """Create a snapshot from a backup job's configured paths."""
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
     paths = backups[backup_id].get("paths")
     if not paths:
-        fail(f"backup '{backup_id}' has no configured paths")
+        fail(f"backup job '{backup_id}' has no configured paths")
     expanded_paths = [str(Path(path).expanduser()) for path in paths]
     error_console.print(
         Text(
@@ -448,7 +448,9 @@ def backup_command(
 @backup_app.command("data-dir")
 @app.command("data-dir", hidden=True)
 def data_dir_command(
-    backup: str | None = typer.Argument(None, help="Backup ID; prompts when omitted."),
+    backup: str | None = typer.Argument(
+        None, help="Job ID; prompts when omitted.", metavar="JOB_ID"
+    ),
 ) -> None:
     """Print the managed local data directory for a backup."""
     _, credentials, stores, backups = validated()
@@ -616,7 +618,7 @@ def load_snapshots(
 def snapshots_command(
     backup: Annotated[
         str | None,
-        typer.Argument(help="Backup ID; prompts when omitted."),
+        typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
 ) -> None:
     """List snapshots for a configured backup."""
@@ -656,7 +658,7 @@ def snapshots_command(
 def forget_command(
     backup: Annotated[
         str | None,
-        typer.Argument(help="Backup ID; prompts when omitted."),
+        typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
 ) -> None:
     """Forget one snapshot and prune its unreferenced data."""
@@ -790,7 +792,9 @@ def run_command(
     context: typer.Context,
     backup: Annotated[
         str | None,
-        typer.Option("--backup", "-b", help="Backup ID; prompts when omitted."),
+        typer.Option(
+            "--backup", "-b", help="Job ID; prompts when omitted.", metavar="JOB_ID"
+        ),
     ] = None,
 ) -> None:
     """Run restic with all trailing arguments passed through unchanged."""
