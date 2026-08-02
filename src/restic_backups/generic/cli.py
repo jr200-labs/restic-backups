@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -17,7 +18,7 @@ from rich.text import Text
 
 from .. import config
 from ..errors import BackupError
-from . import repository, restic, s3
+from . import repository, restic, s3, sops
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -125,12 +126,17 @@ def restic_menu() -> None:
     ).ask()
     if command is None:
         raise typer.Abort()
+    try:
+        usage = restic.command_usage(str(command))
+    except BackupError as exc:
+        fail(str(exc))
+    console.print(Text(f"Usage: {usage}", style="dim"))
     arguments = questionary.text(
         f"Arguments for 'restic {command}' (optional; use --help for options):"
     ).ask()
     if arguments is not None:
         try:
-            run_args(None, [str(command), *shlex.split(arguments)])
+            run_args(None, [str(command), *shlex.split(arguments)], interactive=True)
         except ValueError as exc:
             fail(f"invalid arguments: {exc}")
 
@@ -584,11 +590,40 @@ def run_command(
     run_args(backup, list(context.args))
 
 
-def run_args(backup: str | None, args: list[str]) -> None:
+def copyable_command(backup_id: str, args: list[str]) -> str:
+    command = [
+        "uv",
+        "run",
+        "restic-backups",
+        "--config",
+        str(config.config_path().resolve()),
+    ]
+    if os.environ.get(sops.SOPS_ENV) == "1":
+        command.append("--sops")
+    command.extend(["generic", "restic", "run", "--backup", backup_id, *args])
+    return shlex.join(command)
+
+
+def run_args(backup: str | None, args: list[str], *, interactive: bool = False) -> None:
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
     if not args:
         fail("a restic command is required after 'run'")
+    if interactive:
+        console.print(Text("Command:", style="bold"))
+        console.print(Text(copyable_command(backup_id, args), style="cyan"))
+        action = questionary.select(
+            "Action:",
+            choices=[
+                questionary.Choice("Run", "run"),
+                questionary.Choice("Print only", "print"),
+                questionary.Choice("Cancel", "cancel"),
+            ],
+        ).ask()
+        if action != "run":
+            if action == "cancel":
+                error_console.print(Text("Cancelled; nothing was run.", style="yellow"))
+            return
     try:
         raise typer.Exit(restic.command(backup_id, args, credentials, stores, backups))
     except BackupError as exc:

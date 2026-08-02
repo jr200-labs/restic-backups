@@ -30,8 +30,10 @@ Running `restic-backups generic` without a subcommand in an interactive terminal
 opens a section menu for repositories, backups, snapshots, and advanced restic
 commands. Explicit subcommands remain available for scripts and scheduled jobs.
 **Advanced restic** reads the installed restic version's command list and
-descriptions, lets you select one, then prompts only for its arguments. Enter
-`--help` at that prompt to see the selected command's options.
+descriptions. After selection it shows the command's restic usage, prompts for
+arguments, and prints the complete copyable `uv run restic-backups` command.
+Choose **Run**, **Print only**, or **Cancel**. Enter `--help` as the arguments to
+see the selected command's full options.
 
 `generic repository list` shows every store, even when no configured backup
 references it. `generic backup list` shows the configured backup jobs.
@@ -119,6 +121,7 @@ them.
 # Inspect and check the repository
 uv run restic-backups generic snapshot list documents
 uv run restic-backups generic restic run --backup documents check
+uv run restic-backups generic restic run --backup documents list snapshots
 
 # Restore a snapshot
 uv run restic-backups generic restic run --backup documents \

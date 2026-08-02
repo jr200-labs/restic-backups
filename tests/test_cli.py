@@ -11,7 +11,7 @@ from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
-from restic_backups.generic.cli import forget_command
+from restic_backups.generic.cli import forget_command, run_args
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 
@@ -236,6 +236,37 @@ backups:
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("store: cache primed", result.output)
         command.assert_called_once_with(store, credential, ["check", "--with-cache"])
+
+    def test_advanced_restic_can_print_without_running(self) -> None:
+        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        stores = {"store": {"enabled": True}}
+        backups = {"documents": {"restic-store-id": "store"}}
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, credentials, stores, backups),
+            ),
+            patch.dict(
+                "os.environ",
+                {
+                    "RESTIC_BACKUPS_CONFIG": "/tmp/config.sops.yaml",
+                    "RESTIC_BACKUPS_SOPS": "1",
+                },
+            ),
+            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.console.print") as print_line,
+            patch("restic_backups.generic.cli.restic.command") as command,
+        ):
+            select.return_value.ask.return_value = "print"
+            run_args("documents", ["list", "snapshots"], interactive=True)
+
+        command.assert_not_called()
+        output = "\n".join(str(item.args[0]) for item in print_line.call_args_list)
+        self.assertIn(
+            f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
+            "--sops generic restic run --backup documents list snapshots",
+            output,
+        )
 
     @patch("restic_backups.generic.cli.restic.store_command")
     @patch("restic_backups.generic.cli.validated")
