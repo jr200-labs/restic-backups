@@ -279,14 +279,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--verbose</span> generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <section id="audit-log" class="level2">
 <h2 class="anchored" data-anchor-id="audit-log">Audit log</h2>
-<p>Command auditing is enabled by default. <code>restic-backups</code> appends one compact JSON object per line to <code>audit-log.json</code> in the directory where it was started. Each record contains:</p>
+<p>Command auditing is enabled by default. <code>restic-backups</code> appends compact JSON objects to <code>audit-log.json</code> in the directory where it was started. Each command has two linked records:</p>
 <ul>
-<li><code>date-time</code>: the UTC date and time;</li>
-<li><code>hostname</code>: the machine hostname;</li>
-<li><code>command</code>: the executable or CLI command;</li>
-<li><code>args</code>: its arguments.</li>
+<li>a <code>started</code> event containing an <code>id</code>, <code>start-time</code>, <code>hostname</code>, <code>command</code>, and its exact <code>args</code>;</li>
+<li>a <code>finished</code> event containing <code>started-id</code>, <code>end-time</code>, and <code>successful</code>.</li>
 </ul>
-<p>The file uses one JSON object per line so new records can be appended without rewriting existing records. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
+<p>The <code>started-id</code> links completion to the corresponding <code>started</code> event. A <code>started</code> event without a matching <code>finished</code> event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
 <p>The log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_AUDIT</span><span class="op">=</span>0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The values <code>false</code>, <code>no</code>, and <code>off</code> are also accepted, case-insensitively.</p>
