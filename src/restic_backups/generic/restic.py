@@ -9,6 +9,7 @@ import sys
 import tempfile
 from typing import Any, NoReturn
 
+from .. import audit
 from ..errors import BackupError
 from . import repository
 
@@ -22,6 +23,7 @@ def fail(message: str) -> NoReturn:
 def available_commands() -> list[tuple[str, str]]:
     """Read command names and descriptions from the installed restic."""
     try:
+        audit.record("restic", ["help"])
         result = subprocess.run(
             ["restic", "help"], check=True, capture_output=True, text=True
         )
@@ -54,6 +56,7 @@ def available_commands() -> list[tuple[str, str]]:
 def command_help(command: str) -> str:
     """Read a command's help from the installed restic."""
     try:
+        audit.record("restic", [command, "--help"])
         result = subprocess.run(
             ["restic", command, "--help"],
             check=True,
@@ -194,9 +197,11 @@ def store_run(
         output_target = subprocess.PIPE if capture else None
         if quiet and not capture:
             output_target = subprocess.DEVNULL
+        raw_command = ["restic", *options, *args]
+        audit.record(raw_command[0], raw_command[1:])
         with tempfile.TemporaryFile(mode="w+") as errors:
             result = subprocess.run(
-                ["restic", *options, *args],
+                raw_command,
                 env=env,
                 stdout=output_target,
                 stderr=errors,

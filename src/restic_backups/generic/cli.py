@@ -16,7 +16,7 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .. import config
+from .. import audit, config
 from ..errors import BackupError
 from . import repository, restic, s3, sops
 
@@ -335,6 +335,13 @@ def validated() -> tuple[
         fail(str(exc))
 
 
+def audit_command(*args: str) -> None:
+    try:
+        audit.record("restic-backups", ["generic", *args])
+    except BackupError as exc:
+        fail(str(exc))
+
+
 def choose_backup(
     backup_id: str | None,
     stores: dict[str, dict[str, Any]],
@@ -407,6 +414,7 @@ def show_backups(
 @repository_app.command("list")
 def repository_list_command() -> None:
     """Show configured restic repositories."""
+    audit_command("repository", "list")
     _, _, stores, _ = validated()
     show_repositories(stores)
 
@@ -414,6 +422,7 @@ def repository_list_command() -> None:
 @backup_app.command("list")
 def backup_list_command() -> None:
     """Show configured backup jobs."""
+    audit_command("backup", "list")
     _, _, stores, backups = validated()
     show_backups(stores, backups)
 
@@ -421,6 +430,7 @@ def backup_list_command() -> None:
 @app.command("list", hidden=True)
 def list_command() -> None:
     """Show configured repositories and backups."""
+    audit_command("list")
     _, _, stores, backups = validated()
     show_repositories(stores)
     show_backups(stores, backups)
@@ -444,6 +454,7 @@ def backup_command(
     paths = backups[backup_id].get("paths")
     if not paths:
         fail(f"backup job '{backup_id}' has no configured paths")
+    audit_command("backup", "run", backup_id, *(["--dry-run"] if dry_run else []))
     expanded_paths = [str(Path(path).expanduser()) for path in paths]
     mode = "dry run: scanning" if dry_run else "backing up"
     error_console.print(
@@ -479,6 +490,7 @@ def data_dir_command(
     """Print the managed local data directory for a backup."""
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
+    audit_command("backup", "data-dir", backup_id)
     try:
         store, _ = repository.resolve(backup_id, credentials, stores, backups)
         typer.echo(repository.data_dir(backup_id, store))
@@ -532,11 +544,20 @@ def init_command(
 
     if all_repositories:
         selected_stores = list(stores.items())
+        audit_command(
+            "repository", "init", "--all", *(["--dry-run"] if dry_run else [])
+        )
     else:
         store = stores.get(str(repository_id))
         if store is None:
             fail(f"repository '{repository_id}' not found in {config.config_path()}")
         selected_stores = [(str(repository_id), store)]
+        audit_command(
+            "repository",
+            "init",
+            str(repository_id),
+            *(["--dry-run"] if dry_run else []),
+        )
 
     for store_id, store in selected_stores:
         if not store["enabled"]:
@@ -608,6 +629,7 @@ def prime_cache_command(
     if not store["enabled"]:
         fail(f"restic store '{repository_id}' is disabled")
 
+    audit_command("repository", "prime-cache", repository_id)
     error_console.print(Text(f"{repository_id}: priming local cache", style="cyan"))
     try:
         code = restic.store_command(
@@ -660,6 +682,7 @@ def snapshots_command(
     """List snapshots for a configured backup."""
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
+    audit_command("snapshot", "list", backup_id)
     tag, snapshots = load_snapshots(backup_id, credentials, stores, backups)
     if not snapshots:
         error_console.print(
@@ -750,6 +773,13 @@ def forget_command(
             )
             return
     args = ["forget", snapshot_id, "--prune", *(["--dry-run"] if dry_run else [])]
+    audit_command(
+        "snapshot",
+        "forget",
+        backup_id,
+        snapshot_id,
+        *(["--dry-run"] if dry_run else []),
+    )
     try:
         code = restic.command(
             backup_id,
@@ -810,6 +840,7 @@ def destroy_command(
         f"{store['key_prefix'].strip('/')}"
     )
     if dry_run:
+        audit_command("repository", "destroy", repository_id, "--dry-run")
         error_console.print(
             Text(
                 f"{repository_id}: dry run complete; nothing deleted at {target}",
@@ -830,6 +861,7 @@ def destroy_command(
     if typed != repository_id:
         fail("repository ID did not match; nothing was destroyed")
 
+    audit_command("repository", "destroy", repository_id)
     credential = credentials[store["credentials-id"]]
     deleted = s3.delete_repository(store, credential)
     error_console.print(
@@ -897,6 +929,7 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
             if action == "cancel":
                 error_console.print(Text("Cancelled; nothing was run.", style="yellow"))
             return
+    audit_command("restic", "run", "--backup", backup_id, *args)
     try:
         raise typer.Exit(restic.command(backup_id, args, credentials, stores, backups))
     except BackupError as exc:

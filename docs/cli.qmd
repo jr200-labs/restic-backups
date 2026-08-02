@@ -43,6 +43,35 @@ credentials or repository passwords:
 uv run restic-backups --verbose generic repository init
 ```
 
+## Audit log
+
+Command auditing is enabled by default. `restic-backups` appends one compact
+JSON object per line to `audit-log.json` in the directory where it was started.
+Each record contains:
+
+- `date-time`: the UTC date and time;
+- `hostname`: the machine hostname;
+- `command`: the executable or CLI command;
+- `args`: its arguments.
+
+The file uses one JSON object per line so new records can be appended without
+rewriting existing records. It is created with owner-only permissions (`0600`).
+Interactive selections are recorded when run, and restic subprocess records
+contain the exact raw restic arguments, including generated repository options.
+Credentials and repository passwords are passed through the environment rather
+than arguments. Values attached to password-, secret-, token-, credential-, and
+key-like arguments are replaced with `[REDACTED]`.
+
+The log can still reveal repository names and local paths. Keep it private and
+rotate or archive it according to your own retention policy. To turn auditing
+off explicitly:
+
+```sh
+export RESTIC_BACKUPS_AUDIT=0
+```
+
+The values `false`, `no`, and `off` are also accepted, case-insensitively.
+
 ## Root commands
 
 | Command | Purpose | Remote storage |

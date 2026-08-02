@@ -14,6 +14,7 @@ from rich.console import Console
 from rich.logging import RichHandler
 from rich.text import Text
 
+from . import audit
 from . import config as config_module
 from .errors import BackupError
 from .generic import cli as generic_cli
@@ -158,6 +159,7 @@ def validated() -> tuple[
 @app.command("check-config")
 def check_config_command() -> None:
     """Validate configuration without contacting remote storage."""
+    audit.record("restic-backups", ["check-config"])
     validated()
     typer.echo("config ok")
 
@@ -207,5 +209,15 @@ def prepare_voice_memos() -> None:
     os.environ["SUMMARIES_DIR"] = str(path)
 
 
-if __name__ == "__main__":
+def main() -> None:
+    """Audit and run the installed command."""
+    try:
+        audit.record("restic-backups", list(sys.argv[1:]))
+    except BackupError as exc:
+        error_console.print(Text(f"restic-backups: {exc}", style="bold red"))
+        raise SystemExit(1) from exc
     app()
+
+
+if __name__ == "__main__":
+    main()
