@@ -394,8 +394,9 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
         ),
         patch(
             "restic_backups.github_repository.workflow.restic.command",
-            side_effect=[1, 0],
+            side_effect=[0, 0, 1, 0],
         ) as restic_command,
+        patch("restic_backups.github_repository.workflow._preflight_metadata"),
     ):
         statuses, destinations = workflow.backup(
             "example-repository",
@@ -409,7 +410,7 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
     assert statuses["example/example-repository:git"] == "failed"
     assert statuses["example/example-repository:metadata"] == "updated"
     assert destinations == {"first": False, "second": True}
-    assert restic_command.call_count == 2
+    assert restic_command.call_count == 4
     manifest = json.loads(
         (workflow.data_dir("example-repository") / "backup-manifest.json").read_text()
     )
@@ -499,6 +500,66 @@ def test_secret_values_never_enter_audit_log(
     contents = (tmp_path / "audit-log.json").read_text()
     assert "top-secret-value" not in contents
     assert '"command":"git"' in contents
+
+
+def test_command_failure_includes_redacted_stderr() -> None:
+    completed = subprocess.CompletedProcess(
+        [], 1, "", "Authorization failed for https://user:secret@example.com (HTTP 403)"
+    )
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.subprocess.run",
+            return_value=completed,
+        ),
+        pytest.raises(BackupError, match=r"Authorization failed.*HTTP 403") as error,
+    ):
+        workflow._run(["gh", "api"], env={})
+    assert "secret" not in str(error.value)
+
+
+def test_repository_preflight_failure_stops_before_source_updates() -> None:
+    job = github_job()
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.restic.command", return_value=10
+        ),
+        patch("restic_backups.github_repository.workflow._git_mirror") as mirror,
+        pytest.raises(BackupError, match="repository check failed"),
+    ):
+        workflow.backup(
+            "example-repository",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-repository": job},
+        )
+    mirror.assert_not_called()
+
+
+def test_metadata_preflight_failure_stops_before_source_updates() -> None:
+    job = github_job(metadata=True)
+    with (
+        patch("restic_backups.github_repository.workflow._preflight_destinations"),
+        patch(
+            "restic_backups.github_repository.workflow._gh_json",
+            side_effect=[
+                {"owner": {"type": "Organization"}},
+                BackupError("Authorization failed (HTTP 403)"),
+            ],
+        ),
+        patch("restic_backups.github_repository.workflow._git_mirror") as mirror,
+        pytest.raises(BackupError, match="Authorization failed.*403"),
+    ):
+        workflow.backup(
+            "example-repository",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-repository": job},
+        )
+    mirror.assert_not_called()
 
 
 def test_status_shows_latest_snapshot_for_every_destination() -> None:

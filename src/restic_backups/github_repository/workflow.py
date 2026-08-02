@@ -114,7 +114,10 @@ def _run(
         fail(f"{args[0]} is not installed")
     audit.finish(event_id, result.returncode == 0)
     if check and result.returncode:
-        fail(f"{' '.join(args[:2])} failed with exit code {result.returncode}")
+        message = f"{' '.join(args[:2])} failed with exit code {result.returncode}"
+        if result.stderr:
+            message += f": {audit.redact_args([result.stderr.strip()])[0]}"
+        fail(message)
     return result  # type: ignore[return-value]
 
 
@@ -470,6 +473,45 @@ def _update_repository(
     return statuses, errors
 
 
+def _preflight_metadata(
+    github: Mapping[str, Any], repositories: list[tuple[str, str, str]]
+) -> None:
+    if not github["components"]["metadata"]:
+        return
+    checked: set[str] = set()
+    with authentication(github, git=False) as env:
+        for _, owner, name in repositories:
+            details = _gh_json([f"repos/{owner}/{name}"], env)
+            endpoint = (
+                f"orgs/{owner}/migrations"
+                if details.get("owner", {}).get("type") == "Organization"
+                else "user/migrations"
+            )
+            if endpoint not in checked:
+                _gh_json([f"{endpoint}?per_page=1"], env)
+                checked.add(endpoint)
+
+
+def _preflight_destinations(
+    job_id: str,
+    selected_repositories: list[str],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+    jobs: dict[str, dict[str, Any]],
+) -> None:
+    for repository_id in selected_repositories:
+        code = restic.command(
+            job_id,
+            ["cat", "config"],
+            storage,
+            repositories,
+            jobs,
+            repository_id=repository_id,
+        )
+        if code:
+            fail(f"{repository_id}: repository check failed with exit code {code}")
+
+
 def backup(
     job_id: str,
     backup_config: Mapping[str, Any],
@@ -501,6 +543,11 @@ def backup(
             },
             {repository_id: True for repository_id in selected_repositories},
         )
+
+    _preflight_destinations(
+        job_id, selected_repositories, storage, repositories, backups
+    )
+    _preflight_metadata(github, parsed)
 
     root = data_dir(job_id)
     root.mkdir(parents=True, exist_ok=True)

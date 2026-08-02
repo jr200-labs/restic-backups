@@ -138,7 +138,10 @@ current credentials from `gh auth login`. Containers and scheduled jobs without
 that login should configure a token from an environment variable or mounted
 file. GitHub's migration API currently requires a compatible **classic personal
 access token** and repository-owner access; fine-grained tokens and GitHub App
-tokens are not supported for this API. See
+tokens are not supported for this API. The default OAuth token created by
+`gh auth login` may therefore receive HTTP 403 even when it has `repo` and
+`admin:org` scopes. To keep using the local `gh` credential store, authenticate
+it with a compatible classic PAT through `gh auth login --with-token`. See
 GitHub's [organization migration API](https://docs.github.com/en/rest/migrations/orgs)
 and [user migration API](https://docs.github.com/en/rest/migrations/users).
 
@@ -244,6 +247,13 @@ repository component: `updated`, `unchanged`, `stale`, `not-present`, `failed`, 
 all selected destinations. Existing local component data is included as
 `stale`; the command creates the best available snapshot and exits nonzero when
 anything failed. Disabled cached components are not included.
+
+Before updating source data, the workflow checks that every selected restic
+repository exists and, when metadata is enabled, that the active GitHub
+credentials can read the migration endpoint. A job-wide path or authorization
+error therefore stops before repositories are fetched. Repository-specific
+component errors encountered after those checks still use the best-available
+snapshot behavior above.
 
 Restic splits input into content-defined chunks and deduplicates identical
 chunks **within each restic repository**. Stable Git pack files, LFS objects,
