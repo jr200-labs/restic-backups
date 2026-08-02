@@ -9,7 +9,7 @@ import sys
 import tempfile
 from typing import Any, NoReturn
 
-from .. import audit
+from .. import audit, config
 from ..errors import BackupError
 from . import repository
 
@@ -22,8 +22,8 @@ def fail(message: str) -> NoReturn:
 
 def available_commands() -> list[tuple[str, str]]:
     """Read command names and descriptions from the installed restic."""
+    event_id = audit.record("restic", ["help"])
     try:
-        audit.record("restic", ["help"])
         result = subprocess.run(
             ["restic", "help"], check=True, capture_output=True, text=True
         )
@@ -31,6 +31,8 @@ def available_commands() -> list[tuple[str, str]]:
         fail("restic is not installed")
     except subprocess.CalledProcessError as exc:
         fail(exc.stderr.strip() or "could not read restic help")
+    finally:
+        audit.finish(event_id, "result" in locals() and result.returncode == 0)
 
     commands: list[tuple[str, str]] = []
     reading = False
@@ -55,8 +57,8 @@ def available_commands() -> list[tuple[str, str]]:
 
 def command_help(command: str) -> str:
     """Read a command's help from the installed restic."""
+    event_id = audit.record("restic", [command, "--help"])
     try:
-        audit.record("restic", [command, "--help"])
         result = subprocess.run(
             ["restic", command, "--help"],
             check=True,
@@ -67,6 +69,8 @@ def command_help(command: str) -> str:
         fail("restic is not installed")
     except subprocess.CalledProcessError as exc:
         fail(exc.stderr.strip() or f"could not read restic {command} help")
+    finally:
+        audit.finish(event_id, "result" in locals() and result.returncode == 0)
     return result.stdout
 
 
@@ -142,6 +146,10 @@ def repository_run(
 ) -> tuple[int, str]:
     if not args:
         fail("restic command required")
+    try:
+        config.ensure_repository_ready(restic_repository, storage)
+    except config.ConfigError as exc:
+        fail(str(exc))
     logger.debug("%s: running restic %s", restic_repository["id"], args[0])
 
     env = os.environ.copy()
@@ -213,7 +221,7 @@ def repository_run(
         if quiet and not capture:
             output_target = subprocess.DEVNULL
         raw_command = ["restic", *options, *args]
-        audit.record(raw_command[0], raw_command[1:])
+        event_id = audit.record(raw_command[0], raw_command[1:])
         with tempfile.TemporaryFile(mode="w+") as errors:
             result = subprocess.run(
                 raw_command,
@@ -227,6 +235,11 @@ def repository_run(
             error_text = errors.read()
     except FileNotFoundError:
         fail("restic is not installed")
+    finally:
+        audit.finish(
+            locals().get("event_id"),
+            "result" in locals() and result.returncode == 0,
+        )
     if not quiet or result.returncode not in {0, 10}:
         print(error_text, end="", file=sys.stderr)
     if "operation not permitted" in error_text.lower():

@@ -118,8 +118,10 @@ including repositories on local disks. Losing it makes the snapshots
 irrecoverable.
 
 Disabled repositories are ignored by commands and may retain `CHANGE_ME`
-placeholders. An enabled repository fails validation until its repository and
-referenced storage values are complete.
+placeholders. `check-config` checks every enabled repository and reports any
+remaining placeholders. Operational commands check only the selected repository
+immediately before using it, so an unfinished repository does not prevent a
+different configured repository from being listed, initialized, or accessed.
 
 `cache-dir` optionally selects restic's local cache for this repository. `~` is
 expanded, and a relative path is resolved beside the selected config file. If

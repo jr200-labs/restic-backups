@@ -48,17 +48,18 @@ uv run restic-backups --verbose generic repository init
 
 ## Audit log
 
-Command auditing is enabled by default. `restic-backups` appends one compact
-JSON object per line to `audit-log.json` in the directory where it was started.
-Each record contains:
+Command auditing is enabled by default. `restic-backups` appends compact JSON
+objects to `audit-log.json` in the directory where it was started. Each command
+has two linked records:
 
-- `date-time`: the UTC date and time;
-- `hostname`: the machine hostname;
-- `command`: the executable or CLI command;
-- `args`: its arguments.
+- a `started` event containing an `id`, `start-time`, `hostname`, `command`, and
+  its exact `args`;
+- a `finished` event containing `started-id`, `end-time`, and `successful`.
 
-The file uses one JSON object per line so new records can be appended without
-rewriting existing records. It is created with owner-only permissions (`0600`).
+The `started-id` links completion to the corresponding `started` event. A
+`started` event without a matching `finished` event indicates an interrupted
+process. The file is append-only: existing records are never rewritten. It is
+created with owner-only permissions (`0600`).
 Interactive selections are recorded when run, and restic subprocess records
 contain the exact raw restic arguments, including generated repository options.
 Credentials and repository passwords are passed through the environment rather

@@ -6,8 +6,10 @@ import json
 import os
 import re
 import socket
+from collections.abc import Mapping
 from datetime import UTC, datetime
 from pathlib import Path
+from uuid import uuid4
 
 from .errors import BackupError
 
@@ -52,15 +54,10 @@ def redact_args(args: list[str]) -> list[str]:
     return redacted
 
 
-def record(command: str, args: list[str]) -> None:
-    if not enabled():
-        return
-    event = {
-        "date-time": datetime.now(UTC).isoformat(),
-        "hostname": socket.gethostname(),
-        "command": command,
-        "args": redact_args(args),
-    }
+_pending: set[str] = set()
+
+
+def _append(event: Mapping[str, object]) -> None:
     encoded = (json.dumps(event, separators=(",", ":"), sort_keys=True) + "\n").encode()
     try:
         descriptor = os.open(AUDIT_LOG, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600)
@@ -71,3 +68,39 @@ def record(command: str, args: list[str]) -> None:
             os.close(descriptor)
     except OSError as exc:
         raise BackupError(f"could not append {AUDIT_LOG}: {exc}") from exc
+
+
+def record(command: str, args: list[str]) -> str | None:
+    if not enabled():
+        return None
+    event_id = uuid4().hex
+    event = {
+        "event": "started",
+        "id": event_id,
+        "start-time": datetime.now(UTC).isoformat(),
+        "hostname": socket.gethostname(),
+        "command": command,
+        "args": redact_args(args),
+    }
+    _append(event)
+    _pending.add(event_id)
+    return event_id
+
+
+def finish(event_id: str | None, successful: bool) -> None:
+    if event_id is None or event_id not in _pending:
+        return
+    _append(
+        {
+            "event": "finished",
+            "started-id": event_id,
+            "end-time": datetime.now(UTC).isoformat(),
+            "successful": successful,
+        }
+    )
+    _pending.remove(event_id)
+
+
+def finish_all(successful: bool) -> None:
+    for event_id in tuple(_pending):
+        finish(event_id, successful)

@@ -1065,6 +1065,10 @@ def destroy_command(
             )
         )
         return
+    try:
+        config.ensure_repository_ready(restic_repository, backend)
+    except config.ConfigError as exc:
+        fail(str(exc))
     confirmed = questionary.confirm(
         f"Permanently destroy '{repository_id}' and all data at {target}?",
         default=False,

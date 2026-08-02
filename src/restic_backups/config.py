@@ -74,6 +74,8 @@ def indexed(
 
 def validate(
     config: dict[str, Any],
+    *,
+    check_placeholders: bool = True,
 ) -> tuple[
     dict[str, dict[str, Any]],
     dict[str, dict[str, Any]],
@@ -109,22 +111,16 @@ def validate(
             )
         if not isinstance(item.get("enabled"), bool):
             raise ConfigError(f"{repository_id}.enabled must be true or false")
-        required = [required_text(item, "password", repository_id)]
+        required_text(item, "password", repository_id)
         if "cache-dir" in item:
             required_text(item, "cache-dir", repository_id)
         if backend["type"] == "s3":
-            required.extend(
+            for field in ("bucket", "key_prefix"):
                 required_text(item, field, repository_id)
-                for field in ("bucket", "key_prefix")
-            )
-            required.extend(
+            for field in ("endpoint", "region"):
                 required_text(backend, field, storage_id)
-                for field in ("endpoint", "region")
-            )
-            required.extend(
+            for field in ("access-key-id", "secret-access-key"):
                 required_text(backend["credentials"], field, storage_id)
-                for field in ("access-key-id", "secret-access-key")
-            )
         else:
             repository_path = Path(required_text(item, "path", repository_id))
             if (
@@ -133,9 +129,8 @@ def validate(
                 or ".." in repository_path.parts
             ):
                 raise ConfigError(f"{repository_id}.path must be a safe relative path")
-            required.append(str(backend["path"]))
-        if item["enabled"] and any(PLACEHOLDER in value for value in required):
-            raise ConfigError(f"{repository_id} is enabled but contains placeholders")
+        if check_placeholders and item["enabled"]:
+            ensure_repository_ready(item, backend)
 
         archive = item.get("archive")
         if archive is None:
@@ -185,7 +180,32 @@ def validate(
     return storage, repositories, backups
 
 
-def load_validated() -> tuple[
+def ensure_repository_ready(
+    restic_repository: dict[str, Any], storage: dict[str, Any]
+) -> None:
+    """Reject placeholders only when this repository is about to be used."""
+    values = [str(restic_repository["password"])]
+    if storage["type"] == "s3":
+        values = [
+            str(restic_repository[field])
+            for field in ("password", "bucket", "key_prefix")
+        ]
+        values.extend(str(storage[field]) for field in ("endpoint", "region"))
+        values.extend(
+            str(storage["credentials"][field])
+            for field in ("access-key-id", "secret-access-key")
+        )
+    else:
+        values.append(str(storage["path"]))
+    if any(PLACEHOLDER in value for value in values):
+        raise ConfigError(
+            f"{restic_repository['id']} is enabled but contains placeholders"
+        )
+
+
+def load_validated(
+    *, check_placeholders: bool = False
+) -> tuple[
     dict[str, Any],
     dict[str, dict[str, Any]],
     dict[str, dict[str, Any]],
@@ -196,7 +216,9 @@ def load_validated() -> tuple[
     logger.info("Loading configuration: %s%s", path, " (SOPS)" if use_sops else "")
     loaded = load_config(path, use_sops)
     try:
-        storage, repositories, backups = validate(loaded)
+        storage, repositories, backups = validate(
+            loaded, check_placeholders=check_placeholders
+        )
     except ConfigError as exc:
         fail(f"invalid config in {path}: {exc}")
     logger.debug(

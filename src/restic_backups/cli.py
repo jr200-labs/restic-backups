@@ -148,14 +148,16 @@ def fail(message: str) -> NoReturn:
     raise typer.Exit(1)
 
 
-def validated() -> tuple[
+def validated(
+    *, check_placeholders: bool = False
+) -> tuple[
     dict[str, Any],
     dict[str, dict[str, Any]],
     dict[str, dict[str, Any]],
     dict[str, dict[str, Any]],
 ]:
     try:
-        return config_module.load_validated()
+        return config_module.load_validated(check_placeholders=check_placeholders)
     except BackupError as exc:
         fail(str(exc))
 
@@ -164,7 +166,7 @@ def validated() -> tuple[
 def check_config_command() -> None:
     """Validate configuration without contacting remote storage."""
     audit.record("restic-backups", ["check-config"])
-    validated()
+    validated(check_placeholders=True)
     typer.echo("config ok")
 
 
@@ -222,6 +224,7 @@ def prepare_voice_memos() -> None:
 
 def main() -> None:
     """Audit and run the installed command."""
+    successful = False
     try:
         audit.record("restic-backups", list(sys.argv[1:]))
     except BackupError as exc:
@@ -229,8 +232,15 @@ def main() -> None:
         raise SystemExit(1) from exc
     try:
         app()
+        successful = True
+    except SystemExit as exc:
+        successful = exc.code is None or exc.code == 0
+        raise
     except KeyboardInterrupt:
+        successful = True
         raise SystemExit(0) from None
+    finally:
+        audit.finish_all(successful)
 
 
 if __name__ == "__main__":
