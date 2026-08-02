@@ -77,6 +77,11 @@ def command_usage(command: str) -> str:
         fail(f"could not parse restic {command} help")
 
 
+def supports_dry_run(command: str) -> bool:
+    """Return whether the installed restic command has a dry-run flag."""
+    return "--dry-run" in command_help(command)
+
+
 def command(
     backup_id: str,
     args: list[str],

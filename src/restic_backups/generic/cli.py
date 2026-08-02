@@ -46,6 +46,17 @@ def menu_choice(
     )
 
 
+def choose_dry_run() -> bool:
+    selected = questionary.checkbox(
+        "Options (Space to toggle, Enter to continue):",
+        choices=[
+            menu_choice("Dry run", "Show what would happen without writing", "dry-run"),
+            questionary.Separator(" "),
+        ],
+    ).ask()
+    return selected is not None and "dry-run" in selected
+
+
 @app.callback()
 def menu(context: typer.Context) -> None:
     """Choose a generic backup operation when run interactively."""
@@ -146,13 +157,13 @@ def repository_menu() -> None:
             repository_list_command()
             return
         elif selected == "init":
-            init_command()
+            init_command(dry_run=choose_dry_run())
             return
         elif selected == "prime-cache":
             prime_cache_command(None)
             return
         elif selected == "destroy":
-            destroy_command(None)
+            destroy_command(None, choose_dry_run())
             return
 
 
@@ -187,7 +198,7 @@ def backup_menu() -> None:
             backup_list_command()
             return
         elif selected == "run":
-            backup_command(None)
+            backup_command(None, choose_dry_run())
             return
         elif selected == "data-dir":
             data_dir_command(None)
@@ -224,7 +235,7 @@ def snapshot_menu() -> None:
             snapshots_command(None)
             return
         elif selected == "forget":
-            forget_command(None)
+            forget_command(None, choose_dry_run())
             return
 
 
@@ -297,6 +308,12 @@ def restic_menu() -> None:
                 except BackupError as exc:
                     fail(str(exc))
                 continue
+            if (
+                "--dry-run" not in args
+                and restic.supports_dry_run(command)
+                and choose_dry_run()
+            ):
+                args.insert(0, "--dry-run")
             run_args(None, [command, *args], interactive=True)
             return
 
@@ -416,6 +433,10 @@ def backup_command(
         str | None,
         typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show what would happen without writing."),
+    ] = False,
 ) -> None:
     """Create a snapshot from a backup job's configured paths."""
     _, credentials, stores, backups = validated()
@@ -424,16 +445,18 @@ def backup_command(
     if not paths:
         fail(f"backup job '{backup_id}' has no configured paths")
     expanded_paths = [str(Path(path).expanduser()) for path in paths]
+    mode = "dry run: scanning" if dry_run else "backing up"
     error_console.print(
         Text(
-            f"{backup_id}: backing up {len(expanded_paths)} configured path(s)",
+            f"{backup_id}: {mode} {len(expanded_paths)} configured path(s)",
             style="cyan",
         )
     )
+    args = ["backup", *(["--dry-run"] if dry_run else []), *expanded_paths]
     try:
         code = restic.command(
             backup_id,
-            ["backup", *expanded_paths],
+            args,
             credentials,
             stores,
             backups,
@@ -442,7 +465,8 @@ def backup_command(
         fail(str(exc))
     if code:
         raise typer.Exit(code)
-    error_console.print(Text(f"{backup_id}: snapshot created", style="bold green"))
+    message = "dry run complete; no snapshot created" if dry_run else "snapshot created"
+    error_console.print(Text(f"{backup_id}: {message}", style="bold green"))
 
 
 @backup_app.command("data-dir")
@@ -472,6 +496,10 @@ def init_command(
     all_repositories: Annotated[
         bool,
         typer.Option("--all", help="Initialize every enabled repository."),
+    ] = False,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Check without initializing repositories."),
     ] = False,
 ) -> None:
     """Initialize one repository, or every enabled repository with --all."""
@@ -530,6 +558,14 @@ def init_command(
                 continue
             if code != 10:
                 raise typer.Exit(code)
+            if dry_run:
+                error_console.print(
+                    Text(
+                        f"{store_id}: dry run; would initialize repository",
+                        style="green",
+                    )
+                )
+                continue
             error_console.print(
                 Text(f"{store_id}: not initialized; initializing", style="cyan")
             )
@@ -660,6 +696,12 @@ def forget_command(
         str | None,
         typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option(
+            "--dry-run", help="Show what would be forgotten without deleting."
+        ),
+    ] = False,
 ) -> None:
     """Forget one snapshot and prune its unreferenced data."""
     if not sys.stdin.isatty():
@@ -697,17 +739,21 @@ def forget_command(
         raise typer.Abort()
     snapshot_id = str(selected)
     short_id = str(snapshot_by_id[snapshot_id].get("short_id", snapshot_id[:8]))
-    confirmed = questionary.confirm(
-        f"Forget snapshot '{short_id}' and prune its unreferenced data?",
-        default=False,
-    ).ask()
-    if confirmed is not True:
-        error_console.print(Text("Cancelled; nothing was forgotten.", style="yellow"))
-        return
+    if not dry_run:
+        confirmed = questionary.confirm(
+            f"Forget snapshot '{short_id}' and prune its unreferenced data?",
+            default=False,
+        ).ask()
+        if confirmed is not True:
+            error_console.print(
+                Text("Cancelled; nothing was forgotten.", style="yellow")
+            )
+            return
+    args = ["forget", snapshot_id, "--prune", *(["--dry-run"] if dry_run else [])]
     try:
         code = restic.command(
             backup_id,
-            ["forget", snapshot_id, "--prune"],
+            args,
             credentials,
             stores,
             backups,
@@ -716,9 +762,12 @@ def forget_command(
         fail(str(exc))
     if code:
         raise typer.Exit(code)
-    error_console.print(
-        Text(f"{backup_id}: forgot snapshot {short_id}", style="bold green")
+    message = (
+        f"dry run complete; snapshot {short_id} not forgotten"
+        if dry_run
+        else f"forgot snapshot {short_id}"
     )
+    error_console.print(Text(f"{backup_id}: {message}", style="bold green"))
 
 
 @repository_app.command("destroy")
@@ -728,6 +777,10 @@ def destroy_command(
         str | None,
         typer.Argument(help="Repository ID; prompts when omitted."),
     ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show the target without deleting objects."),
+    ] = False,
 ) -> None:
     """Permanently erase a configured repository from S3."""
     if not sys.stdin.isatty():
@@ -756,6 +809,14 @@ def destroy_command(
         f"{store['endpoint'].rstrip('/')}/{store['bucket']}/"
         f"{store['key_prefix'].strip('/')}"
     )
+    if dry_run:
+        error_console.print(
+            Text(
+                f"{repository_id}: dry run complete; nothing deleted at {target}",
+                style="green",
+            )
+        )
+        return
     confirmed = questionary.confirm(
         f"Permanently destroy '{repository_id}' and all data at {target}?",
         default=False,
