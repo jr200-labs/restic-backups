@@ -2,10 +2,10 @@
 title: GitHub Repositories
 ---
 
-The `github-repository` job type incrementally maintains a complete Git
-mirror and optionally collects Git LFS objects, the wiki, repository metadata,
-and release assets. It then snapshots the managed workspace to one or more
-configured restic repositories.
+The `github-repository` job type incrementally maintains complete Git mirrors
+for one or more URLs and optionally collects Git LFS objects, wikis, repository
+metadata, and release assets. It then snapshots the combined managed workspace
+to one or more configured restic repositories.
 
 ## Configure a job
 
@@ -21,7 +21,9 @@ jobs:
       - personal-local
     tag: example-github-repository
     source:
-      repository-url: git@github.com:example/example-repository.git
+      repository-urls:
+        - git@github.com:example/example-repository.git
+        - git@github.com:example/another-repository.git
       authentication:
         git:
           ssh:
@@ -42,8 +44,8 @@ jobs:
 ```
 
 Every component flag is required, and at least one must be `true`. `lfs`
-requires `git`. The optional restic
-`tag` still defaults to `job-id`.
+requires `git`. Every URL uses the same component and authentication settings.
+The optional restic `tag` still defaults to `job-id`.
 
 Only `github.com` clone URLs are accepted:
 
@@ -53,6 +55,9 @@ https://github.com/OWNER/REPOSITORY.git
 ```
 
 Credentials, query strings, and fragments embedded in the URL are rejected.
+The URL list must be non-empty and identify distinct repositories; SSH and
+HTTPS URLs for the same repository cannot appear together. The previous
+singular `repository-url` field is accepted temporarily for migration.
 
 ## Credentials
 
@@ -170,15 +175,16 @@ The reusable local workspace lives beside the selected config:
 
 ```text
 data/github-repositories/<job-id>/
-  repository.git/
-  wiki.git/
-  github-export/
-  release-assets/
   backup-manifest.json
+  <owner>/<repository>/
+    repository.git/
+    wiki.git/
+    github-export/
+    release-assets/
 ```
 
-The manifest records the source, update time, and a safe status for every
-component: `updated`, `unchanged`, `stale`, `not-present`, `failed`, or
+The manifest records every source, the update time, and a safe status for every
+repository component: `updated`, `unchanged`, `stale`, `not-present`, `failed`, or
 `disabled`. If one component fails, the workflow still attempts the others and
 all selected destinations. Existing local component data is included as
 `stale`; the command creates the best available snapshot and exits nonzero when
@@ -198,12 +204,14 @@ repository into a working tree:
 ```sh
 uv run restic-backups generic restic run --backup example-github-repository \
   restore latest --target /tmp/github-restore
-git clone /tmp/github-restore/repository.git restored-repository
+git clone "$(find /tmp/github-restore -type d \
+  -path '*/example/example-repository/repository.git' -print -quit)" \
+  restored-repository
 ```
 
 ## Deliberate limits
 
 This workflow does not export GitHub Actions artifacts, logs or caches,
-packages, secret values, forks as independent repositories, submodule
-repositories, or GitHub Enterprise. Configure another job for each independent
-Git or submodule repository that must be retained.
+packages, secret values, forks as independent repositories, automatically
+discovered submodule repositories, or GitHub Enterprise. Add each independent
+Git or submodule repository URL that must be retained.

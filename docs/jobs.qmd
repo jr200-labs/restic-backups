@@ -54,7 +54,9 @@ jobs:
     type: github-repository
     restic-repository-ids: [personal-local]
     source:
-      repository-url: git@github.com:example/source-code.git
+      repository-urls:
+        - git@github.com:example/source-code.git
+        - git@github.com:example/another-project.git
       components:
         git: true
         lfs: false
@@ -64,8 +66,9 @@ jobs:
       migration-timeout-seconds: 3600
 ```
 
-The job updates a managed mirror and selected GitHub data before snapshotting
-that workspace. See [GitHub Repositories](github-repositories.qmd) for
+The job updates an independent managed mirror and selected GitHub data for each
+URL before snapshotting the complete job workspace. See
+[GitHub Repositories](github-repositories.qmd) for
 components and credentials.
 
 ## Voice Memos

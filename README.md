@@ -71,14 +71,15 @@ The configuration separates:
   bucket/key prefix or local path, restic password, cache, and archive policy;
 - `jobs`: typed work linked to one or more restic repositories. `files`,
   `github-repository`, and `voice-memos` jobs share the same destination and
-  snapshot fields while defining their input under `source`.
+snapshot fields while defining their input under `source`.
+One `github-repository` job may incrementally maintain multiple repository URLs
+and snapshot their combined state together.
 
 Multiple restic repositories may use one storage backend, one job may
 write to several repositories, and several jobs may share one repository. The
 job TUI preselects a sole enabled destination; multiple destinations start
-unchecked. Disabled
-repositories may contain `CHANGE_ME`; all placeholders must be replaced before
-enabling one.
+unchecked. Disabled repositories may contain `CHANGE_ME`; all placeholders must
+be replaced before enabling one.
 
 ## Data and source paths
 

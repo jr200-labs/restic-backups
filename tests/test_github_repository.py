@@ -33,7 +33,9 @@ def github_job(**components: bool) -> dict[str, object]:
         "type": "github-repository",
         "restic-repository-ids": ["first", "second"],
         "source": {
-            "repository-url": "git@github.com:example/example-repository.git",
+            "repository-urls": [
+                "git@github.com:example/example-repository.git",
+            ],
             "components": enabled,
             "migration-timeout-seconds": 60,
         },
@@ -60,13 +62,36 @@ def complete_config(job: dict[str, object]) -> dict[str, object]:
 def test_github_config_validates_components_urls_and_credentials() -> None:
     config.validate(complete_config(github_job()))
 
+    legacy = github_job()
+    source = cast(dict[str, Any], legacy["source"])
+    source["repository-url"] = source.pop("repository-urls")[0]
+    _, _, jobs = config.validate(complete_config(legacy))
+    assert jobs["example-repository"]["source"]["repository-urls"] == [
+        "git@github.com:example/example-repository.git"
+    ]
+
     invalid = github_job(lfs=True, git=False)
     with pytest.raises(config.ConfigError, match="lfs requires git"):
         config.validate(complete_config(invalid))
 
     invalid = github_job()
-    invalid["source"]["repository-url"] = "https://token@github.com/example/repo.git"  # type: ignore[index]
+    invalid["source"]["repository-urls"] = [  # type: ignore[index]
+        "https://token@github.com/example/repo.git"
+    ]
     with pytest.raises(config.ConfigError, match="safe github.com URL"):
+        config.validate(complete_config(invalid))
+
+    invalid = github_job()
+    invalid["source"]["repository-urls"] *= 2  # type: ignore[index,operator]
+    with pytest.raises(config.ConfigError, match="unique URLs"):
+        config.validate(complete_config(invalid))
+
+    invalid = github_job()
+    invalid["source"]["repository-urls"] = [  # type: ignore[index]
+        "git@github.com:example/example-repository.git",
+        "https://github.com/EXAMPLE/example-repository",
+    ]
+    with pytest.raises(config.ConfigError, match="unique repositories"):
         config.validate(complete_config(invalid))
 
     invalid = github_job(metadata=True)
@@ -89,7 +114,7 @@ def test_dry_run_does_not_write_or_run_commands(
             {"example-repository": job},
             dry_run=True,
         )
-    assert statuses["git"] == "planned"
+    assert statuses["example/example-repository:git"] == "planned"
     assert destinations == {"first": True}
     assert not (tmp_path / "data").exists()
     run.assert_not_called()
@@ -259,14 +284,78 @@ def test_component_failure_is_manifested_and_other_destinations_continue(
             {"example-repository": job},
         )
 
-    assert statuses["git"] == "failed"
-    assert statuses["metadata"] == "updated"
+    assert statuses["example/example-repository:git"] == "failed"
+    assert statuses["example/example-repository:metadata"] == "updated"
     assert destinations == {"first": False, "second": True}
     assert restic_command.call_count == 2
     manifest = json.loads(
         (workflow.data_dir("example-repository") / "backup-manifest.json").read_text()
     )
-    assert manifest["components"]["git"]["status"] == "failed"
+    assert (
+        manifest["repositories"]["example/example-repository"]["components"]["git"][
+            "status"
+        ]
+        == "failed"
+    )
+
+
+def test_multiple_repositories_use_independent_workspace_directories(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv(config.CONFIG_ENV, str(tmp_path / "config.yaml"))
+    job = github_job()
+    job["source"]["repository-urls"] = [  # type: ignore[index]
+        "git@github.com:first/shared-name.git",
+        "git@github.com:second/shared-name.git",
+    ]
+
+    def mirror(_url: str, path: Path, _env: object) -> str:
+        path.mkdir(parents=True)
+        return "updated"
+
+    with (
+        patch(
+            "restic_backups.github_repository.workflow._git_mirror",
+            side_effect=mirror,
+        ),
+        patch(
+            "restic_backups.github_repository.workflow.restic.command",
+            return_value=0,
+        ) as restic_command,
+    ):
+        statuses, _ = workflow.backup(
+            "example-repository",
+            job,
+            ["first"],
+            {},
+            {},
+            {"example-repository": job},
+        )
+
+    root = workflow.data_dir("example-repository")
+    assert (root / "first/shared-name/repository.git").is_dir()
+    assert (root / "second/shared-name/repository.git").is_dir()
+    assert statuses["first/shared-name:git"] == "updated"
+    assert statuses["second/shared-name:git"] == "updated"
+    args = restic_command.call_args.args[1]
+    assert str(root / "first/shared-name/repository.git") in args
+    assert str(root / "second/shared-name/repository.git") in args
+
+
+def test_legacy_workspace_is_moved_to_repository_directory(tmp_path: Path) -> None:
+    root = tmp_path / "job"
+    (root / "repository.git").mkdir(parents=True)
+    (root / "backup-manifest.json").write_text(
+        json.dumps({"source": "git@github.com:example/repository.git"})
+    )
+
+    workflow._migrate_legacy_layout(
+        root,
+        [("git@github.com:example/repository.git", "example", "repository")],
+    )
+
+    assert (root / "example/repository/repository.git").is_dir()
+    assert not (root / "repository.git").exists()
 
 
 def test_secret_values_never_enter_audit_log(

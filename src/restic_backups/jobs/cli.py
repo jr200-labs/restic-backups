@@ -187,7 +187,7 @@ def source_summary(job: dict[str, Any]) -> str:
     if job["type"] == "files":
         return "\n".join(source.get("paths", [])) or "—"
     if job["type"] == "github-repository":
-        return str(source["repository-url"])
+        return "\n".join(source["repository-urls"])
     return str(source.get("recordings-dir", "macOS Voice Memos"))
 
 
@@ -300,7 +300,7 @@ def status_command(job: str | None = typer.Argument(None)) -> None:
             state = (
                 ", ".join(
                     f"{key}: {value['status']}"
-                    for key, value in manifest["components"].items()
+                    for key, value in github_workflow.manifest_components(manifest)
                 )
                 if manifest
                 else "not run"

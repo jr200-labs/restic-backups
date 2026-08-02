@@ -43,6 +43,10 @@ configuration, select a backup, or contact the repository. **Back** returns one
 level without restarting the menu tree. Entering `--help` or `-h` in the
 argument prompt has the same local-help behavior.
 
+For `restic ls`, leave the argument prompt empty to choose from the job's
+available tagged snapshots. The selected full snapshot ID is inserted into the
+copyable command. Enter an ID or `latest` directly to skip the picker.
+
 ### Dry runs
 
 The interactive menu shows a **Dry run** checkbox for repository initialization,

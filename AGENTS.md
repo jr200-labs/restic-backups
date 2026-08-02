@@ -31,7 +31,8 @@ downstream GitHub references to upstream issues or pull requests.
 - Backup sources may be absolute paths outside this repository. Managed local
   artifacts belong below `data/<storage-id>/<repository-path>/<job-id>/`.
   GitHub repository workspaces belong below
-  `data/github-repositories/<job-id>/` and are shared across destinations.
+  `data/github-repositories/<job-id>/<owner>/<repository>/` and are shared
+  across destinations.
 
 ## Safety
 
