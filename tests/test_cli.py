@@ -117,6 +117,9 @@ class VoiceMemosCliTest(unittest.TestCase):
         choices = select.call_args.kwargs["choices"]
         self.assertIn("Manage repositories", choice_title(choices[0]))
         self.assertIn("Git history", choice_title(choices[1]))
+        self.assertIn(
+            "GitHub repositories  Back up Git history", choice_title(choices[1])
+        )
         self.assertIn("transcribe", choice_title(choices[2]))
         title = choices[0].title
         self.assertIsInstance(title, list)

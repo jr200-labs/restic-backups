@@ -46,7 +46,7 @@ error_console = Console(stderr=True)
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
     return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<17}"), ("", description)], value
+        [("fg:ansicyan bold", f"{label:<21}"), ("", description)], value
     )
 
 
