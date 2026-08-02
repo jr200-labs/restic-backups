@@ -17,6 +17,9 @@ Every menu level includes **Help** and **Back**. **Help** shows the commands and
 flags for the current level, then returns to the same menu; it does not load the
 configuration or contact remote storage.
 
+Press Escape to return to the previous menu. Press Ctrl+C at any prompt to exit
+the TUI cleanly.
+
 Show command-line help instead:
 
 ```sh

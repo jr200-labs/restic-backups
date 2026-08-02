@@ -19,6 +19,7 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import repository, restic, s3, sops
+from .tui import select
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -53,7 +54,7 @@ def choose_dry_run() -> bool:
             menu_choice("Dry run", "Show what would happen without writing", "dry-run"),
             questionary.Separator(" "),
         ],
-    ).ask()
+    ).unsafe_ask()
     return selected is not None and "dry-run" in selected
 
 
@@ -65,13 +66,16 @@ def menu(context: typer.Context) -> None:
     if not sys.stdin.isatty():
         typer.echo(context.get_help())
         return
-    interactive_menu()
+    try:
+        interactive_menu()
+    except KeyboardInterrupt:
+        return
 
 
 def interactive_menu() -> None:
     """Navigate generic operations with arrow-key menus."""
     while True:
-        selected = questionary.select(
+        selected = select(
             "Section:",
             choices=[
                 menu_choice(
@@ -99,7 +103,7 @@ def interactive_menu() -> None:
                 menu_choice("Back", "Return to the previous menu", "back", 17),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
         if selected == "help":
@@ -121,7 +125,7 @@ def print_typer_help(application: typer.Typer, name: str) -> None:
 
 def repository_menu() -> None:
     while True:
-        selected = questionary.select(
+        selected = select(
             "Repository command:",
             choices=[
                 menu_choice(
@@ -148,28 +152,31 @@ def repository_menu() -> None:
                 menu_choice("Back", "Return to Generic sections", "back"),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
-        if selected == "help":
-            print_typer_help(repository_app, "restic-backups generic repository")
-        elif selected == "list":
-            repository_list_command()
-            return
-        elif selected == "init":
-            init_command(dry_run=choose_dry_run())
-            return
-        elif selected == "prime-cache":
-            prime_cache_command(None)
-            return
-        elif selected == "destroy":
-            destroy_command(None, choose_dry_run())
-            return
+        try:
+            if selected == "help":
+                print_typer_help(repository_app, "restic-backups generic repository")
+            elif selected == "list":
+                repository_list_command()
+                return
+            elif selected == "init":
+                init_command(dry_run=choose_dry_run())
+                return
+            elif selected == "prime-cache":
+                prime_cache_command(None)
+                return
+            elif selected == "destroy":
+                destroy_command(None, choose_dry_run())
+                return
+        except typer.Abort:
+            continue
 
 
 def backup_menu() -> None:
     while True:
-        selected = questionary.select(
+        selected = select(
             "Backup command:",
             choices=[
                 menu_choice("List backups", "Show configured backup jobs", "list", 18),
@@ -189,25 +196,28 @@ def backup_menu() -> None:
                 menu_choice("Back", "Return to Generic sections", "back", 18),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
-        if selected == "help":
-            print_typer_help(backup_app, "restic-backups generic backup")
-        elif selected == "list":
-            backup_list_command()
-            return
-        elif selected == "run":
-            backup_command(None, choose_dry_run())
-            return
-        elif selected == "data-dir":
-            data_dir_command(None)
-            return
+        try:
+            if selected == "help":
+                print_typer_help(backup_app, "restic-backups generic backup")
+            elif selected == "list":
+                backup_list_command()
+                return
+            elif selected == "run":
+                backup_command(None, choose_dry_run())
+                return
+            elif selected == "data-dir":
+                data_dir_command(None)
+                return
+        except typer.Abort:
+            continue
 
 
 def snapshot_menu() -> None:
     while True:
-        selected = questionary.select(
+        selected = select(
             "Snapshot command:",
             choices=[
                 menu_choice(
@@ -226,17 +236,20 @@ def snapshot_menu() -> None:
                 menu_choice("Back", "Return to Generic sections", "back", 18),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
-        if selected == "help":
-            print_typer_help(snapshot_app, "restic-backups generic snapshot")
-        elif selected == "list":
-            snapshots_command(None)
-            return
-        elif selected == "forget":
-            forget_command(None, choose_dry_run())
-            return
+        try:
+            if selected == "help":
+                print_typer_help(snapshot_app, "restic-backups generic snapshot")
+            elif selected == "list":
+                snapshots_command(None)
+                return
+            elif selected == "forget":
+                forget_command(None, choose_dry_run())
+                return
+        except typer.Abort:
+            continue
 
 
 def restic_menu() -> None:
@@ -245,7 +258,7 @@ def restic_menu() -> None:
     except BackupError as exc:
         fail(str(exc))
     while True:
-        selected = questionary.select(
+        selected = select(
             "Restic command:",
             choices=[
                 *[
@@ -258,7 +271,7 @@ def restic_menu() -> None:
                 menu_choice("Back", "Return to Generic sections", "back", 13),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
         if selected == "help":
@@ -271,7 +284,7 @@ def restic_menu() -> None:
             fail(str(exc))
         console.print(Text(f"Usage: {usage}", style="dim"))
         while True:
-            action = questionary.select(
+            action = select(
                 f"restic {command}:",
                 choices=[
                     menu_choice(
@@ -284,7 +297,7 @@ def restic_menu() -> None:
                     menu_choice("Back", "Choose another restic command", "back", 17),
                     questionary.Separator(" "),
                 ],
-            ).ask()
+            ).unsafe_ask()
             if action in {None, "back"}:
                 break
             if action == "help":
@@ -295,7 +308,7 @@ def restic_menu() -> None:
                 continue
             arguments = questionary.text(
                 f"Arguments for 'restic {command}' (optional):"
-            ).ask()
+            ).unsafe_ask()
             if arguments is None:
                 continue
             try:
@@ -314,8 +327,11 @@ def restic_menu() -> None:
                 and choose_dry_run()
             ):
                 args.insert(0, "--dry-run")
-            run_args(None, [command, *args], interactive=True)
-            return
+            try:
+                run_args(None, [command, *args], interactive=True)
+                return
+            except typer.Abort:
+                continue
 
 
 def fail(message: str) -> NoReturn:
@@ -364,7 +380,7 @@ def choose_backup(
     if not choices:
         fail("no enabled backups are available")
     choices.append(questionary.Separator(" "))
-    selected = questionary.select("Backup job:", choices=choices).ask()
+    selected = select("Backup job:", choices=choices).unsafe_ask()
     if selected is None:
         raise typer.Abort()
     return str(selected)
@@ -521,7 +537,7 @@ def init_command(
     if repository_id is None and not all_repositories:
         if not sys.stdin.isatty():
             fail("repository ID or --all is required when stdin is not interactive")
-        selected = questionary.select(
+        selected = select(
             "Repository to initialize:",
             choices=[
                 questionary.Choice("All repositories", ALL_REPOSITORIES),
@@ -534,7 +550,7 @@ def init_command(
                 ],
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
         if selected == ALL_REPOSITORIES:
@@ -611,7 +627,7 @@ def prime_cache_command(
     if repository_id is None:
         if not sys.stdin.isatty():
             fail("repository ID is required when stdin is not interactive")
-        selected = questionary.select(
+        selected = select(
             "Repository cache to prime:",
             choices=[
                 questionary.Choice(store_id, store_id)
@@ -619,7 +635,7 @@ def prime_cache_command(
                 if store["enabled"]
             ]
             + [questionary.Separator(" ")],
-        ).ask()
+        ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
         repository_id = str(selected)
@@ -757,7 +773,7 @@ def forget_command(
         )
 
     choices.append(questionary.Separator(" "))
-    selected = questionary.select("Snapshot to forget:", choices).ask()
+    selected = select("Snapshot to forget:", choices).unsafe_ask()
     if selected is None:
         raise typer.Abort()
     snapshot_id = str(selected)
@@ -766,7 +782,7 @@ def forget_command(
         confirmed = questionary.confirm(
             f"Forget snapshot '{short_id}' and prune its unreferenced data?",
             default=False,
-        ).ask()
+        ).unsafe_ask()
         if confirmed is not True:
             error_console.print(
                 Text("Cancelled; nothing was forgotten.", style="yellow")
@@ -817,7 +833,7 @@ def destroy_command(
         fail("destroy requires an interactive terminal")
     _, credentials, stores, _ = validated()
     if repository_id is None:
-        selected = questionary.select(
+        selected = select(
             "Repository to permanently destroy:",
             choices=[
                 questionary.Choice(
@@ -827,7 +843,7 @@ def destroy_command(
                 for store_id, store in stores.items()
             ]
             + [questionary.Separator(" ")],
-        ).ask()
+        ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
         repository_id = str(selected)
@@ -851,13 +867,13 @@ def destroy_command(
     confirmed = questionary.confirm(
         f"Permanently destroy '{repository_id}' and all data at {target}?",
         default=False,
-    ).ask()
+    ).unsafe_ask()
     if confirmed is not True:
         error_console.print(Text("Cancelled; nothing was destroyed.", style="yellow"))
         return
     typed = questionary.text(
         f"Type '{repository_id}' to confirm permanent destruction:"
-    ).ask()
+    ).unsafe_ask()
     if typed != repository_id:
         fail("repository ID did not match; nothing was destroyed")
 
@@ -916,7 +932,7 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
     if interactive:
         console.print(Text("Command:", style="bold"))
         console.print(Text(copyable_command(backup_id, args), style="cyan"))
-        action = questionary.select(
+        action = select(
             "Action:",
             choices=[
                 questionary.Choice("Run", "run"),
@@ -924,7 +940,9 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
                 questionary.Choice("Cancel", "cancel"),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
+        if action is None:
+            raise typer.Abort()
         if action != "run":
             if action == "cancel":
                 error_console.print(Text("Cancelled; nothing was run.", style="yellow"))

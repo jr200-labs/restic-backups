@@ -20,6 +20,7 @@ from .errors import BackupError
 from .generic import cli as generic_cli
 from .generic import repository
 from .generic import sops as sops_module
+from .generic.tui import select
 
 app = typer.Typer(
     help="Configured backup commands.",
@@ -95,13 +96,16 @@ def configure(
         if not sys.stdin.isatty():
             typer.echo(context.get_help())
             return
-        interactive_menu()
+        try:
+            interactive_menu()
+        except KeyboardInterrupt:
+            return
 
 
 def interactive_menu() -> None:
     """Navigate all user-facing workflows with an arrow-key menu."""
     while True:
-        selected = questionary.select(
+        selected = select(
             "Workflow:",
             choices=[
                 menu_choice(
@@ -123,7 +127,7 @@ def interactive_menu() -> None:
                 menu_choice("Exit", "Return without doing anything", "exit"),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "exit"}:
             return
         if selected == "help":
@@ -179,7 +183,10 @@ def voice_memos_command(context: typer.Context) -> None:
 
     if not context.args:
         if sys.stdin.isatty():
-            voice_memos_menu(prepare_voice_memos)
+            try:
+                voice_memos_menu(prepare_voice_memos)
+            except KeyboardInterrupt:
+                return
         else:
             cli.main(
                 args=["--help"],
@@ -216,7 +223,10 @@ def main() -> None:
     except BackupError as exc:
         error_console.print(Text(f"restic-backups: {exc}", style="bold red"))
         raise SystemExit(1) from exc
-    app()
+    try:
+        app()
+    except KeyboardInterrupt:
+        raise SystemExit(0) from None
 
 
 if __name__ == "__main__":

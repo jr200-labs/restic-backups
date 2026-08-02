@@ -37,8 +37,9 @@ uv run restic-backups generic --help
 uv run restic-backups voice-memos --help
 ```
 
-The interactive menus include **Help** and **Back** at every level. Help stays
-at the current level and does not load configuration or access a repository.
+The interactive menus include **Help** and **Back** at every level. Press
+Escape to go back or Ctrl+C to exit. Help stays at the current level and does
+not load configuration or access a repository.
 Generic write actions also offer a Space-toggleable **Dry run** checkbox so the
 operation can be inspected without changing repository data.
 

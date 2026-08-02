@@ -36,7 +36,7 @@ def choice_title(choice: questionary.Choice) -> str:
 class VoiceMemosCliTest(unittest.TestCase):
     def test_dry_run_is_a_spacebar_checkbox(self) -> None:
         with patch("restic_backups.generic.cli.questionary.checkbox") as checkbox:
-            checkbox.return_value.ask.return_value = ["dry-run"]
+            checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
 
             self.assertTrue(choose_dry_run())
 
@@ -87,9 +87,9 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertIn("generic", root.output)
 
     @patch("restic_backups.cli.generic_cli.interactive_menu")
-    @patch("restic_backups.cli.questionary.select")
+    @patch("restic_backups.cli.select")
     def test_root_menu_selects_described_workflow(self, select, generic_menu) -> None:
-        select.return_value.ask.side_effect = ["generic", "exit"]
+        select.return_value.unsafe_ask.side_effect = ["generic", "exit"]
 
         root_menu()
 
@@ -105,10 +105,10 @@ class VoiceMemosCliTest(unittest.TestCase):
         generic_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
-    @patch("restic_backups.generic.cli.questionary.select")
+    @patch("restic_backups.generic.cli.select")
     @patch("restic_backups.generic.cli.repository_list_command")
     def test_generic_menu_selects_a_command(self, list_command, select, _) -> None:
-        select.return_value.ask.side_effect = ["repository", "list", "back"]
+        select.return_value.unsafe_ask.side_effect = ["repository", "list", "back"]
 
         generic_menu(Mock(invoked_subcommand=None))
 
@@ -127,13 +127,13 @@ class VoiceMemosCliTest(unittest.TestCase):
                     "RESTIC_BACKUPS_SOPS": "1",
                 },
             ),
-            patch("restic_backups.voice_memos.cli.questionary.select") as select,
+            patch("restic_backups.voice_memos.cli.select") as select,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
             patch("restic_backups.voice_memos.cli.click.echo") as echo,
             patch.object(voice_memos_cli, "main") as main,
         ):
-            select.return_value.ask.side_effect = ["backup", "run", "print"]
-            arguments.return_value.ask.return_value = ""
+            select.return_value.unsafe_ask.side_effect = ["backup", "run", "print"]
+            arguments.return_value.unsafe_ask.return_value = ""
 
             voice_memos_menu()
 
@@ -150,9 +150,9 @@ class VoiceMemosCliTest(unittest.TestCase):
         main.assert_not_called()
 
     @patch("restic_backups.cli.generic_cli.print_typer_help")
-    @patch("restic_backups.cli.questionary.select")
+    @patch("restic_backups.cli.select")
     def test_root_help_returns_to_root_menu(self, select, print_help) -> None:
-        select.return_value.ask.side_effect = ["help", "exit"]
+        select.return_value.unsafe_ask.side_effect = ["help", "exit"]
 
         root_menu()
 
@@ -173,9 +173,14 @@ class VoiceMemosCliTest(unittest.TestCase):
                 return_value="full restic list help",
             ) as command_help,
             patch("restic_backups.generic.cli.validated") as validated,
-            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.select") as select,
         ):
-            select.return_value.ask.side_effect = ["list", "help", "back", "back"]
+            select.return_value.unsafe_ask.side_effect = [
+                "list",
+                "help",
+                "back",
+                "back",
+            ]
 
             restic_menu()
 
@@ -185,10 +190,15 @@ class VoiceMemosCliTest(unittest.TestCase):
     def test_voice_memos_help_does_not_prepare_configuration(self) -> None:
         before_run = Mock()
         with (
-            patch("restic_backups.voice_memos.cli.questionary.select") as select,
+            patch("restic_backups.voice_memos.cli.select") as select,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
         ):
-            select.return_value.ask.side_effect = ["backup", "help", "back", "back"]
+            select.return_value.unsafe_ask.side_effect = [
+                "backup",
+                "help",
+                "back",
+                "back",
+            ]
 
             voice_memos_menu(before_run)
 
@@ -250,14 +260,14 @@ backups:
                     ]
                 ),
             ) as command_output,
-            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.select") as select,
             patch("restic_backups.generic.cli.questionary.confirm") as confirm,
             patch(
                 "restic_backups.generic.cli.restic.command", return_value=0
             ) as command,
         ):
-            select.return_value.ask.return_value = snapshot_id
-            confirm.return_value.ask.return_value = True
+            select.return_value.unsafe_ask.return_value = snapshot_id
+            confirm.return_value.unsafe_ask.return_value = True
 
             forget_command("backup")
             forget_command("backup", dry_run=True)
@@ -435,11 +445,11 @@ backups:
                     "RESTIC_BACKUPS_SOPS": "1",
                 },
             ),
-            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.select") as select,
             patch("restic_backups.generic.cli.console.print") as print_line,
             patch("restic_backups.generic.cli.restic.command") as command,
         ):
-            select.return_value.ask.return_value = "print"
+            select.return_value.unsafe_ask.return_value = "print"
             run_args("documents", ["list", "snapshots"], interactive=True)
 
         command.assert_not_called()
@@ -467,12 +477,12 @@ backups:
             patch(
                 "restic_backups.generic.cli.choose_dry_run", return_value=True
             ) as dry_run,
-            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.select") as select,
             patch("restic_backups.generic.cli.questionary.text") as arguments,
             patch("restic_backups.generic.cli.run_args") as run,
         ):
-            select.return_value.ask.side_effect = ["backup", "run"]
-            arguments.return_value.ask.return_value = "/data"
+            select.return_value.unsafe_ask.side_effect = ["backup", "run"]
+            arguments.return_value.unsafe_ask.return_value = "/data"
 
             restic_menu()
 
@@ -593,7 +603,7 @@ backups:
         confirm.assert_not_called()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
-    @patch("restic_backups.generic.cli.questionary.select")
+    @patch("restic_backups.generic.cli.select")
     @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
     @patch("restic_backups.generic.cli.validated")
     def test_init_prompt_lists_all_first(self, validated, command, select, _) -> None:
@@ -609,7 +619,7 @@ backups:
             {"store": store},
             {},
         )
-        select.return_value.ask.return_value = "store"
+        select.return_value.unsafe_ask.return_value = "store"
 
         init_command()
 
