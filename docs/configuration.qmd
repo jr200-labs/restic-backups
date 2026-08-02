@@ -81,9 +81,10 @@ omitted, restic uses its operating-system default. A store-specific value takes
 precedence over `RESTIC_CACHE_DIR` from the process environment.
 
 Every store appears in the `generic repository list` table.
-`generic repository init` initializes enabled stores even when no backup
-references them; a backup entry is required before using that store with
-`generic backup run` or `generic restic run`.
+`generic repository init` can initialize a selected enabled store even when no
+backup references it; use `--all` to initialize every enabled store. A backup
+entry is required before using that store with `generic backup run` or
+`generic restic run`.
 
 ## `backups`
 

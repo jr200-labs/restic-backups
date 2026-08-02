@@ -52,7 +52,7 @@ it.
 Initialize a new repository once:
 
 ```sh
-uv run restic-backups generic repository init
+uv run restic-backups generic repository init b2-store
 ```
 
 Then create a snapshot from the paths configured for `documents`:
@@ -62,10 +62,10 @@ uv run restic-backups generic backup run documents
 uv run restic-backups generic snapshot list documents
 ```
 
-Running `generic repository init` again is safe: existing repositories are
-detected and skipped. Initialization covers every enabled repository;
-`generic backup run` uses the selected backup's repository, paths, and default
-or configured tag.
+Running `generic repository init` again is safe: an existing repository is
+detected and skipped. Omit the repository ID to choose interactively, or pass
+`--all` to initialize every enabled repository. `generic backup run` uses the
+selected backup's repository, paths, and default or configured tag.
 
 ## 4. Verify a restore
 

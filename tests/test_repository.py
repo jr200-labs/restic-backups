@@ -36,6 +36,23 @@ Additional Commands:
                 ],
             )
 
+    def test_command_usage_comes_from_restic_help(self) -> None:
+        result = subprocess.CompletedProcess(
+            [],
+            0,
+            stdout="""The list command lists repository objects.
+
+Usage:
+  restic list [flags] [blobs|index|keys|locks|packs|snapshots]
+""",
+            stderr="",
+        )
+        with patch("subprocess.run", return_value=result):
+            self.assertEqual(
+                restic.command_usage("list"),
+                "restic list [flags] [blobs|index|keys|locks|packs|snapshots]",
+            )
+
     def test_data_dir_is_relative_to_config_not_installed_package(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             config_path = Path(directory) / "config.yaml"

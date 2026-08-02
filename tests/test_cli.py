@@ -11,7 +11,7 @@ from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
-from restic_backups.generic.cli import forget_command
+from restic_backups.generic.cli import forget_command, init_command, run_args
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 
@@ -237,6 +237,37 @@ backups:
         self.assertIn("store: cache primed", result.output)
         command.assert_called_once_with(store, credential, ["check", "--with-cache"])
 
+    def test_advanced_restic_can_print_without_running(self) -> None:
+        credentials: dict[str, dict[str, object]] = {"credentials": {}}
+        stores = {"store": {"enabled": True}}
+        backups = {"documents": {"restic-store-id": "store"}}
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, credentials, stores, backups),
+            ),
+            patch.dict(
+                "os.environ",
+                {
+                    "RESTIC_BACKUPS_CONFIG": "/tmp/config.sops.yaml",
+                    "RESTIC_BACKUPS_SOPS": "1",
+                },
+            ),
+            patch("restic_backups.generic.cli.questionary.select") as select,
+            patch("restic_backups.generic.cli.console.print") as print_line,
+            patch("restic_backups.generic.cli.restic.command") as command,
+        ):
+            select.return_value.ask.return_value = "print"
+            run_args("documents", ["list", "snapshots"], interactive=True)
+
+        command.assert_not_called()
+        output = "\n".join(str(item.args[0]) for item in print_line.call_args_list)
+        self.assertIn(
+            f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
+            "--sops generic restic run --backup documents list snapshots",
+            output,
+        )
+
     @patch("restic_backups.generic.cli.restic.store_command")
     @patch("restic_backups.generic.cli.validated")
     def test_init_skips_existing_repositories(self, validated, command) -> None:
@@ -277,7 +308,7 @@ backups:
         for text in ("Repositories", "Backups"):
             self.assertIn(text, legacy_list.output)
 
-        result = runner.invoke(app, ["generic", "repository", "init"])
+        result = runner.invoke(app, ["generic", "repository", "init", "--all"])
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("existing: checking repository", result.output)
@@ -301,6 +332,44 @@ backups:
                 ),
                 call(stores["new"], credentials["credentials"], ["init"]),
             ],
+        )
+
+        command.reset_mock()
+        command.side_effect = [0]
+        result = runner.invoke(app, ["generic", "repository", "init", "existing"])
+        self.assertEqual(result.exit_code, 0, result.output)
+        command.assert_called_once_with(
+            stores["existing"],
+            credentials["credentials"],
+            ["cat", "config"],
+            quiet=True,
+        )
+
+    @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
+    @patch("restic_backups.generic.cli.questionary.select")
+    @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
+    @patch("restic_backups.generic.cli.validated")
+    def test_init_prompt_lists_all_first(self, validated, command, select, _) -> None:
+        credential = {"id": "credentials"}
+        store = {
+            "id": "store",
+            "enabled": True,
+            "credentials-id": "credentials",
+        }
+        validated.return_value = (
+            {},
+            {"credentials": credential},
+            {"store": store},
+            {},
+        )
+        select.return_value.ask.return_value = "store"
+
+        init_command()
+
+        choices = select.call_args.kwargs["choices"]
+        self.assertEqual(choices[0].title, "All repositories")
+        command.assert_called_once_with(
+            store, credential, ["cat", "config"], quiet=True
         )
 
 

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -17,7 +18,7 @@ from rich.text import Text
 
 from .. import config
 from ..errors import BackupError
-from . import repository, restic, s3
+from . import repository, restic, s3, sops
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -34,6 +35,7 @@ app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(restic_app, name="restic")
 console = Console()
 error_console = Console(stderr=True)
+ALL_REPOSITORIES = "__all_repositories__"
 
 
 @app.callback()
@@ -125,12 +127,17 @@ def restic_menu() -> None:
     ).ask()
     if command is None:
         raise typer.Abort()
+    try:
+        usage = restic.command_usage(str(command))
+    except BackupError as exc:
+        fail(str(exc))
+    console.print(Text(f"Usage: {usage}", style="dim"))
     arguments = questionary.text(
         f"Arguments for 'restic {command}' (optional; use --help for options):"
     ).ask()
     if arguments is not None:
         try:
-            run_args(None, [str(command), *shlex.split(arguments)])
+            run_args(None, [str(command), *shlex.split(arguments)], interactive=True)
         except ValueError as exc:
             fail(f"invalid arguments: {exc}")
 
@@ -295,10 +302,52 @@ def data_dir_command(
 
 @repository_app.command("init")
 @app.command("init", hidden=True)
-def init_command() -> None:
-    """Initialize every enabled restic store that does not already exist."""
+def init_command(
+    repository_id: Annotated[
+        str | None,
+        typer.Argument(help="Repository ID; prompts when omitted."),
+    ] = None,
+    all_repositories: Annotated[
+        bool,
+        typer.Option("--all", help="Initialize every enabled repository."),
+    ] = False,
+) -> None:
+    """Initialize one repository, or every enabled repository with --all."""
     _, credentials, stores, _ = validated()
-    for store_id, store in stores.items():
+    if repository_id is not None and all_repositories:
+        fail("repository ID and --all cannot be used together")
+    if repository_id is None and not all_repositories:
+        if not sys.stdin.isatty():
+            fail("repository ID or --all is required when stdin is not interactive")
+        selected = questionary.select(
+            "Repository to initialize:",
+            choices=[
+                questionary.Choice("All repositories", ALL_REPOSITORIES),
+                *[
+                    questionary.Choice(
+                        f"{store_id}{'' if store['enabled'] else ' (disabled)'}",
+                        store_id,
+                    )
+                    for store_id, store in stores.items()
+                ],
+            ],
+        ).ask()
+        if selected is None:
+            raise typer.Abort()
+        if selected == ALL_REPOSITORIES:
+            all_repositories = True
+        else:
+            repository_id = str(selected)
+
+    if all_repositories:
+        selected_stores = list(stores.items())
+    else:
+        store = stores.get(str(repository_id))
+        if store is None:
+            fail(f"repository '{repository_id}' not found in {config.config_path()}")
+        selected_stores = [(str(repository_id), store)]
+
+    for store_id, store in selected_stores:
         if not store["enabled"]:
             error_console.print(Text(f"{store_id}: disabled; skipping", style="yellow"))
             continue
@@ -584,11 +633,40 @@ def run_command(
     run_args(backup, list(context.args))
 
 
-def run_args(backup: str | None, args: list[str]) -> None:
+def copyable_command(backup_id: str, args: list[str]) -> str:
+    command = [
+        "uv",
+        "run",
+        "restic-backups",
+        "--config",
+        str(config.config_path().resolve()),
+    ]
+    if os.environ.get(sops.SOPS_ENV) == "1":
+        command.append("--sops")
+    command.extend(["generic", "restic", "run", "--backup", backup_id, *args])
+    return shlex.join(command)
+
+
+def run_args(backup: str | None, args: list[str], *, interactive: bool = False) -> None:
     _, credentials, stores, backups = validated()
     backup_id = choose_backup(backup, stores, backups)
     if not args:
         fail("a restic command is required after 'run'")
+    if interactive:
+        console.print(Text("Command:", style="bold"))
+        console.print(Text(copyable_command(backup_id, args), style="cyan"))
+        action = questionary.select(
+            "Action:",
+            choices=[
+                questionary.Choice("Run", "run"),
+                questionary.Choice("Print only", "print"),
+                questionary.Choice("Cancel", "cancel"),
+            ],
+        ).ask()
+        if action != "run":
+            if action == "cancel":
+                error_console.print(Text("Cancelled; nothing was run.", style="yellow"))
+            return
     try:
         raise typer.Exit(restic.command(backup_id, args, credentials, stores, backups))
     except BackupError as exc:

@@ -51,6 +51,27 @@ def available_commands() -> list[tuple[str, str]]:
     return commands
 
 
+def command_usage(command: str) -> str:
+    """Read a command's usage line from the installed restic."""
+    try:
+        result = subprocess.run(
+            ["restic", command, "--help"],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+    except FileNotFoundError:
+        fail("restic is not installed")
+    except subprocess.CalledProcessError as exc:
+        fail(exc.stderr.strip() or f"could not read restic {command} help")
+    lines = result.stdout.splitlines()
+    try:
+        start = lines.index("Usage:")
+        return next(line.strip() for line in lines[start + 1 :] if line.strip())
+    except (ValueError, StopIteration):
+        fail(f"could not parse restic {command} help")
+
+
 def command(
     backup_id: str,
     args: list[str],
