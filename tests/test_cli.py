@@ -18,6 +18,7 @@ from restic_backups.generic.cli import (
     destroy_command,
     forget_command,
     init_command,
+    repository_menu,
     restic_menu,
     run_args,
 )
@@ -58,7 +59,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         for command in ("repository", "backup", "snapshot", "restic"):
             self.assertIn(command, generic_help)
         for group, commands in {
-            "repository": ("list", "init", "prime-cache", "destroy"),
+            "repository": ("list", "init", "prime-cache", "prune", "destroy"),
             "backup": ("list", "run", "data-dir"),
             "snapshot": ("list", "forget"),
             "restic": ("run",),
@@ -431,6 +432,63 @@ backups:
         self.assertIn("store: cache primed", result.output)
         command.assert_called_once_with(
             restic_repository, storage, ["check", "--with-cache"]
+        )
+
+    def test_repository_menu_compacts_small_packs_with_dry_run(self) -> None:
+        with (
+            patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.questionary.text") as size,
+            patch("restic_backups.generic.cli.choose_dry_run", return_value=True),
+            patch("restic_backups.generic.cli.prune_command") as prune,
+        ):
+            select.return_value.unsafe_ask.side_effect = ["prune", "small-packs"]
+            size.return_value.unsafe_ask.return_value = "20M"
+
+            repository_menu()
+
+        prune.assert_called_once_with(None, dry_run=True, repack_smaller_than="20M")
+
+    @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
+    @patch("restic_backups.generic.cli.validated")
+    def test_prune_passes_native_restic_options(self, validated, command) -> None:
+        storage = {"id": "storage", "type": "s3"}
+        restic_repository = {
+            "id": "store",
+            "enabled": True,
+            "storage-id": "storage",
+        }
+        validated.return_value = (
+            {},
+            {"storage": storage},
+            {"store": restic_repository},
+            {},
+        )
+
+        result = CliRunner().invoke(
+            app,
+            [
+                "generic",
+                "repository",
+                "prune",
+                "store",
+                "--max-unused",
+                "unlimited",
+                "--repack-cacheable-only",
+                "--dry-run",
+            ],
+        )
+
+        self.assertEqual(result.exit_code, 0, result.output)
+        command.assert_called_once_with(
+            restic_repository,
+            storage,
+            [
+                "prune",
+                "--max-unused",
+                "unlimited",
+                "--repack-cacheable-only",
+                "--dry-run",
+            ],
         )
 
     def test_advanced_restic_can_print_without_running(self) -> None:

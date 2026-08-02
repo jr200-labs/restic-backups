@@ -15,6 +15,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Repository | `generic repository list` | Show configured repositories | No |
 | Repository | `generic repository init [REPOSITORY] [--all] [--dry-run]` | Initialize new repositories | Yes |
 | Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
+| Repository | `generic repository prune [REPOSITORY] [OPTIONS]` | Prune or repack repository data | Yes |
 | Repository | `generic repository destroy [REPOSITORY] [--dry-run]` | Permanently erase one repository | Yes |
 | Backup | `generic backup list` | Show configured backup jobs | No |
 | Backup | `generic backup run [JOB_ID] [--dry-run]` | Create a snapshot from configured paths | Yes |
@@ -43,10 +44,10 @@ argument prompt has the same local-help behavior.
 ### Dry runs
 
 The interactive menu shows a **Dry run** checkbox for repository initialization,
-repository destruction, backup creation, and snapshot forgetting. Press Space to
-toggle it, then Enter to continue. A dry run performs any reads needed to report
-what would happen but does not initialize or destroy a repository, upload backup
-data, create a snapshot, forget a snapshot, or prune data.
+pruning, repository destruction, backup creation, and snapshot forgetting. Press
+Space to toggle it, then Enter to continue. A dry run performs any reads needed
+to report what would happen but does not initialize or destroy a repository,
+upload backup data, create a snapshot, forget a snapshot, or prune data.
 
 Advanced restic commands show the same checkbox when the installed restic
 version advertises a native `--dry-run` flag for the selected command. Commands
@@ -57,6 +58,7 @@ Explicit commands can pass `--dry-run` directly to the managed write commands:
 
 ```sh
 uv run restic-backups generic repository init personal --dry-run
+uv run restic-backups generic repository prune personal --dry-run
 uv run restic-backups generic backup run documents --dry-run
 uv run restic-backups generic snapshot forget documents --dry-run
 uv run restic-backups generic repository destroy personal --dry-run
@@ -74,6 +76,38 @@ repository. It downloads repository indexes, snapshots, and tree metadata into
 the configured cache while also validating repository structure. It does not
 download backed-up file contents; restic only does that when `--read-data` is
 requested explicitly.
+
+## Prune or compact a repository
+
+Choose **Repositories** → **Prune / compact** in the TUI. The maintenance menu
+uses the [native restic prune options](https://restic.readthedocs.io/en/stable/060_forget.html#customizing-pruning)
+and provides:
+
+- **Standard prune**: remove unused data with restic's defaults;
+- **Minimize bandwidth**: pass `--max-unused unlimited` and retain partly used
+  data packs;
+- **Metadata only**: pass `--repack-cacheable-only` and repack only cacheable
+  metadata;
+- **Compact small packs**: pass `--repack-smaller-than SIZE`;
+- **Limit repacking**: pass `--max-repack-size SIZE`.
+
+Select a repository, then use the **Dry run** checkbox to preview the operation.
+A real run requires confirmation. Explicit commands expose the same flags and
+accept `--yes` for deliberate non-interactive maintenance:
+
+```sh
+uv run restic-backups generic repository prune personal --dry-run
+uv run restic-backups generic repository prune personal \
+  --max-unused unlimited --yes
+```
+
+Snapshots already share deduplicated data, so pruning does not combine them into
+one snapshot. It scans snapshot references, deletes wholly unused packs, and may
+download and re-upload partially used packs before deleting the originals. The
+configured local cache helps with metadata, but normal repacking still operates
+on repository data. Remote storage may therefore incur retrieval, request, and
+transfer charges. Use **Metadata only**, **Minimize bandwidth**, or
+`--max-repack-size` when limiting remote I/O matters.
 
 ## Create a snapshot
 
