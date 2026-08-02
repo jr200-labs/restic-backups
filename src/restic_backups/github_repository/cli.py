@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import sys
 from typing import Annotated, Any, NoReturn
 
@@ -14,6 +15,7 @@ from rich.text import Text
 
 from .. import audit, config
 from ..errors import BackupError
+from ..generic import restic
 from ..generic.cli import choose_dry_run, choose_repositories, print_typer_help
 from ..generic.tui import select
 from . import workflow
@@ -102,7 +104,9 @@ def interactive_menu() -> None:
                     "Run backup", "Update local data and create snapshots", "backup"
                 ),
                 menu_choice(
-                    "Show status", "Show the latest component results", "status"
+                    "Show status",
+                    "Show latest snapshots and component results",
+                    "status",
                 ),
                 menu_choice(
                     "Show data path", "Print the managed local workspace", "data-dir"
@@ -240,25 +244,109 @@ def backup_command(
 @app.command("status")
 def status_command(
     job: str | None = typer.Argument(
-        None, help="Job ID; prompts when omitted.", metavar="JOB_ID"
+        None,
+        help="Job ID for component details; omit to show all jobs.",
+        metavar="JOB_ID",
     ),
 ) -> None:
-    """Show the most recent local component results."""
-    _, _, _, backups = validated()
-    job_id = choose_job(job, backups)
-    try:
-        manifest = workflow.read_manifest(job_id)
-    except (BackupError, OSError) as exc:
-        fail(str(exc))
-    if manifest is None:
-        fail(f"GitHub repository backup job '{job_id}' has not run")
-    table = Table(title=f"{job_id} — {manifest['updated-at']}", box=box.ROUNDED)
-    table.add_column("Component")
-    table.add_column("Status")
-    table.add_column("Error")
-    for component, result in manifest["components"].items():
-        table.add_row(component, result["status"], result.get("error", "—"))
+    """Show latest snapshots for all GitHub jobs and optional component details."""
+    _, storage, repositories, backups = validated()
+    jobs = github_jobs(backups)
+    if not jobs:
+        fail("no GitHub repository backup jobs are configured")
+    if job is not None:
+        job_id = choose_job(job, backups)
+        jobs = {job_id: jobs[job_id]}
+
+    table = Table(title="GitHub repository status", box=box.ROUNDED)
+    table.add_column("Job ID", style="cyan")
+    table.add_column("Destination")
+    table.add_column("Latest snapshot")
+    table.add_column("Snapshot time")
+    table.add_column("Local update")
+    table.add_column("Components")
+    failed = False
+    manifests: dict[str, dict[str, Any] | None] = {}
+    snapshots_by_repository: dict[str, list[dict[str, Any]] | None] = {}
+    for job_id, item in jobs.items():
+        try:
+            manifest = workflow.read_manifest(job_id)
+        except (BackupError, OSError):
+            manifest = None
+            failed = True
+        manifests[job_id] = manifest
+        component_status = (
+            ", ".join(
+                f"{name}: {result['status']}"
+                for name, result in manifest["components"].items()
+            )
+            if manifest
+            else "not run"
+        )
+        for repository_id in config.backup_repository_ids(item, job_id):
+            snapshot_id = snapshot_time = "—"
+            if not repositories[repository_id]["enabled"]:
+                snapshot_id = "disabled"
+            else:
+                try:
+                    if repository_id not in snapshots_by_repository:
+                        output = restic.command_output(
+                            job_id,
+                            ["snapshots", "--json"],
+                            storage,
+                            repositories,
+                            backups,
+                            repository_id,
+                        )
+                        snapshots = json.loads(output)
+                        if not isinstance(snapshots, list):
+                            raise TypeError("restic snapshots did not return a list")
+                        snapshots_by_repository[repository_id] = snapshots
+                    snapshots = snapshots_by_repository[repository_id]
+                    if snapshots is None:
+                        raise ValueError("repository snapshots are unavailable")
+                    tag = str(item.get("tag", job_id))
+                    tagged = [
+                        snapshot
+                        for snapshot in snapshots
+                        if tag in snapshot.get("tags", [])
+                    ]
+                    if tagged:
+                        latest = max(
+                            tagged, key=lambda value: str(value.get("time", ""))
+                        )
+                        snapshot_id = str(
+                            latest.get("short_id", str(latest.get("id", ""))[:8])
+                        )
+                        snapshot_time = str(latest.get("time", "—"))
+                    else:
+                        snapshot_id = "none"
+                except (BackupError, json.JSONDecodeError, TypeError, ValueError):
+                    snapshots_by_repository[repository_id] = None
+                    snapshot_id = "error"
+                    failed = True
+            table.add_row(
+                job_id,
+                repository_id,
+                snapshot_id,
+                snapshot_time,
+                str(manifest.get("updated-at", "—")) if manifest else "not run",
+                component_status,
+            )
     console.print(table)
+
+    if job is not None:
+        manifest = manifests[job]
+        if manifest is not None:
+            detail = Table(title=f"{job} component details", box=box.ROUNDED)
+            detail.add_column("Component")
+            detail.add_column("Status")
+            detail.add_column("Error")
+            for component, result in manifest["components"].items():
+                detail.add_row(component, result["status"], result.get("error", "—"))
+            console.print(detail)
+    if failed:
+        raise typer.Exit(1)
 
 
 @app.command("data-dir")

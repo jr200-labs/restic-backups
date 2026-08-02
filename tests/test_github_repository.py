@@ -8,12 +8,14 @@ import subprocess
 import tarfile
 from pathlib import Path
 from typing import Any, BinaryIO, cast
-from unittest.mock import patch
+from unittest.mock import call, patch
 
 import pytest
+from rich.console import Console
 
 from restic_backups import audit, config
 from restic_backups.errors import BackupError
+from restic_backups.github_repository import cli as github_cli
 from restic_backups.github_repository import workflow
 
 
@@ -285,3 +287,78 @@ def test_secret_values_never_enter_audit_log(
     contents = (tmp_path / "audit-log.json").read_text()
     assert "top-secret-value" not in contents
     assert '"command":"git"' in contents
+
+
+def test_status_shows_latest_snapshot_for_every_destination() -> None:
+    job = github_job()
+    another = github_job()
+    another["job-id"] = "another-repository"
+    repositories = {"first": {"enabled": True}, "second": {"enabled": True}}
+    backups = {"example-repository": job, "another-repository": another}
+    output = io.StringIO()
+    manifest = {
+        "updated-at": "2026-08-02T12:00:00Z",
+        "components": {"git": {"status": "updated"}},
+    }
+    with (
+        patch(
+            "restic_backups.github_repository.cli.validated",
+            return_value=({}, {}, repositories, backups),
+        ),
+        patch(
+            "restic_backups.github_repository.cli.workflow.read_manifest",
+            return_value=manifest,
+        ),
+        patch(
+            "restic_backups.github_repository.cli.restic.command_output",
+            side_effect=[
+                json.dumps(
+                    [
+                        {
+                            "id": "a" * 64,
+                            "short_id": "aaaaaaaa",
+                            "time": "2026-08-02T12:01:00Z",
+                            "tags": ["example-repository"],
+                        },
+                        {
+                            "id": "c" * 64,
+                            "short_id": "cccccccc",
+                            "time": "2026-08-02T12:03:00Z",
+                            "tags": ["another-repository"],
+                        },
+                    ]
+                ),
+                json.dumps(
+                    [
+                        {
+                            "id": "b" * 64,
+                            "short_id": "bbbbbbbb",
+                            "time": "2026-08-02T12:02:00Z",
+                            "tags": ["example-repository"],
+                        },
+                        {
+                            "id": "d" * 64,
+                            "short_id": "dddddddd",
+                            "time": "2026-08-02T12:04:00Z",
+                            "tags": ["another-repository"],
+                        },
+                    ]
+                ),
+            ],
+        ) as command_output,
+        patch.object(github_cli, "console", Console(file=output, width=240)),
+    ):
+        github_cli.status_command(None)
+
+    rendered = output.getvalue()
+    assert "example-repository" in rendered
+    assert "first" in rendered and "aaaaaaaa" in rendered
+    assert "second" in rendered and "bbbbbbbb" in rendered
+    assert "another-repository" in rendered
+    assert "cccccccc" in rendered and "dddddddd" in rendered
+    assert "git: updated" in rendered
+    expected = ["snapshots", "--json"]
+    assert command_output.call_args_list == [
+        call("example-repository", expected, {}, repositories, backups, "first"),
+        call("example-repository", expected, {}, repositories, backups, "second"),
+    ]
