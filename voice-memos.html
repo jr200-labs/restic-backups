@@ -252,6 +252,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>The <code>voice-memos</code> command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.</p>
+<p>Run without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>After selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers <strong>Run</strong>, <strong>Print only</strong>, or <strong>Cancel</strong>. Explicit subcommands remain available for scripts.</p>
 <p>Set <code>RESTIC_BACKUPS_CONFIG</code> first; set <code>RESTIC_BACKUPS_SOPS=1</code> too when the file is SOPS-encrypted. See <a href="./configuration.html">Configuration</a>.</p>
 <section id="requirements" class="level2">
 <h2 class="anchored" data-anchor-id="requirements">Requirements</h2>
@@ -266,12 +269,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="safe-routine" class="level2">
 <h2 class="anchored" data-anchor-id="safe-routine">Safe routine</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos status</span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos backup</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe</span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos backup</span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos check</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos restore latest <span class="at">--target</span> /tmp/voice-memos-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos status</span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos backup</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe</span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos backup</span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos check</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos restore latest <span class="at">--target</span> /tmp/voice-memos-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.</p>
 </section>
 <section id="commands" class="level2">
@@ -362,32 +365,32 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="transcription-variants" class="level2">
 <h2 class="anchored" data-anchor-id="transcription-variants">Transcription variants</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Incremental transcription and summaries</span></span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe</span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reprocess all memos or selected UUIDs</span></span>
-<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--all</span></span>
-<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--uuids</span> ABC-123,DEF-456</span>
-<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Reuse transcripts for new summaries, or omit summaries entirely</span></span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--summary-only</span> <span class="at">--all</span></span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--no-summary</span></span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Force retranscription</span></span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--all</span> <span class="at">--no-summary</span> <span class="at">--force</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Incremental transcription and summaries</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe</span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Reprocess all memos or selected UUIDs</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--all</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--uuids</span> ABC-123,DEF-456</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Reuse transcripts for new summaries, or omit summaries entirely</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--summary-only</span> <span class="at">--all</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--no-summary</span></span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a><span class="co"># Force retranscription</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos transcribe <span class="at">--all</span> <span class="at">--no-summary</span> <span class="at">--force</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The available engines are <code>whisper-mlx</code> and <code>whisper-mlx-turbo</code>.</p>
 </section>
 <section id="parallel-diarization" class="level2">
 <h2 class="anchored" data-anchor-id="parallel-diarization">Parallel diarization</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">HF_TOKEN</span><span class="op">=</span>hf_...</span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos diarize-parallel <span class="at">--workers</span> 3 <span class="at">--dashboard</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">HF_TOKEN</span><span class="op">=</span>hf_...</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos diarize-parallel <span class="at">--workers</span> 3 <span class="at">--dashboard</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Workers write logs beneath a temporary <code>diarize-chunks-*</code> directory. Use <code>--detach</code> to leave them running without the dashboard, then attach with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos dashboard</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos dashboard</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="generated-data" class="level2">
 <h2 class="anchored" data-anchor-id="generated-data">Generated data</h2>
 <p>The CLI derives the summary directory from the configured <code>voice-memos</code> backup:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir voice-memos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir voice-memos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>All generated JSON and indexes remain beneath that ignored private directory.</p>
 
 
