@@ -6,16 +6,29 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, call, patch
 
+import questionary
 from click import unstyle
 from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
 from restic_backups.cli import interactive_menu as root_menu
-from restic_backups.generic.cli import forget_command, init_command, run_args
+from restic_backups.generic.cli import (
+    forget_command,
+    init_command,
+    restic_menu,
+    run_args,
+)
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
+
+
+def choice_title(choice: questionary.Choice) -> str:
+    title = choice.title
+    return (
+        "".join(part[1] for part in title) if isinstance(title, list) else title or ""
+    )
 
 
 class VoiceMemosCliTest(unittest.TestCase):
@@ -65,28 +78,34 @@ class VoiceMemosCliTest(unittest.TestCase):
     @patch("restic_backups.cli.generic_cli.interactive_menu")
     @patch("restic_backups.cli.questionary.select")
     def test_root_menu_selects_described_workflow(self, select, generic_menu) -> None:
-        select.return_value.ask.return_value = "generic"
+        select.return_value.ask.side_effect = ["generic", "exit"]
 
         root_menu()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertIn("Manage repositories", choices[0].title)
-        self.assertIn("transcribe", choices[1].title)
+        self.assertIn("Manage repositories", choice_title(choices[0]))
+        self.assertIn("transcribe", choice_title(choices[1]))
+        title = choices[0].title
+        self.assertIsInstance(title, list)
+        assert isinstance(title, list)
+        self.assertNotEqual(title[0][0], title[1][0])
+        self.assertIsInstance(choices[-1], questionary.Separator)
+        self.assertEqual(choices[-1].title, " ")
         generic_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.questionary.select")
     @patch("restic_backups.generic.cli.repository_list_command")
     def test_generic_menu_selects_a_command(self, list_command, select, _) -> None:
-        select.return_value.ask.side_effect = ["repository", "list"]
+        select.return_value.ask.side_effect = ["repository", "list", "back"]
 
         generic_menu(Mock(invoked_subcommand=None))
 
         list_command.assert_called_once_with()
         section_choices = select.call_args_list[0].kwargs["choices"]
         command_choices = select.call_args_list[1].kwargs["choices"]
-        self.assertIn("List, initialize", section_choices[0].title)
-        self.assertIn("storage destinations", command_choices[0].title)
+        self.assertIn("List, initialize", choice_title(section_choices[0]))
+        self.assertIn("storage destinations", choice_title(command_choices[0]))
 
     def test_voice_memos_menu_describes_and_prints_command(self) -> None:
         with (
@@ -102,14 +121,14 @@ class VoiceMemosCliTest(unittest.TestCase):
             patch("restic_backups.voice_memos.cli.click.echo") as echo,
             patch.object(voice_memos_cli, "main") as main,
         ):
-            select.return_value.ask.side_effect = ["backup", "print"]
+            select.return_value.ask.side_effect = ["backup", "run", "print"]
             arguments.return_value.ask.return_value = ""
 
             voice_memos_menu()
 
         choices = select.call_args_list[0].kwargs["choices"]
         backup_choice = next(choice for choice in choices if choice.value == "backup")
-        self.assertIn("Back up recordings", backup_choice.title)
+        self.assertIn("Back up recordings", choice_title(backup_choice))
         output = "\n".join(str(item.args[0]) for item in echo.call_args_list)
         self.assertIn("Usage:", output)
         self.assertIn(
@@ -118,6 +137,52 @@ class VoiceMemosCliTest(unittest.TestCase):
             output,
         )
         main.assert_not_called()
+
+    @patch("restic_backups.cli.generic_cli.print_typer_help")
+    @patch("restic_backups.cli.questionary.select")
+    def test_root_help_returns_to_root_menu(self, select, print_help) -> None:
+        select.return_value.ask.side_effect = ["help", "exit"]
+
+        root_menu()
+
+        print_help.assert_called_once_with(app, "restic-backups")
+
+    def test_restic_help_does_not_load_configuration(self) -> None:
+        with (
+            patch(
+                "restic_backups.generic.cli.restic.available_commands",
+                return_value=[("list", "List objects in the repository")],
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.command_usage",
+                return_value="restic list [flags] [objects]",
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.command_help",
+                return_value="full restic list help",
+            ) as command_help,
+            patch("restic_backups.generic.cli.validated") as validated,
+            patch("restic_backups.generic.cli.questionary.select") as select,
+        ):
+            select.return_value.ask.side_effect = ["list", "help", "back", "back"]
+
+            restic_menu()
+
+        command_help.assert_called_once_with("list")
+        validated.assert_not_called()
+
+    def test_voice_memos_help_does_not_prepare_configuration(self) -> None:
+        before_run = Mock()
+        with (
+            patch("restic_backups.voice_memos.cli.questionary.select") as select,
+            patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
+        ):
+            select.return_value.ask.side_effect = ["backup", "help", "back", "back"]
+
+            voice_memos_menu(before_run)
+
+        before_run.assert_not_called()
+        arguments.assert_not_called()
 
     def test_config_path_option_and_environment_variable(self) -> None:
         config = """\
@@ -423,7 +488,7 @@ backups:
         init_command()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertEqual(choices[0].title, "All repositories")
+        self.assertEqual(choice_title(choices[0]), "All repositories")
         command.assert_called_once_with(
             store, credential, ["cat", "config"], quiet=True
         )

@@ -13,6 +13,10 @@ arrow-key menu for **Generic backups**, **Voice Memos**, and configuration
 validation. Each workflow opens another described arrow-key menu. Explicit
 subcommands remain available for scripts and scheduled jobs.
 
+Every menu level includes **Help** and **Back**. **Help** shows the commands and
+flags for the current level, then returns to the same menu; it does not load the
+configuration or contact remote storage.
+
 Show command-line help instead:
 
 ```sh

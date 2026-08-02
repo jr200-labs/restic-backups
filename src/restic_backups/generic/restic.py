@@ -51,8 +51,8 @@ def available_commands() -> list[tuple[str, str]]:
     return commands
 
 
-def command_usage(command: str) -> str:
-    """Read a command's usage line from the installed restic."""
+def command_help(command: str) -> str:
+    """Read a command's help from the installed restic."""
     try:
         result = subprocess.run(
             ["restic", command, "--help"],
@@ -64,7 +64,12 @@ def command_usage(command: str) -> str:
         fail("restic is not installed")
     except subprocess.CalledProcessError as exc:
         fail(exc.stderr.strip() or f"could not read restic {command} help")
-    lines = result.stdout.splitlines()
+    return result.stdout
+
+
+def command_usage(command: str) -> str:
+    """Read a command's usage line from the installed restic."""
+    lines = command_help(command).splitlines()
     try:
         start = lines.index("Usage:")
         return next(line.strip() for line in lines[start + 1 :] if line.strip())

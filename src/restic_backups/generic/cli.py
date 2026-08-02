@@ -38,6 +38,14 @@ error_console = Console(stderr=True)
 ALL_REPOSITORIES = "__all_repositories__"
 
 
+def menu_choice(
+    label: str, description: str, value: str, width: int = 23
+) -> questionary.Choice:
+    return questionary.Choice(
+        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
+    )
+
+
 @app.callback()
 def menu(context: typer.Context) -> None:
     """Choose a generic backup operation when run interactively."""
@@ -51,108 +59,173 @@ def menu(context: typer.Context) -> None:
 
 def interactive_menu() -> None:
     """Navigate generic operations with arrow-key menus."""
-    section = questionary.select(
-        "Section:",
-        choices=[
-            questionary.Choice(
-                "Repositories     List, initialize, cache, or destroy repositories",
-                "repository",
-            ),
-            questionary.Choice(
-                "Backups          List or run configured backup jobs", "backup"
-            ),
-            questionary.Choice(
-                "Snapshots        List or forget immutable restore points", "snapshot"
-            ),
-            questionary.Choice(
-                "Advanced restic  Run any command supported by installed restic",
-                "restic",
-            ),
-            questionary.Choice(
-                "Exit             Return without doing anything", "exit"
-            ),
-        ],
-    ).ask()
-    if section == "repository":
+    while True:
+        selected = questionary.select(
+            "Section:",
+            choices=[
+                menu_choice(
+                    "Repositories",
+                    "List, initialize, cache, or destroy repositories",
+                    "repository",
+                    17,
+                ),
+                menu_choice(
+                    "Backups", "List or run configured backup jobs", "backup", 17
+                ),
+                menu_choice(
+                    "Snapshots",
+                    "List or forget immutable restore points",
+                    "snapshot",
+                    17,
+                ),
+                menu_choice(
+                    "Advanced restic",
+                    "Run any command supported by installed restic",
+                    "restic",
+                    17,
+                ),
+                menu_choice("Help", "Show help for generic commands", "help", 17),
+                menu_choice("Back", "Return to the previous menu", "back", 17),
+                questionary.Separator(" "),
+            ],
+        ).ask()
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(app, "restic-backups generic")
+        elif selected == "repository":
+            repository_menu()
+        elif selected == "backup":
+            backup_menu()
+        elif selected == "snapshot":
+            snapshot_menu()
+        elif selected == "restic":
+            restic_menu()
+
+
+def print_typer_help(application: typer.Typer, name: str) -> None:
+    command = typer.main.get_command(application)
+    console.print(command.get_help(typer.Context(command, info_name=name)))
+
+
+def repository_menu() -> None:
+    while True:
         selected = questionary.select(
             "Repository command:",
             choices=[
-                questionary.Choice(
-                    "List repositories      Show configured storage destinations",
+                menu_choice(
+                    "List repositories",
+                    "Show configured storage destinations",
                     "list",
                 ),
-                questionary.Choice(
-                    "Initialize repository  Create one repository, or explicitly all",
+                menu_choice(
+                    "Initialize repository",
+                    "Create one repository, or explicitly all",
                     "init",
                 ),
-                questionary.Choice(
-                    "Prime local cache      Download and validate repository metadata",
+                menu_choice(
+                    "Prime local cache",
+                    "Download and validate repository metadata",
                     "prime-cache",
                 ),
-                questionary.Choice(
-                    "Destroy repository     Permanently erase repository objects",
+                menu_choice(
+                    "Destroy repository",
+                    "Permanently erase repository objects",
                     "destroy",
                 ),
+                menu_choice("Help", "Show repository command flags", "help"),
+                menu_choice("Back", "Return to Generic sections", "back"),
+                questionary.Separator(" "),
             ],
         ).ask()
-        if selected is None:
-            raise typer.Abort()
-        if selected == "list":
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(repository_app, "restic-backups generic repository")
+        elif selected == "list":
             repository_list_command()
+            return
         elif selected == "init":
             init_command()
+            return
         elif selected == "prime-cache":
             prime_cache_command(None)
+            return
         elif selected == "destroy":
             destroy_command(None)
-    elif section == "backup":
+            return
+
+
+def backup_menu() -> None:
+    while True:
         selected = questionary.select(
             "Backup command:",
             choices=[
-                questionary.Choice(
-                    "List backups      Show configured backup jobs", "list"
+                menu_choice("List backups", "Show configured backup jobs", "list", 18),
+                menu_choice(
+                    "Run backup",
+                    "Create a snapshot from configured paths",
+                    "run",
+                    18,
                 ),
-                questionary.Choice(
-                    "Run backup        Create a snapshot from configured paths", "run"
-                ),
-                questionary.Choice(
-                    "Show data path    Print the managed local metadata directory",
+                menu_choice(
+                    "Show data path",
+                    "Print the managed local metadata directory",
                     "data-dir",
+                    18,
                 ),
+                menu_choice("Help", "Show backup command flags", "help", 18),
+                menu_choice("Back", "Return to Generic sections", "back", 18),
+                questionary.Separator(" "),
             ],
         ).ask()
-        if selected is None:
-            raise typer.Abort()
-        if selected == "list":
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(backup_app, "restic-backups generic backup")
+        elif selected == "list":
             backup_list_command()
+            return
         elif selected == "run":
             backup_command(None)
+            return
         elif selected == "data-dir":
             data_dir_command(None)
-    elif section == "snapshot":
+            return
+
+
+def snapshot_menu() -> None:
+    while True:
         selected = questionary.select(
             "Snapshot command:",
             choices=[
-                questionary.Choice(
-                    "List snapshots    Show restore points for a configured backup",
+                menu_choice(
+                    "List snapshots",
+                    "Show restore points for a configured backup",
                     "list",
+                    18,
                 ),
-                questionary.Choice(
-                    "Forget snapshot   Delete one restore point and prune data",
+                menu_choice(
+                    "Forget snapshot",
+                    "Delete one restore point and prune data",
                     "forget",
+                    18,
                 ),
+                menu_choice("Help", "Show snapshot command flags", "help", 18),
+                menu_choice("Back", "Return to Generic sections", "back", 18),
+                questionary.Separator(" "),
             ],
         ).ask()
-        if selected is None:
-            raise typer.Abort()
-        if selected == "list":
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(snapshot_app, "restic-backups generic snapshot")
+        elif selected == "list":
             snapshots_command(None)
+            return
         elif selected == "forget":
             forget_command(None)
-    elif section == "restic":
-        restic_menu()
-    elif section is None:
-        raise typer.Abort()
+            return
 
 
 def restic_menu() -> None:
@@ -160,28 +233,72 @@ def restic_menu() -> None:
         commands = restic.available_commands()
     except BackupError as exc:
         fail(str(exc))
-    command = questionary.select(
-        "Restic command:",
-        choices=[
-            questionary.Choice(f"{name:<12} {description}", name)
-            for name, description in commands
-        ],
-    ).ask()
-    if command is None:
-        raise typer.Abort()
-    try:
-        usage = restic.command_usage(str(command))
-    except BackupError as exc:
-        fail(str(exc))
-    console.print(Text(f"Usage: {usage}", style="dim"))
-    arguments = questionary.text(
-        f"Arguments for 'restic {command}' (optional; use --help for options):"
-    ).ask()
-    if arguments is not None:
+    while True:
+        selected = questionary.select(
+            "Restic command:",
+            choices=[
+                *[
+                    menu_choice(name, description, name, 13)
+                    for name, description in commands
+                ],
+                menu_choice(
+                    "Help", "Show help for advanced restic passthrough", "help", 13
+                ),
+                menu_choice("Back", "Return to Generic sections", "back", 13),
+                questionary.Separator(" "),
+            ],
+        ).ask()
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(restic_app, "restic-backups generic restic")
+            continue
+        command = str(selected)
         try:
-            run_args(None, [str(command), *shlex.split(arguments)], interactive=True)
-        except ValueError as exc:
-            fail(f"invalid arguments: {exc}")
+            usage = restic.command_usage(command)
+        except BackupError as exc:
+            fail(str(exc))
+        console.print(Text(f"Usage: {usage}", style="dim"))
+        while True:
+            action = questionary.select(
+                f"restic {command}:",
+                choices=[
+                    menu_choice(
+                        "Enter arguments",
+                        "Build and optionally run this command",
+                        "run",
+                        17,
+                    ),
+                    menu_choice("Help", "Show full flags for this command", "help", 17),
+                    menu_choice("Back", "Choose another restic command", "back", 17),
+                    questionary.Separator(" "),
+                ],
+            ).ask()
+            if action in {None, "back"}:
+                break
+            if action == "help":
+                try:
+                    console.print(restic.command_help(command))
+                except BackupError as exc:
+                    fail(str(exc))
+                continue
+            arguments = questionary.text(
+                f"Arguments for 'restic {command}' (optional):"
+            ).ask()
+            if arguments is None:
+                continue
+            try:
+                args = shlex.split(arguments)
+            except ValueError as exc:
+                fail(f"invalid arguments: {exc}")
+            if args in (["--help"], ["-h"]):
+                try:
+                    console.print(restic.command_help(command))
+                except BackupError as exc:
+                    fail(str(exc))
+                continue
+            run_args(None, [command, *args], interactive=True)
+            return
 
 
 def fail(message: str) -> NoReturn:
@@ -222,6 +339,7 @@ def choose_backup(
     ]
     if not choices:
         fail("no enabled backups are available")
+    choices.append(questionary.Separator(" "))
     selected = questionary.select("Backup:", choices=choices).ask()
     if selected is None:
         raise typer.Abort()
@@ -372,6 +490,7 @@ def init_command(
                     )
                     for store_id, store in stores.items()
                 ],
+                questionary.Separator(" "),
             ],
         ).ask()
         if selected is None:
@@ -439,7 +558,8 @@ def prime_cache_command(
                 questionary.Choice(store_id, store_id)
                 for store_id, store in stores.items()
                 if store["enabled"]
-            ],
+            ]
+            + [questionary.Separator(" ")],
         ).ask()
         if selected is None:
             raise typer.Abort()
@@ -569,6 +689,7 @@ def forget_command(
             )
         )
 
+    choices.append(questionary.Separator(" "))
     selected = questionary.select("Snapshot to forget:", choices).ask()
     if selected is None:
         raise typer.Abort()
@@ -619,7 +740,8 @@ def destroy_command(
                     store_id,
                 )
                 for store_id, store in stores.items()
-            ],
+            ]
+            + [questionary.Separator(" ")],
         ).ask()
         if selected is None:
             raise typer.Abort()
@@ -703,6 +825,7 @@ def run_args(backup: str | None, args: list[str], *, interactive: bool = False) 
                 questionary.Choice("Run", "run"),
                 questionary.Choice("Print only", "print"),
                 questionary.Choice("Cancel", "cancel"),
+                questionary.Separator(" "),
             ],
         ).ask()
         if action != "run":
