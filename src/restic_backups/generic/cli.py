@@ -46,24 +46,53 @@ def menu(context: typer.Context) -> None:
     if not sys.stdin.isatty():
         typer.echo(context.get_help())
         return
+    interactive_menu()
+
+
+def interactive_menu() -> None:
+    """Navigate generic operations with arrow-key menus."""
     section = questionary.select(
         "Section:",
         choices=[
-            questionary.Choice("Repositories", "repository"),
-            questionary.Choice("Backups", "backup"),
-            questionary.Choice("Snapshots", "snapshot"),
-            questionary.Choice("Advanced restic", "restic"),
-            questionary.Choice("Exit", "exit"),
+            questionary.Choice(
+                "Repositories     List, initialize, cache, or destroy repositories",
+                "repository",
+            ),
+            questionary.Choice(
+                "Backups          List or run configured backup jobs", "backup"
+            ),
+            questionary.Choice(
+                "Snapshots        List or forget immutable restore points", "snapshot"
+            ),
+            questionary.Choice(
+                "Advanced restic  Run any command supported by installed restic",
+                "restic",
+            ),
+            questionary.Choice(
+                "Exit             Return without doing anything", "exit"
+            ),
         ],
     ).ask()
     if section == "repository":
         selected = questionary.select(
             "Repository command:",
             choices=[
-                questionary.Choice("List repositories", "list"),
-                questionary.Choice("Initialize repositories", "init"),
-                questionary.Choice("Prime a repository cache", "prime-cache"),
-                questionary.Choice("Destroy a repository", "destroy"),
+                questionary.Choice(
+                    "List repositories      Show configured storage destinations",
+                    "list",
+                ),
+                questionary.Choice(
+                    "Initialize repository  Create one repository, or explicitly all",
+                    "init",
+                ),
+                questionary.Choice(
+                    "Prime local cache      Download and validate repository metadata",
+                    "prime-cache",
+                ),
+                questionary.Choice(
+                    "Destroy repository     Permanently erase repository objects",
+                    "destroy",
+                ),
             ],
         ).ask()
         if selected is None:
@@ -80,9 +109,16 @@ def menu(context: typer.Context) -> None:
         selected = questionary.select(
             "Backup command:",
             choices=[
-                questionary.Choice("List configured backups", "list"),
-                questionary.Choice("Run a configured backup", "run"),
-                questionary.Choice("Show managed data directory", "data-dir"),
+                questionary.Choice(
+                    "List backups      Show configured backup jobs", "list"
+                ),
+                questionary.Choice(
+                    "Run backup        Create a snapshot from configured paths", "run"
+                ),
+                questionary.Choice(
+                    "Show data path    Print the managed local metadata directory",
+                    "data-dir",
+                ),
             ],
         ).ask()
         if selected is None:
@@ -97,8 +133,14 @@ def menu(context: typer.Context) -> None:
         selected = questionary.select(
             "Snapshot command:",
             choices=[
-                questionary.Choice("List snapshots", "list"),
-                questionary.Choice("Forget a snapshot", "forget"),
+                questionary.Choice(
+                    "List snapshots    Show restore points for a configured backup",
+                    "list",
+                ),
+                questionary.Choice(
+                    "Forget snapshot   Delete one restore point and prune data",
+                    "forget",
+                ),
             ],
         ).ask()
         if selected is None:

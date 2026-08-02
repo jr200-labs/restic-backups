@@ -11,9 +11,11 @@ from click.testing import CliRunner as ClickCliRunner
 from typer.testing import CliRunner
 
 from restic_backups.cli import app
+from restic_backups.cli import interactive_menu as root_menu
 from restic_backups.generic.cli import forget_command, init_command, run_args
 from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
+from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
 
 
 class VoiceMemosCliTest(unittest.TestCase):
@@ -50,8 +52,27 @@ class VoiceMemosCliTest(unittest.TestCase):
             self.assertIn(command, result.output)
 
     def test_voice_memos_help_does_not_require_config(self) -> None:
-        result = CliRunner().invoke(app, ["voice-memos", "--help"])
-        self.assertEqual(result.exit_code, 0, result.output)
+        runner = CliRunner()
+        for args in (["--help"], []):
+            result = runner.invoke(app, ["voice-memos", *args])
+            self.assertEqual(result.exit_code, 0, result.output)
+            self.assertIn("backup", result.output)
+
+        root = runner.invoke(app, [])
+        self.assertEqual(root.exit_code, 0, root.output)
+        self.assertIn("generic", root.output)
+
+    @patch("restic_backups.cli.generic_cli.interactive_menu")
+    @patch("restic_backups.cli.questionary.select")
+    def test_root_menu_selects_described_workflow(self, select, generic_menu) -> None:
+        select.return_value.ask.return_value = "generic"
+
+        root_menu()
+
+        choices = select.call_args.kwargs["choices"]
+        self.assertIn("Manage repositories", choices[0].title)
+        self.assertIn("transcribe", choices[1].title)
+        generic_menu.assert_called_once_with()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.questionary.select")
@@ -62,6 +83,41 @@ class VoiceMemosCliTest(unittest.TestCase):
         generic_menu(Mock(invoked_subcommand=None))
 
         list_command.assert_called_once_with()
+        section_choices = select.call_args_list[0].kwargs["choices"]
+        command_choices = select.call_args_list[1].kwargs["choices"]
+        self.assertIn("List, initialize", section_choices[0].title)
+        self.assertIn("storage destinations", command_choices[0].title)
+
+    def test_voice_memos_menu_describes_and_prints_command(self) -> None:
+        with (
+            patch.dict(
+                "os.environ",
+                {
+                    "RESTIC_BACKUPS_CONFIG": "/tmp/config.sops.yaml",
+                    "RESTIC_BACKUPS_SOPS": "1",
+                },
+            ),
+            patch("restic_backups.voice_memos.cli.questionary.select") as select,
+            patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
+            patch("restic_backups.voice_memos.cli.click.echo") as echo,
+            patch.object(voice_memos_cli, "main") as main,
+        ):
+            select.return_value.ask.side_effect = ["backup", "print"]
+            arguments.return_value.ask.return_value = ""
+
+            voice_memos_menu()
+
+        choices = select.call_args_list[0].kwargs["choices"]
+        backup_choice = next(choice for choice in choices if choice.value == "backup")
+        self.assertIn("Back up recordings", backup_choice.title)
+        output = "\n".join(str(item.args[0]) for item in echo.call_args_list)
+        self.assertIn("Usage:", output)
+        self.assertIn(
+            f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
+            "--sops voice-memos backup",
+            output,
+        )
+        main.assert_not_called()
 
     def test_config_path_option_and_environment_variable(self) -> None:
         config = """\

@@ -4,9 +4,11 @@ from __future__ import annotations
 
 import logging
 import os
+import sys
 from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
+import questionary
 import typer
 from rich.console import Console
 from rich.logging import RichHandler
@@ -20,7 +22,8 @@ from .generic import sops as sops_module
 
 app = typer.Typer(
     help="Configured backup commands.",
-    no_args_is_help=True,
+    invoke_without_command=True,
+    no_args_is_help=False,
 )
 app.add_typer(
     generic_cli.app,
@@ -34,6 +37,7 @@ error_console = Console(stderr=True)
 
 @app.callback()
 def configure(
+    context: typer.Context,
     config_file: Annotated[
         Path | None,
         typer.Option(
@@ -80,6 +84,46 @@ def configure(
     if config_file is not None:
         os.environ[config_module.CONFIG_ENV] = str(config_file)
     os.environ[sops_module.SOPS_ENV] = "1" if use_sops else "0"
+    if context.invoked_subcommand is None:
+        if not sys.stdin.isatty():
+            typer.echo(context.get_help())
+            return
+        interactive_menu()
+
+
+def interactive_menu() -> None:
+    """Navigate all user-facing workflows with an arrow-key menu."""
+    selected = questionary.select(
+        "Workflow:",
+        choices=[
+            questionary.Choice(
+                "Generic backups  Manage repositories, backups, and snapshots",
+                "generic",
+            ),
+            questionary.Choice(
+                "Voice Memos      Back up, restore, transcribe, and diarize memos",
+                "voice-memos",
+            ),
+            questionary.Choice(
+                "Check config     Decrypt and validate configuration locally",
+                "check-config",
+            ),
+            questionary.Choice(
+                "Exit             Return without doing anything", "exit"
+            ),
+        ],
+    ).ask()
+    if selected == "generic":
+        generic_cli.interactive_menu()
+    elif selected == "voice-memos":
+        prepare_voice_memos()
+        from .voice_memos.cli import interactive_menu as voice_memos_menu
+
+        voice_memos_menu()
+    elif selected == "check-config":
+        check_config_command()
+    elif selected is None:
+        raise typer.Abort()
 
 
 def fail(message: str) -> NoReturn:
@@ -116,22 +160,40 @@ def check_config_command() -> None:
 )
 def voice_memos_command(context: typer.Context) -> None:
     """Back up, transcribe, summarise, and diarize macOS Voice Memos."""
-    if "SUMMARIES_DIR" not in os.environ and "--help" not in context.args:
-        _, credentials, stores, backups = validated()
-        try:
-            store, _ = repository.resolve("voice-memos", credentials, stores, backups)
-            path = repository.data_dir("voice-memos", store) / "summaries"
-        except BackupError as exc:
-            fail(str(exc))
-        os.environ["SUMMARIES_DIR"] = str(path)
-
     from .voice_memos.cli import cli
+    from .voice_memos.cli import interactive_menu as voice_memos_menu
+
+    if not context.args:
+        if sys.stdin.isatty():
+            prepare_voice_memos()
+            voice_memos_menu()
+        else:
+            cli.main(
+                args=["--help"],
+                prog_name="restic-backups voice-memos",
+                standalone_mode=True,
+            )
+        return
+    if "--help" not in context.args:
+        prepare_voice_memos()
 
     cli.main(
         args=list(context.args),
         prog_name="restic-backups voice-memos",
         standalone_mode=True,
     )
+
+
+def prepare_voice_memos() -> None:
+    if "SUMMARIES_DIR" in os.environ:
+        return
+    _, credentials, stores, backups = validated()
+    try:
+        store, _ = repository.resolve("voice-memos", credentials, stores, backups)
+        path = repository.data_dir("voice-memos", store) / "summaries"
+    except BackupError as exc:
+        fail(str(exc))
+    os.environ["SUMMARIES_DIR"] = str(path)
 
 
 if __name__ == "__main__":

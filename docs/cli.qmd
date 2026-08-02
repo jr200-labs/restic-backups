@@ -5,6 +5,17 @@ title: CLI
 Run the installed command through uv:
 
 ```sh
+uv run restic-backups
+```
+
+In an interactive terminal, running without a command opens a described
+arrow-key menu for **Generic backups**, **Voice Memos**, and configuration
+validation. Each workflow opens another described arrow-key menu. Explicit
+subcommands remain available for scripts and scheduled jobs.
+
+Show command-line help instead:
+
+```sh
 uv run restic-backups --help
 ```
 

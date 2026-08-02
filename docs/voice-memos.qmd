@@ -6,6 +6,17 @@ The `voice-memos` command backs up the macOS recording store and produces
 private JSON transcripts, summaries, tags, indexes, and speaker diarization.
 There is no separate Voice Memos Makefile.
 
+Run without a Voice Memos subcommand to open a described arrow-key menu of all
+user-facing operations:
+
+```sh
+uv run restic-backups voice-memos
+```
+
+After selecting a command, the menu shows its usage, accepts optional arguments,
+prints the complete copyable command, and offers **Run**, **Print only**, or
+**Cancel**. Explicit subcommands remain available for scripts.
+
 Set `RESTIC_BACKUPS_CONFIG` first; set `RESTIC_BACKUPS_SOPS=1` too when the
 file is SOPS-encrypted. See [Configuration](configuration.qmd).
 

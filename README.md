@@ -24,6 +24,7 @@ stores, and does not back up files.
 Use the built-in help for available commands and options:
 
 ```sh
+uv run restic-backups  # interactive arrow-key menu
 uv run restic-backups --help
 uv run restic-backups generic --help
 uv run restic-backups voice-memos --help
