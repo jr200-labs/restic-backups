@@ -180,6 +180,12 @@ ul.task-list li input[type="checkbox"] {
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./jobs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">GitHub Repositories</span></a>
   </div>
@@ -187,7 +193,7 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Generic Backups</span></a>
+ <span class="menu-text">Repositories and Restic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -241,7 +247,8 @@ ul.task-list li input[type="checkbox"] {
 <h2 class="anchored" data-anchor-id="start-here">Start here</h2>
 <ul>
 <li><a href="./quick-start.html">Quick Start</a> creates, validates, and restores a first backup.</li>
-<li><a href="./configuration.html">Configuration</a> describes storage, restic repositories, backup jobs, and Glacier policy.</li>
+<li><a href="./configuration.html">Configuration</a> describes storage, restic repositories, jobs, and Glacier policy.</li>
+<li><a href="./jobs.html">Jobs</a> describes the shared model and commands for every job type.</li>
 <li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
 <li><a href="./github-repositories.html">GitHub Repositories</a> covers Git history, LFS, wikis, metadata, release assets, and unattended credentials.</li>
 <li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
@@ -252,6 +259,9 @@ ul.task-list li input[type="checkbox"] {
 <pre class="text"><code>restic_backups/
   cli.py                 root command wiring and global options
   config.py              YAML loading and validation
+  jobs/
+    cli.py               unified job commands and job-first TUI
+    workflow.py          type dispatch and common snapshot execution
   generic/
     cli.py               generic restic command definitions
     local.py             local repository destruction
@@ -268,7 +278,7 @@ ul.task-list li input[type="checkbox"] {
     workflow.py          backup, restore, and recording lookup
     parallel.py          worker process orchestration
     dashboard.py         live Textual dashboard</code></pre>
-<p>Command modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.</p>
+<p>The root TUI and <code>job</code> command route every configured type through the common job dispatcher. Type-specific modules prepare source data; generic restic modules resolve destinations and execute restic.</p>
 </section>
 <section id="private-data-boundary" class="level2">
 <h2 class="anchored" data-anchor-id="private-data-boundary">Private data boundary</h2>

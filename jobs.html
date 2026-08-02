@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>Storage Cost Comparison – Restic Backups</title>
+<title>Jobs – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -145,7 +145,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./jobs.html">Commands</a></li><li class="breadcrumb-item"><a href="./jobs.html">Jobs</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -192,7 +192,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link active">
+  <a href="./storage-costs.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">Storage Cost Comparison</span></a>
   </div>
 </li>
@@ -215,7 +215,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./jobs.html" class="sidebar-item-text sidebar-link">
+  <a href="./jobs.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Jobs</span></a>
   </div>
 </li>
@@ -249,19 +249,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#gb" id="toc-gb" class="nav-link active" data-scroll-target="#gb">100 GB</a></li>
-  <li><a href="#tb" id="toc-tb" class="nav-link" data-scroll-target="#tb">1 TB</a></li>
-  <li><a href="#cost-of-listing-files-in-a-snapshot" id="toc-cost-of-listing-files-in-a-snapshot" class="nav-link" data-scroll-target="#cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</a></li>
-  <li><a href="#important-differences" id="toc-important-differences" class="nav-link" data-scroll-target="#important-differences">Important differences</a></li>
+  <li><a href="#commands" id="toc-commands" class="nav-link active" data-scroll-target="#commands">Commands</a></li>
+  <li><a href="#files" id="toc-files" class="nav-link" data-scroll-target="#files">Files</a></li>
+  <li><a href="#github-repository" id="toc-github-repository" class="nav-link" data-scroll-target="#github-repository">GitHub repository</a></li>
+  <li><a href="#voice-memos" id="toc-voice-memos" class="nav-link" data-scroll-target="#voice-memos">Voice Memos</a></li>
+  <li><a href="#restic-tags-and-snapshots" id="toc-restic-tags-and-snapshots" class="nav-link" data-scroll-target="#restic-tags-and-snapshots">Restic tags and snapshots</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./storage-costs.html">Storage Cost Comparison</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./jobs.html">Commands</a></li><li class="breadcrumb-item"><a href="./jobs.html">Jobs</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">Storage Cost Comparison</h1>
+<h1 class="title">Jobs</h1>
 </div>
 
 
@@ -278,195 +279,83 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.</p>
-<section id="gb" class="level2">
-<h2 class="anchored" data-anchor-id="gb">100 GB</h2>
-<p><strong>Prices as of 1 August 2026.</strong></p>
+<p>A job is one configured unit of work. Every job has the same identity, destinations, optional restic tag, run command, status view, snapshot tools, and audit result. Its <code>type</code> determines how <code>source</code> is prepared before restic takes a snapshot.</p>
+<section id="commands" class="level2">
+<h2 class="anchored" data-anchor-id="commands">Commands</h2>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 26%">
-<col style="width: 20%">
-<col style="width: 33%">
+<col style="width: 50%">
+<col style="width: 50%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Service</th>
-<th style="text-align: right;">Monthly cost</th>
-<th>Price used</th>
-<th style="text-align: center;">Supported by this CLI</th>
+<th>Command</th>
+<th>Purpose</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>AWS S3 Glacier Instant Retrieval</td>
-<td style="text-align: right;"><strong>$0.40</strong></td>
-<td>$0.004/GB-month</td>
-<td style="text-align: center;">Yes</td>
+<td><code>job list</code></td>
+<td>Show every configured job and its type</td>
 </tr>
 <tr class="even">
-<td>AWS S3 Glacier Flexible Retrieval</td>
-<td style="text-align: right;"><strong>$0.36</strong></td>
-<td>$0.0036/GB-month</td>
-<td style="text-align: center;">Yes; restore required</td>
+<td><code>job run [JOB_ID] --repository ID... [--dry-run]</code></td>
+<td>Prepare and snapshot one job</td>
 </tr>
 <tr class="odd">
-<td>AWS S3 Standard</td>
-<td style="text-align: right;"><strong>$2.30</strong></td>
-<td>$0.023/GB-month</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="even">
-<td>Backblaze B2</td>
-<td style="text-align: right;"><strong>$0.63</strong></td>
-<td>$0.00695/GB-month after the first 10 GB free</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="odd">
-<td>Google Drive</td>
-<td style="text-align: right;"><strong>$1.99</strong></td>
-<td>Google One Basic 100 GB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-<tr class="even">
-<td>OneDrive</td>
-<td style="text-align: right;"><strong>$1.99</strong></td>
-<td>Microsoft 365 Basic 100 GB plan</td>
-<td style="text-align: center;">No</td>
+<td><code>job status [JOB_ID]</code></td>
+<td>Show the latest tagged snapshot at every destination</td>
 </tr>
 </tbody>
 </table>
+<p>Run <code>uv run restic-backups</code> for the job-first arrow-key TUI. Choose <strong>Jobs</strong>, then select a job to run it, inspect status or snapshots, invoke advanced restic commands, or open its type-specific tools. A sole enabled destination starts checked; when several are available, they all start unchecked and must be selected with Space.</p>
+<p>For scripts, provide every destination explicitly:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run documents <span class="dt">\</span></span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-local</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
-<section id="tb" class="level2">
-<h2 class="anchored" data-anchor-id="tb">1 TB</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 20%">
-<col style="width: 26%">
-<col style="width: 20%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Service</th>
-<th style="text-align: right;">Monthly cost</th>
-<th>Price used</th>
-<th style="text-align: center;">Supported by this CLI</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>AWS S3 Glacier Instant Retrieval</td>
-<td style="text-align: right;"><strong>$4.00</strong></td>
-<td>1,000 GB at $0.004/GB-month</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="even">
-<td>AWS S3 Glacier Flexible Retrieval</td>
-<td style="text-align: right;"><strong>$3.60</strong></td>
-<td>1,000 GB at $0.0036/GB-month</td>
-<td style="text-align: center;">Yes; restore required</td>
-</tr>
-<tr class="odd">
-<td>AWS S3 Standard</td>
-<td style="text-align: right;"><strong>$23.00</strong></td>
-<td>1,000 GB at $0.023/GB-month</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="even">
-<td>Backblaze B2</td>
-<td style="text-align: right;"><strong>$6.88</strong></td>
-<td>990 billable GB after the first 10 GB free</td>
-<td style="text-align: center;">Yes</td>
-</tr>
-<tr class="odd">
-<td>Google Drive</td>
-<td style="text-align: right;"><strong>$9.99</strong></td>
-<td>Cheapest plan covering 1 TB is the 2 TB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-<tr class="even">
-<td>OneDrive</td>
-<td style="text-align: right;"><strong>$9.99</strong></td>
-<td>Microsoft 365 Personal 1 TB plan</td>
-<td style="text-align: center;">No</td>
-</tr>
-</tbody>
-</table>
+<section id="files" class="level2">
+<h2 class="anchored" data-anchor-id="files">Files</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> files</span></span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">personal-b2</span><span class="kw">,</span><span class="at"> personal-local</span><span class="kw">]</span></span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source</span><span class="kw">:</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Paths are passed to <code>restic backup</code>; <code>~</code> is expanded. Restic creates a complete snapshot view while uploading only data not already present in that destination repository.</p>
 </section>
-<section id="cost-of-listing-files-in-a-snapshot" class="level2">
-<h2 class="anchored" data-anchor-id="cost-of-listing-files-in-a-snapshot">Cost of listing files in a snapshot</h2>
-<p>Restic can list a snapshot without downloading the backed-up file contents:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> <span class="op">&lt;</span>job-id<span class="op">&gt;</span> ls <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The command downloads repository indexes, snapshot records, directory trees, and other required metadata. Commands such as <code>restore</code> and <code>dump</code> download file data. Restic’s local cache can reduce metadata reads on subsequent commands. Set <code>cache-dir</code> on a <code>restic-repositories</code> entry to give each repository a stable, separate cache location; see <a href="./configuration.html">Configuration</a>.</p>
-<p>Prime that cache with repository metadata before browsing snapshots:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository prime-cache <span class="op">&lt;</span>repository-id<span class="op">&gt;</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>This runs <code>restic check --with-cache</code>; it does not download backed-up file data.</p>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 30%">
-<col style="width: 30%">
-<col style="width: 40%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Provider</th>
-<th>Metadata-read charges</th>
-<th style="text-align: right;">Typical cost</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Backblaze B2</td>
-<td>GET and LIST transactions are free; egress is free up to 3× average monthly storage</td>
-<td style="text-align: right;"><strong>$0</strong> within the free egress allowance</td>
-</tr>
-<tr class="even">
-<td>AWS S3 Glacier Instant Retrieval, US East</td>
-<td>$0.03/GB retrieved plus about $0.01 per 1,000 GET requests</td>
-<td style="text-align: right;">Usually <strong>less than $0.01</strong></td>
-</tr>
-</tbody>
-</table>
-<p>Glacier Instant Retrieval examples below show retrieval charges only; request charges are additional:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th style="text-align: right;">Metadata downloaded</th>
-<th style="text-align: right;">Retrieval charge</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: right;">10 MB</td>
-<td style="text-align: right;">~$0.0003</td>
-</tr>
-<tr class="even">
-<td style="text-align: right;">100 MB</td>
-<td style="text-align: right;">~$0.003</td>
-</tr>
-<tr class="odd">
-<td style="text-align: right;">1 GB</td>
-<td style="text-align: right;">$0.03</td>
-</tr>
-</tbody>
-</table>
-<p>AWS currently includes the first 100 GB per month of internet data transfer out, aggregated across AWS services and regions. Backblaze charges $0.01/GB only for egress beyond its free allowance. Exact costs depend on the repository’s metadata size, object count, local cache, and other usage during the billing month.</p>
+<section id="github-repository" class="level2">
+<h2 class="anchored" data-anchor-id="github-repository">GitHub repository</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> source-code</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> github-repository</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">personal-local</span><span class="kw">]</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source</span><span class="kw">:</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">repository-url</span><span class="kw">:</span><span class="at"> git@github.com:example/source-code.git</span></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">components</span><span class="kw">:</span></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">git</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">lfs</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">wiki</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">false</span></span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The job updates a managed mirror and selected GitHub data before snapshotting that workspace. See <a href="./github-repositories.html">GitHub Repositories</a> for components and credentials.</p>
 </section>
-<section id="important-differences" class="level2">
-<h2 class="anchored" data-anchor-id="important-differences">Important differences</h2>
-<p>AWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project supports S3-compatible and local filesystem storage; Google Drive and OneDrive cannot be selected as storage backends.</p>
-<p>Both Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.</p>
-<p>For Flexible Retrieval, configure a <code>restore</code> policy and set <code>ALLOW_ARCHIVE_RETRIEVAL=1</code> when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.</p>
-<p>Prices vary by country and can change. Check the current official pages before choosing a provider:</p>
-<ul>
-<li><a href="https://aws.amazon.com/s3/pricing/">Amazon S3 pricing</a></li>
-<li><a href="https://docs.aws.amazon.com/AmazonS3/latest/userguide/restoring-objects-retrieval-options.html">AWS archive retrieval options</a></li>
-<li><a href="https://www.backblaze.com/cloud-storage/pricing">Backblaze B2 pricing</a></li>
-<li><a href="https://www.backblaze.com/cloud-storage/transaction-pricing">Backblaze B2 transaction pricing</a></li>
-<li><a href="https://one.google.com/about/plans?hl=en_US">Google One plans</a></li>
-<li><a href="https://www.microsoft.com/en-us/microsoft-365/onedrive/onedrive-plans-and-pricing?market=us">Microsoft OneDrive plans</a></li>
-</ul>
+<section id="voice-memos" class="level2">
+<h2 class="anchored" data-anchor-id="voice-memos">Voice Memos</h2>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="fu">jobs</span><span class="kw">:</span></span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> memos</span></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">type</span><span class="kw">:</span><span class="at"> voice-memos</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span><span class="at"> </span><span class="kw">[</span><span class="at">personal-b2</span><span class="kw">]</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">source</span><span class="kw">:</span><span class="at"> </span><span class="kw">{}</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>An empty source uses the standard macOS recordings location and the managed summaries directory. Optional <code>recordings-dir</code> and <code>summaries-dir</code> fields override them. Transcription and diarization remain type-specific tools on this job; creating its backup snapshot still uses <code>job run</code>.</p>
+</section>
+<section id="restic-tags-and-snapshots" class="level2">
+<h2 class="anchored" data-anchor-id="restic-tags-and-snapshots">Restic tags and snapshots</h2>
+<p>Every job applies its <code>tag</code>, which defaults to <code>job-id</code>. The tag groups that job’s snapshots when several jobs share a restic repository. Restic assigns a new immutable snapshot ID to every successful run; snapshot IDs are not configuration values.</p>
+<p><code>job status</code> includes all job types. Repository status is read once and matched by tag, so a GitHub job cannot disappear merely because it has a different source preparation workflow.</p>
 
 
 </section>

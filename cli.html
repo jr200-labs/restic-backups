@@ -215,6 +215,12 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <ul id="quarto-sidebar-section-2" class="collapse list-unstyled sidebar-section depth1 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
+  <a href="./jobs.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Jobs</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">GitHub Repositories</span></a>
   </div>
@@ -222,7 +228,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Generic Backups</span></a>
+ <span class="menu-text">Repositories and Restic</span></a>
   </div>
 </li>
           <li class="sidebar-item">
@@ -272,14 +278,14 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 <p>Run the installed command through uv:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Generic backups</strong>, <strong>GitHub repositories</strong>, <strong>Voice Memos</strong>, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.</p>
+<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Jobs</strong>, <strong>Repositories</strong>, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.</p>
 <p>Every menu level includes <strong>Help</strong> and <strong>Back</strong>. <strong>Help</strong> shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.</p>
 <p>Press Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.</p>
 <p>Show command-line help instead:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Commands that use a repository require a configuration file. Pass the global options before the command:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.yaml generic repository list</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.sops.yaml <span class="at">--sops</span> generic backup list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.sops.yaml <span class="at">--sops</span> job list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The equivalent environment variables are <code>RESTIC_BACKUPS_CONFIG</code> and <code>RESTIC_BACKUPS_SOPS=1</code>. See <a href="./configuration.html">Configuration</a> for setup.</p>
 <p>Commands use colored, level-aware stderr logging for configuration and operation progress. Add <code>--verbose</code> before the command, or set <code>RESTIC_BACKUPS_VERBOSE=1</code>, to include command-level details without printing credentials or repository passwords:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--verbose</span> generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
@@ -317,8 +323,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>No</td>
 </tr>
 <tr class="even">
-<td><code>github-repository ...</code></td>
-<td>Update and snapshot a GitHub repository export</td>
+<td><code>job ...</code></td>
+<td>List, run, and inspect every configured job type</td>
 <td>Depends on subcommand</td>
 </tr>
 <tr class="odd">
@@ -327,17 +333,23 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Depends on subcommand</td>
 </tr>
 <tr class="even">
+<td><code>github-repository ...</code></td>
+<td>Compatibility and GitHub-specific commands</td>
+<td>Depends on subcommand</td>
+</tr>
+<tr class="odd">
 <td><code>voice-memos ...</code></td>
-<td>Run the macOS Voice Memos workflow</td>
+<td>Compatibility and Voice Memos-specific tools</td>
 <td>Depends on subcommand</td>
 </tr>
 </tbody>
 </table>
 <p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./github-repositories.html">GitHub Repositories</a> for Git history and selected GitHub-hosted data. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
 <p>Run subcommand help without loading a configuration:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
-<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository <span class="at">--help</span></span>
-<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job <span class="at">--help</span></span>
+<span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
+<span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository <span class="at">--help</span></span>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 
 
 </section>

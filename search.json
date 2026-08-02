@@ -26,18 +26,18 @@
     "href": "configuration.html#restic-repositories",
     "title": "Configuration",
     "section": "restic-repositories",
-    "text": "restic-repositories\nrestic-repositories defines the encrypted repositories inside storage. Every entry links to one backend through storage-id and owns its restic password and optional cache directory.\nAn S3 repository selects a bucket and object-key prefix:\nrestic-repositories:\n  - id: personal-b2\n    description: Personal restic repository on Backblaze B2.\n    storage-id: backblaze-b2\n    enabled: true\n    bucket: example-bucket\n    key_prefix: voice-memos\n    cache-dir: .restic-cache/personal-b2\n    password: \"...\"\nFor S3, the storage endpoint identifies the service, region configures request signing, and the repository’s bucket plus key_prefix locate its data.\nA local repository selects a relative directory inside the storage path:\nrestic-repositories:\n  - id: personal-local\n    description: Personal restic repository on the external disk.\n    storage-id: sandisk-2tb\n    enabled: true\n    path: restic/personal\n    cache-dir: .restic-cache/personal-local\n    password: \"...\"\nLocal repository paths must be relative and cannot contain ... Restic creates the repository directory during initialization, but the storage root itself must already exist. Every restic repository needs its own encryption password, including repositories on local disks. Losing it makes the snapshots irrecoverable.\nDisabled repositories are ignored by commands and may retain CHANGE_ME placeholders. check-config checks every enabled repository and reports any remaining placeholders. Operational commands check only the selected repository immediately before using it, so an unfinished repository does not prevent a different configured repository from being listed, initialized, or accessed.\ncache-dir optionally selects restic’s local cache for this repository. ~ is expanded, and a relative path is resolved beside the selected config file. If omitted, restic uses its operating-system default. A repository-specific value takes precedence over RESTIC_CACHE_DIR from the process environment.\nEvery repository appears in the generic repository list table. generic repository init can initialize a selected enabled repository even when no backup references it; use --all to initialize every enabled repository. A backup entry is required before using that repository with generic backup run or generic restic run.",
+    "text": "restic-repositories\nrestic-repositories defines the encrypted repositories inside storage. Every entry links to one backend through storage-id and owns its restic password and optional cache directory.\nAn S3 repository selects a bucket and object-key prefix:\nrestic-repositories:\n  - id: personal-b2\n    description: Personal restic repository on Backblaze B2.\n    storage-id: backblaze-b2\n    enabled: true\n    bucket: example-bucket\n    key_prefix: voice-memos\n    cache-dir: .restic-cache/personal-b2\n    password: \"...\"\nFor S3, the storage endpoint identifies the service, region configures request signing, and the repository’s bucket plus key_prefix locate its data.\nA local repository selects a relative directory inside the storage path:\nrestic-repositories:\n  - id: personal-local\n    description: Personal restic repository on the external disk.\n    storage-id: sandisk-2tb\n    enabled: true\n    path: restic/personal\n    cache-dir: .restic-cache/personal-local\n    password: \"...\"\nLocal repository paths must be relative and cannot contain ... Restic creates the repository directory during initialization, but the storage root itself must already exist. Every restic repository needs its own encryption password, including repositories on local disks. Losing it makes the snapshots irrecoverable.\nDisabled repositories are ignored by commands and may retain CHANGE_ME placeholders. check-config checks every enabled repository and reports any remaining placeholders. Operational commands check only the selected repository immediately before using it, so an unfinished repository does not prevent a different configured repository from being listed, initialized, or accessed.\ncache-dir optionally selects restic’s local cache for this repository. ~ is expanded, and a relative path is resolved beside the selected config file. If omitted, restic uses its operating-system default. A repository-specific value takes precedence over RESTIC_CACHE_DIR from the process environment.\nEvery repository appears in the generic repository list table. generic repository init can initialize a selected enabled repository even when no backup references it; use --all to initialize every enabled repository. A backup entry is required before using that repository with job run or generic restic run.",
     "crumbs": [
       "Setup",
       "Configuration"
     ]
   },
   {
-    "objectID": "configuration.html#backups",
-    "href": "configuration.html#backups",
+    "objectID": "configuration.html#jobs",
+    "href": "configuration.html#jobs",
     "title": "Configuration",
-    "section": "backups",
-    "text": "backups\nbackups defines the entries shown in the CLI’s Backups table. Each entry lists one or more repositories under restic-repository-ids. Every value must match a restic-repositories.id value.\nbackups:\n  - job-id: documents\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    paths:\n      - ~/Documents\n      - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the configured backup job in commands and menus. paths is the non-empty list of local files or directories passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a backup runs in the TUI, every configured repository starts deselected; select one or more with Space. This prevents a job from writing to an unintended destination. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups generic backup run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nSpecialized workflows may discover their own sources and omit paths. For example, the voice-memos subcommand locates the macOS recording store itself. generic backup run reports an error if the selected backup has no configured paths.\n\nGitHub repository jobs\nA GitHub repository job replaces paths with a github mapping:\nbackups:\n  - job-id: example-github-repository\n    description: Back up Git history and selected GitHub data.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    github:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nAll component flags are required and at least one must be enabled. lfs requires git. API authentication is required for metadata and release-assets; Git-only jobs do not require gh or an API token. Secret sources contain exactly one env or file key, so secret values remain outside the YAML. See GitHub Repositories for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.",
+    "section": "jobs",
+    "text": "jobs\njobs defines every backup shown by job list and the Jobs TUI. Each job has a type, a type-specific source, and one or more destinations under restic-repository-ids. Every destination must match a restic-repositories.id value.\njobs:\n  - job-id: documents\n    type: files\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      paths:\n        - ~/Documents\n        - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the job in commands and menus. For a files job, source.paths is the non-empty list passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a job has one enabled repository, it starts selected in the TUI. When it has several, all start deselected and one or more must be selected with Space. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups job run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nThe supported types are files, github-repository, and voice-memos. They all use the same job list, destination picker, run command, status table, snapshot tools, and audit result. The source mapping is the only type-specific part. See Jobs for all three forms.\nFor compatibility, one release accepts the previous backups section and normalizes its paths or github fields. Do not define both sections. New and updated configurations should use jobs, explicit type, and source.\n\nGitHub repository jobs\nA GitHub repository job uses a GitHub source mapping:\njobs:\n  - job-id: example-github-repository\n    type: github-repository\n    description: Back up Git history and selected GitHub data.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nAll component flags are required and at least one must be enabled. lfs requires git. API authentication is required for metadata and release-assets; Git-only jobs do not require gh or an API token. Secret sources contain exactly one env or file key, so secret values remain outside the YAML. See GitHub Repositories for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -90,7 +90,7 @@
     "href": "quick-start.html#configure-a-repository",
     "title": "Quick Start",
     "section": "2. Configure a repository",
-    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first storage, restic repository, and backup entries:\n\nreplace every CHANGE_ME used by the enabled repository;\nconfigure either S3 storage and credentials or an absolute local storage path;\nconfigure the repository bucket and key_prefix for S3, or relative path for local storage;\ngive the backup job a useful job-id such as documents;\nlist the local files or directories under its paths field;\nomit tag unless it should differ from the job ID;\nlist one or more enabled repository IDs under restic-repository-ids;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nuv run restic-backups generic backup list\nThe list output separates Repositories from Backups. Every configured restic repository appears in the repository table, even before a configured backup references it.",
+    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first storage, restic repository, and job entries:\n\nreplace every CHANGE_ME used by the enabled repository;\nconfigure either S3 storage and credentials or an absolute local storage path;\nconfigure the repository bucket and key_prefix for S3, or relative path for local storage;\ngive the backup job a useful job-id such as documents;\nuse type: files and list local files or directories under source.paths;\nomit tag unless it should differ from the job ID;\nlist one or more enabled repository IDs under restic-repository-ids;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nuv run restic-backups job list\nThe list output separates Repositories from Jobs. Every configured restic repository appears in the repository table, even before a configured backup references it.",
     "crumbs": [
       "Quick Start"
     ]
@@ -100,7 +100,7 @@
     "href": "quick-start.html#initialize-and-back-up",
     "title": "Quick Start",
     "section": "3. Initialize and back up",
-    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic repository init personal-b2\nThen create a snapshot from the paths configured for documents:\nuv run restic-backups generic backup run documents\nuv run restic-backups generic snapshot list documents\nRunning generic repository init again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass --all to initialize every enabled repository. generic backup run shows the repositories configured for the job with none selected; use Space to choose one or more destinations. The job’s paths and default or configured tag are used for every selected repository.",
+    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic repository init personal-b2\nThen create a snapshot from the paths configured for documents:\nuv run restic-backups job run documents\nuv run restic-backups generic snapshot list documents\nRunning generic repository init again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass --all to initialize every enabled repository. job run preselects a sole enabled destination; when several are available, use Space to choose one or more. The job’s paths and default or configured tag are used for every selected repository.",
     "crumbs": [
       "Quick Start"
     ]
@@ -130,7 +130,7 @@
     "href": "index.html#start-here",
     "title": "Restic Backups",
     "section": "Start here",
-    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, backup jobs, and Glacier policy.\nGeneric Backups covers standard restic operations for any local files or directories.\nGitHub Repositories covers Git history, LFS, wikis, metadata, release assets, and unattended credentials.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
+    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, jobs, and Glacier policy.\nJobs describes the shared model and commands for every job type.\nGeneric Backups covers standard restic operations for any local files or directories.\nGitHub Repositories covers Git history, LFS, wikis, metadata, release assets, and unattended credentials.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -140,7 +140,7 @@
     "href": "index.html#architecture",
     "title": "Restic Backups",
     "section": "Architecture",
-    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  github_repository/\n    cli.py               GitHub repository commands and TUI\n    workflow.py          Git, GitHub export, and snapshot updates\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nCommand modules contain command definitions and option handling. Config, SOPS, repository, pipeline, workflow, and parallel modules perform the operational work.",
+    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  jobs/\n    cli.py               unified job commands and job-first TUI\n    workflow.py          type dispatch and common snapshot execution\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  github_repository/\n    cli.py               GitHub repository commands and TUI\n    workflow.py          Git, GitHub export, and snapshot updates\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nThe root TUI and job command route every configured type through the common job dispatcher. Type-specific modules prepare source data; generic restic modules resolve destinations and execute restic.",
     "crumbs": [
       "Restic Backups"
     ]
@@ -226,7 +226,7 @@
     "href": "voice-memos.html",
     "title": "Voice Memos Backups",
     "section": "",
-    "text": "The voice-memos command backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
+    "text": "The voice-memos job type backs up the macOS recording store and produces private JSON transcripts, summaries, tags, indexes, and speaker diarization. There is no separate Voice Memos Makefile.\nAn empty source uses the standard recordings directory and managed summaries. Use source.recordings-dir or source.summaries-dir to override either path.\nRun without a Voice Memos subcommand to open a described arrow-key menu of all user-facing operations:\nAfter selecting a command, the menu shows its usage, accepts optional arguments, prints the complete copyable command, and offers Run, Print only, or Cancel. Help shows the commands or flags for the current menu level and then returns there; Back moves up one level. Configuration is loaded only when Run is selected. Explicit subcommands remain available for scripts.\nSet RESTIC_BACKUPS_CONFIG first; set RESTIC_BACKUPS_SOPS=1 too when the file is SOPS-encrypted. See Configuration.",
     "crumbs": [
       "Commands",
       "Voice Memos Backups"
@@ -248,7 +248,7 @@
     "href": "voice-memos.html#safe-routine",
     "title": "Voice Memos Backups",
     "section": "Safe routine",
-    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos transcribe\nuv run restic-backups voice-memos backup\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
+    "text": "Safe routine\nuv run restic-backups voice-memos status\nuv run restic-backups job run memos\nuv run restic-backups voice-memos transcribe\nuv run restic-backups job run memos\nuv run restic-backups voice-memos check\nuv run restic-backups voice-memos restore latest --target /tmp/voice-memos-restore\nThe second backup captures newly generated summaries. Verify a restore before deleting recordings from any device; iCloud synchronization is not a backup.",
     "crumbs": [
       "Commands",
       "Voice Memos Backups"
@@ -259,7 +259,7 @@
     "href": "voice-memos.html#commands",
     "title": "Voice Memos Backups",
     "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nBack up recordings and summaries together\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\nbackup\nCompatibility alias for backing up recordings and summaries\n\n\nsnapshots\nList repository snapshots\n\n\ncheck\nVerify repository structure and metadata\n\n\nstats\nShow latest tagged snapshot size and file count\n\n\nfiles [SNAPSHOT]\nList files in a snapshot\n\n\nrestore [SNAPSHOT] --target DIR\nRestore a snapshot\n\n\nget UUID [--restore]\nResolve a summary to its recording and reveal it\n\n\ntranscribe\nIncrementally transcribe and summarise\n\n\nstatus\nCount processed, pending, stale, and errored memos\n\n\ndiarize\nAdd speakers to existing transcript segments\n\n\ndiarize-parallel\nSplit pending diarization across worker processes\n\n\ndashboard [LOG_DIR]\nWatch parallel worker progress\n\n\ndiarize-status\nCount transcripts with and without speakers\n\n\nmigrate-layout\nMove flat JSON records into monthly directories\n\n\nprune-index\nRemove index entries whose JSON is missing\n\n\nrebuild-index\nRebuild the index from JSON records on disk\n\n\npeek\nInspect the Voice Memos database schema\n\n\n\nRun uv run restic-backups voice-memos COMMAND --help for exact options.",
     "crumbs": [
       "Commands",
       "Voice Memos Backups"
@@ -292,120 +292,186 @@
     "href": "voice-memos.html#generated-data",
     "title": "Voice Memos Backups",
     "section": "Generated data",
-    "text": "Generated data\nThe CLI derives the summary directory from the configured voice-memos backup:\nuv run restic-backups generic backup data-dir voice-memos\nAll generated JSON and indexes remain beneath that ignored private directory.",
+    "text": "Generated data\nThe CLI derives the summary directory from the selected voice-memos job. All generated JSON and indexes remain beneath that ignored private directory.",
     "crumbs": [
       "Commands",
       "Voice Memos Backups"
     ]
   },
   {
-    "objectID": "generic.html",
-    "href": "generic.html",
-    "title": "Generic Backups",
+    "objectID": "jobs.html",
+    "href": "jobs.html",
+    "title": "Jobs",
     "section": "",
-    "text": "The generic subcommand runs standard restic operations against any configured backup. Backup sources may be files or directories anywhere on the machine.\nSet RESTIC_BACKUPS_CONFIG first, or pass --config before generic. See the Quick Start for a complete first backup.",
+    "text": "A job is one configured unit of work. Every job has the same identity, destinations, optional restic tag, run command, status view, snapshot tools, and audit result. Its type determines how source is prepared before restic takes a snapshot.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "jobs.html#commands",
+    "href": "jobs.html#commands",
+    "title": "Jobs",
+    "section": "Commands",
+    "text": "Commands\n\n\n\n\n\n\n\nCommand\nPurpose\n\n\n\n\njob list\nShow every configured job and its type\n\n\njob run [JOB_ID] --repository ID... [--dry-run]\nPrepare and snapshot one job\n\n\njob status [JOB_ID]\nShow the latest tagged snapshot at every destination\n\n\n\nRun uv run restic-backups for the job-first arrow-key TUI. Choose Jobs, then select a job to run it, inspect status or snapshots, invoke advanced restic commands, or open its type-specific tools. A sole enabled destination starts checked; when several are available, they all start unchecked and must be selected with Space.\nFor scripts, provide every destination explicitly:\nuv run restic-backups job run documents \\\n  --repository personal-b2 \\\n  --repository personal-local",
+    "crumbs": [
+      "Commands",
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "jobs.html#files",
+    "href": "jobs.html#files",
+    "title": "Jobs",
+    "section": "Files",
+    "text": "Files\njobs:\n  - job-id: documents\n    type: files\n    restic-repository-ids: [personal-b2, personal-local]\n    source:\n      paths:\n        - ~/Documents\n        - ~/Desktop\nPaths are passed to restic backup; ~ is expanded. Restic creates a complete snapshot view while uploading only data not already present in that destination repository.",
+    "crumbs": [
+      "Commands",
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "jobs.html#github-repository",
+    "href": "jobs.html#github-repository",
+    "title": "Jobs",
+    "section": "GitHub repository",
+    "text": "GitHub repository\njobs:\n  - job-id: source-code\n    type: github-repository\n    restic-repository-ids: [personal-local]\n    source:\n      repository-url: git@github.com:example/source-code.git\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: false\n        release-assets: false\n      migration-timeout-seconds: 3600\nThe job updates a managed mirror and selected GitHub data before snapshotting that workspace. See GitHub Repositories for components and credentials.",
+    "crumbs": [
+      "Commands",
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "jobs.html#voice-memos",
+    "href": "jobs.html#voice-memos",
+    "title": "Jobs",
+    "section": "Voice Memos",
+    "text": "Voice Memos\njobs:\n  - job-id: memos\n    type: voice-memos\n    restic-repository-ids: [personal-b2]\n    source: {}\nAn empty source uses the standard macOS recordings location and the managed summaries directory. Optional recordings-dir and summaries-dir fields override them. Transcription and diarization remain type-specific tools on this job; creating its backup snapshot still uses job run.",
+    "crumbs": [
+      "Commands",
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "jobs.html#restic-tags-and-snapshots",
+    "href": "jobs.html#restic-tags-and-snapshots",
+    "title": "Jobs",
+    "section": "Restic tags and snapshots",
+    "text": "Restic tags and snapshots\nEvery job applies its tag, which defaults to job-id. The tag groups that job’s snapshots when several jobs share a restic repository. Restic assigns a new immutable snapshot ID to every successful run; snapshot IDs are not configuration values.\njob status includes all job types. Repository status is read once and matched by tag, so a GitHub job cannot disappear merely because it has a different source preparation workflow.",
+    "crumbs": [
+      "Commands",
+      "Jobs"
+    ]
+  },
+  {
+    "objectID": "generic.html",
+    "href": "generic.html",
+    "title": "Repositories and Restic",
+    "section": "",
+    "text": "The generic subcommand manages configured restic repositories, snapshots, and advanced restic passthrough. Use the unified job command to list and run jobs.\nSet RESTIC_BACKUPS_CONFIG first, or pass --config before generic. See the Quick Start for a complete first backup.",
+    "crumbs": [
+      "Commands",
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#commands",
     "href": "generic.html#commands",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Commands",
-    "text": "Commands\n\n\n\n\n\n\n\n\n\nGroup\nCommand\nPurpose\nRepository access\n\n\n\n\nRepository\ngeneric repository list\nShow configured repositories\nNo\n\n\nRepository\ngeneric repository init [REPOSITORY] [--all] [--dry-run]\nInitialize new repositories\nYes\n\n\nRepository\ngeneric repository prime-cache [REPOSITORY]\nCache and validate repository metadata\nYes\n\n\nRepository\ngeneric repository prune [REPOSITORY] [OPTIONS]\nPrune or repack repository data\nYes\n\n\nRepository\ngeneric repository destroy [REPOSITORY] [--dry-run]\nPermanently erase one repository\nYes\n\n\nBackup\ngeneric backup list\nShow configured backup jobs\nNo\n\n\nBackup\ngeneric backup run [JOB_ID] --repository ID... [--dry-run]\nCreate snapshots in selected repositories\nYes\n\n\nBackup\ngeneric backup data-dir [JOB_ID] [--repository ID]\nPrint the managed private-data directory\nNo\n\n\nSnapshot\ngeneric snapshot list [JOB_ID] [--repository ID]\nList snapshots for a configured backup\nYes\n\n\nSnapshot\ngeneric snapshot forget [JOB_ID] [--repository ID] [--dry-run]\nForget one tagged snapshot and prune\nYes\n\n\nRestic\ngeneric restic run --backup JOB_ID --repository ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\nCommands that accept [JOB_ID] prompt when it is omitted in an interactive terminal. Repository-specific operations also prompt when a job has several enabled repositories. Non-interactive callers must provide the job ID and repository ID explicitly.\nRunning restic-backups generic without a subcommand in an interactive terminal opens a section menu for repositories, backups, snapshots, and advanced restic commands. Every section and command has a short description and is selectable with the arrow keys. Explicit subcommands remain available for scripts and scheduled jobs. Advanced restic reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable uv run restic-backups command. Choose Run, Print only, or Cancel. Choose Help at any level to see help for the current section or selected restic command and return to the same menu. Showing help does not load the configuration, select a backup, or contact the repository. Back returns one level without restarting the menu tree. Entering --help or -h in the argument prompt has the same local-help behavior.\n\nDry runs\nThe interactive menu shows a Dry run checkbox for repository initialization, pruning, repository destruction, backup creation, and snapshot forgetting. Press Space to toggle it, then Enter to continue. A dry run performs any reads needed to report what would happen but does not initialize or destroy a repository, upload backup data, create a snapshot, forget a snapshot, or prune data.\nAdvanced restic commands show the same checkbox when the installed restic version advertises a native --dry-run flag for the selected command. Commands without that flag do not show the checkbox; use Print only to inspect their complete command without running it.\nExplicit commands can pass --dry-run directly to the managed write commands:\nuv run restic-backups generic repository init personal --dry-run\nuv run restic-backups generic repository prune personal --dry-run\nuv run restic-backups generic backup run documents --dry-run\nuv run restic-backups generic snapshot forget documents --dry-run\nuv run restic-backups generic repository destroy personal --dry-run\ngeneric repository list shows every restic repository, even when no configured backup references it. generic backup list shows the configured backup jobs.\ngeneric repository init prompts for one repository, with All repositories as the first option. Scripts must pass a repository ID or --all. Disabled or already initialized repositories are reported and skipped.\ngeneric repository prime-cache runs restic check --with-cache for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when --read-data is requested explicitly.",
+    "text": "Commands\n\n\n\n\n\n\n\n\n\nGroup\nCommand\nPurpose\nRepository access\n\n\n\n\nRepository\ngeneric repository list\nShow configured repositories\nNo\n\n\nRepository\ngeneric repository init [REPOSITORY] [--all] [--dry-run]\nInitialize new repositories\nYes\n\n\nRepository\ngeneric repository prime-cache [REPOSITORY]\nCache and validate repository metadata\nYes\n\n\nRepository\ngeneric repository prune [REPOSITORY] [OPTIONS]\nPrune or repack repository data\nYes\n\n\nRepository\ngeneric repository destroy [REPOSITORY] [--dry-run]\nPermanently erase one repository\nYes\n\n\nJob\njob list\nShow every configured job type\nNo\n\n\nJob\njob run [JOB_ID] --repository ID... [--dry-run]\nCreate snapshots in selected repositories\nYes\n\n\nBackup\ngeneric backup data-dir [JOB_ID] [--repository ID]\nPrint the managed private-data directory\nNo\n\n\nSnapshot\ngeneric snapshot list [JOB_ID] [--repository ID]\nList snapshots for a configured backup\nYes\n\n\nSnapshot\ngeneric snapshot forget [JOB_ID] [--repository ID] [--dry-run]\nForget one tagged snapshot and prune\nYes\n\n\nRestic\ngeneric restic run --backup JOB_ID --repository ID ...\nPass trailing arguments directly to restic\nDepends on restic command\n\n\n\nCommands that accept [JOB_ID] prompt when it is omitted in an interactive terminal. Repository-specific operations also prompt when a job has several enabled repositories. Non-interactive callers must provide the job ID and repository ID explicitly.\nRunning restic-backups generic without a subcommand in an interactive terminal opens the legacy section menu for repositories, jobs, snapshots, and advanced restic commands. Every section and command has a short description and is selectable with the arrow keys. Explicit subcommands remain available for scripts and scheduled jobs. Advanced restic reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable uv run restic-backups command. Choose Run, Print only, or Cancel. Choose Help at any level to see help for the current section or selected restic command and return to the same menu. Showing help does not load the configuration, select a backup, or contact the repository. Back returns one level without restarting the menu tree. Entering --help or -h in the argument prompt has the same local-help behavior.\n\nDry runs\nThe interactive menu shows a Dry run checkbox for repository initialization, pruning, repository destruction, backup creation, and snapshot forgetting. Press Space to toggle it, then Enter to continue. A dry run performs any reads needed to report what would happen but does not initialize or destroy a repository, upload backup data, create a snapshot, forget a snapshot, or prune data.\nAdvanced restic commands show the same checkbox when the installed restic version advertises a native --dry-run flag for the selected command. Commands without that flag do not show the checkbox; use Print only to inspect their complete command without running it.\nExplicit commands can pass --dry-run directly to the managed write commands:\nuv run restic-backups generic repository init personal --dry-run\nuv run restic-backups generic repository prune personal --dry-run\nuv run restic-backups job run documents --dry-run\nuv run restic-backups generic snapshot forget documents --dry-run\nuv run restic-backups generic repository destroy personal --dry-run\ngeneric repository list shows every restic repository, even when no configured job references it. job list shows every job type.\ngeneric repository init prompts for one repository, with All repositories as the first option. Scripts must pass a repository ID or --all. Disabled or already initialized repositories are reported and skipped.\ngeneric repository prime-cache runs restic check --with-cache for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when --read-data is requested explicitly.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#prune-or-compact-a-repository",
     "href": "generic.html#prune-or-compact-a-repository",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Prune or compact a repository",
     "text": "Prune or compact a repository\nChoose Repositories → Prune / compact in the TUI. The maintenance menu uses the native restic prune options and provides:\n\nStandard prune: remove unused data with restic’s defaults;\nMinimize bandwidth: pass --max-unused unlimited and retain partly used data packs;\nMetadata only: pass --repack-cacheable-only and repack only cacheable metadata;\nCompact small packs: pass --repack-smaller-than SIZE;\nLimit repacking: pass --max-repack-size SIZE.\n\nSelect a repository, then use the Dry run checkbox to preview the operation. A real run requires confirmation. Explicit commands expose the same flags and accept --yes for deliberate non-interactive maintenance:\nuv run restic-backups generic repository prune personal --dry-run\nuv run restic-backups generic repository prune personal \\\n  --max-unused unlimited --yes\nSnapshots already share deduplicated data, so pruning does not combine them into one snapshot. It scans snapshot references, deletes wholly unused packs, and may download and re-upload partially used packs before deleting the originals. The configured local cache helps with metadata, but normal repacking still operates on repository data. Remote storage may therefore incur retrieval, request, and transfer charges. Use Metadata only, Minimize bandwidth, or --max-repack-size when limiting remote I/O matters.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#create-a-snapshot",
     "href": "generic.html#create-a-snapshot",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Create a snapshot",
-    "text": "Create a snapshot\nConfigure the local source paths once, then select the backup by its ID:\nbackups:\n  - job-id: documents\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    paths:\n      - ~/Documents\n      - ~/Desktop\nuv run restic-backups generic backup run documents\nThe TUI shows every repository configured for the job with none selected. Use Space to select one or more destinations, then Enter to run. From a non-interactive shell, repeat --repository explicitly:\nuv run restic-backups generic backup run documents \\\n  --repository personal-b2 \\\n  --repository personal-local\nThe command expands ~, runs restic backup independently for each selected repository, and applies the job ID as the restic tag unless tag is explicitly configured. Every destination gets its own snapshot while restic uploads only new or changed file data already absent from that repository.",
+    "text": "Create a snapshot\nConfigure the local source paths once, then select the backup by its ID:\njobs:\n  - job-id: documents\n    type: files\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      paths:\n        - ~/Documents\n        - ~/Desktop\nuv run restic-backups job run documents\nThe TUI preselects a sole enabled repository. When several are available, none start selected; use Space to select one or more, then Enter to run. From a non-interactive shell, repeat --repository explicitly:\nuv run restic-backups job run documents \\\n  --repository personal-b2 \\\n  --repository personal-local\nThe command expands ~, runs restic backup independently for each selected repository, and applies the job ID as the restic tag unless tag is explicitly configured. Every destination gets its own snapshot while restic uploads only new or changed file data already absent from that repository.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#list-snapshots",
     "href": "generic.html#list-snapshots",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "List snapshots",
     "text": "List snapshots\nList snapshots with the configured backup tag:\nuv run restic-backups generic snapshot list documents\nThe table shows each snapshot’s short restic ID, timestamp, host, paths, and tags.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#forget-one-snapshot",
     "href": "generic.html#forget-one-snapshot",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Forget one snapshot",
     "text": "Forget one snapshot\nuv run restic-backups generic snapshot forget\nForgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs restic forget --prune, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.\nWhen several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#permanently-destroy-a-repository",
     "href": "generic.html#permanently-destroy-a-repository",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Permanently destroy a repository",
     "text": "Permanently destroy a repository\nuv run restic-backups generic repository destroy\nDestruction is interactive-only. The CLI shows the full target, asks for a yes/no confirmation, then requires the exact repository ID. For S3 it deletes every object, object version, and delete marker below the configured bucket and key_prefix; it does not delete the bucket. For local storage it removes the configured repository directory but not the storage root. It never changes the YAML configuration.\nS3 credentials need permission to list and delete objects and versions. An empty key_prefix is always rejected to prevent accidental bucket deletion.\n\nRepository deletion is irreversible. Snapshots, indexes, repository keys, and encrypted data are all erased. The configured restic password cannot recover them.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#common-operations",
     "href": "generic.html#common-operations",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Common operations",
     "text": "Common operations\n# Inspect and check the repository\nuv run restic-backups generic snapshot list documents\nuv run restic-backups generic restic run --backup documents check\nuv run restic-backups generic restic run --backup documents list snapshots\n\n# Restore a snapshot\nuv run restic-backups generic restic run --backup documents \\\n  restore &lt;snapshot-id&gt; --target /tmp/documents-restore\nArguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository details, password, and any S3 credentials only to the child process and does not print them. For the backup command, it also adds the configured restic tag automatically; additional --tag arguments remain supported.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#managed-data-directory",
     "href": "generic.html#managed-data-directory",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Managed data directory",
     "text": "Managed data directory\nuv run restic-backups generic backup data-dir documents\nThe result follows data/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/ beside the selected config file. For S3, the repository path is &lt;bucket&gt;/&lt;key-prefix&gt;; for local storage it is the repository’s relative path. This directory is for private generated metadata; generic backup sources do not need to live there.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
     "objectID": "generic.html#cold-s3-storage",
     "href": "generic.html#cold-s3-storage",
-    "title": "Generic Backups",
+    "title": "Repositories and Restic",
     "section": "Cold S3 storage",
     "text": "Cold S3 storage\nGLACIER_IR supports immediate access. GLACIER and DEEP_ARCHIVE permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:\nALLOW_ARCHIVE_RETRIEVAL=1 uv run restic-backups generic restic run \\\n  --backup archive restore latest --target /tmp/archive-restore\nOther restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See Configuration for the archive policy fields.",
     "crumbs": [
       "Commands",
-      "Generic Backups"
+      "Repositories and Restic"
     ]
   },
   {
@@ -413,7 +479,7 @@
     "href": "github-repositories.html",
     "title": "GitHub Repositories",
     "section": "",
-    "text": "The GitHub repositories workflow incrementally maintains a complete Git mirror and optionally collects Git LFS objects, the wiki, repository metadata, and release assets. It then snapshots the managed workspace to one or more configured restic repositories.",
+    "text": "The github-repository job type incrementally maintains a complete Git mirror and optionally collects Git LFS objects, the wiki, repository metadata, and release assets. It then snapshots the managed workspace to one or more configured restic repositories.",
     "crumbs": [
       "Commands",
       "GitHub Repositories"
@@ -424,7 +490,7 @@
     "href": "github-repositories.html#configure-a-job",
     "title": "GitHub Repositories",
     "section": "Configure a job",
-    "text": "Configure a job\nGitHub jobs live in backups, but use github instead of paths:\nbackups:\n  - job-id: example-github-repository\n    description: Complete GitHub repository backup.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    tag: example-github-repository\n    github:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        git:\n          ssh:\n            private-key:\n              file: /var/run/secrets/github/ssh-private-key\n            known-hosts:\n              file: /var/run/secrets/github/known-hosts\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: true\n        wiki: true\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nEvery component flag is required, and at least one must be true. lfs requires git. A GitHub job cannot also define paths. The optional restic tag still defaults to job-id.\nOnly github.com clone URLs are accepted:\ngit@github.com:OWNER/REPOSITORY.git\nhttps://github.com/OWNER/REPOSITORY.git\nCredentials, query strings, and fragments embedded in the URL are rejected.",
+    "text": "Configure a job\nGitHub jobs use the shared jobs section and a GitHub-specific source:\njobs:\n  - job-id: example-github-repository\n    type: github-repository\n    description: Complete GitHub repository backup.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    tag: example-github-repository\n    source:\n      repository-url: git@github.com:example/example-repository.git\n      authentication:\n        git:\n          ssh:\n            private-key:\n              file: /var/run/secrets/github/ssh-private-key\n            known-hosts:\n              file: /var/run/secrets/github/known-hosts\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: true\n        wiki: true\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nEvery component flag is required, and at least one must be true. lfs requires git. The optional restic tag still defaults to job-id.\nOnly github.com clone URLs are accepted:\ngit@github.com:OWNER/REPOSITORY.git\nhttps://github.com/OWNER/REPOSITORY.git\nCredentials, query strings, and fragments embedded in the URL are rejected.",
     "crumbs": [
       "Commands",
       "GitHub Repositories"
@@ -457,7 +523,7 @@
     "href": "github-repositories.html#run-and-inspect",
     "title": "GitHub Repositories",
     "section": "Run and inspect",
-    "text": "Run and inspect\nUse the described arrow-key TUI or explicit commands:\nuv run restic-backups github-repository list\nuv run restic-backups github-repository backup example-github-repository \\\n  --repository personal-b2 --repository personal-local\nuv run restic-backups github-repository status\nuv run restic-backups github-repository status example-github-repository\nuv run restic-backups github-repository data-dir example-github-repository\nuv run restic-backups generic snapshot list example-github-repository \\\n  --repository personal-b2\nuv run restic-backups generic restic run --backup example-github-repository \\\n  --repository personal-b2 ls latest --tag example-github-repository\nWith no job ID, status shows one row for every GitHub job and destination, including the latest snapshot ID and time, the local export time, and component states. Snapshots are matched using each job’s configured tag, which defaults to its job ID. Each destination repository is queried only once, even when many jobs share it. Passing a job ID limits the snapshot table and adds that job’s detailed component errors.\nThe status table reads restic snapshot metadata, not backed-up file contents. It can contact remote storage when the required metadata is not already cached.\nGitHub jobs are also selectable from Snapshots and Advanced restic. Use restic ls to browse files in a snapshot. The different restic list command lists internal repository objects and requires an object type such as packs, snapshots, or keys; it does not list configured backup jobs.\nThe TUI starts with every configured destination unchecked. Select each desired restic repository with Space. A dry run validates the plan without calling Git, GitHub, or restic and without writing the workspace:\nuv run restic-backups github-repository backup example-github-repository \\\n  --repository personal-b2 --dry-run",
+    "text": "Run and inspect\nUse the described arrow-key TUI or explicit commands:\nuv run restic-backups job list\nuv run restic-backups job run example-github-repository \\\n  --repository personal-b2 --repository personal-local\nuv run restic-backups job status\nuv run restic-backups job status example-github-repository\nuv run restic-backups github-repository data-dir example-github-repository\nuv run restic-backups generic snapshot list example-github-repository \\\n  --repository personal-b2\nuv run restic-backups generic restic run --backup example-github-repository \\\n  --repository personal-b2 ls latest --tag example-github-repository\nWith no job ID, job status shows one row for every job and destination, including the latest snapshot ID and time, the local export time, and component states. Snapshots are matched using each job’s configured tag, which defaults to its job ID. Each destination repository is queried only once, even when many jobs share it. Passing a job ID limits the snapshot table and adds that job’s detailed component errors.\nThe status table reads restic snapshot metadata, not backed-up file contents. It can contact remote storage when the required metadata is not already cached.\nGitHub jobs are also selectable from Snapshots and Advanced restic. Use restic ls to browse files in a snapshot. The different restic list command lists internal repository objects and requires an object type such as packs, snapshots, or keys; it does not list configured backup jobs.\nThe TUI preselects a sole enabled destination. With several destinations, all start unchecked and must be selected with Space. A dry run validates the plan without calling Git, GitHub, or restic and without writing the workspace:\nuv run restic-backups job run example-github-repository \\\n  --repository personal-b2 --dry-run",
     "crumbs": [
       "Commands",
       "GitHub Repositories"
@@ -545,7 +611,7 @@
     "href": "cli.html",
     "title": "CLI",
     "section": "",
-    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Generic backups, GitHub repositories, Voice Memos, and configuration validation. Each workflow opens another described arrow-key menu. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
+    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Jobs, Repositories, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
     "crumbs": [
       "Setup",
       "CLI"
@@ -567,7 +633,7 @@
     "href": "cli.html#root-commands",
     "title": "CLI",
     "section": "Root commands",
-    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\ngithub-repository ...\nUpdate and snapshot a GitHub repository export\nDepends on subcommand\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\nvoice-memos ...\nRun the macOS Voice Memos workflow\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use GitHub Repositories for Git history and selected GitHub-hosted data. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups generic --help\nuv run restic-backups github-repository --help\nuv run restic-backups voice-memos --help",
+    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\njob ...\nList, run, and inspect every configured job type\nDepends on subcommand\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\ngithub-repository ...\nCompatibility and GitHub-specific commands\nDepends on subcommand\n\n\nvoice-memos ...\nCompatibility and Voice Memos-specific tools\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use GitHub Repositories for Git history and selected GitHub-hosted data. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups job --help\nuv run restic-backups generic --help\nuv run restic-backups github-repository --help\nuv run restic-backups voice-memos --help",
     "crumbs": [
       "Setup",
       "CLI"
