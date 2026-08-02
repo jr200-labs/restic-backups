@@ -339,17 +339,20 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="backups" class="level2">
 <h2 class="anchored" data-anchor-id="backups"><code>backups</code></h2>
-<p><code>backups</code> defines the entries shown in the CLI’s <strong>Backups</strong> table. Each entry selects a repository by matching <code>restic-repository-id</code> to a <code>restic-repositories.id</code> value.</p>
+<p><code>backups</code> defines the entries shown in the CLI’s <strong>Backups</strong> table. Each entry lists one or more repositories under <code>restic-repository-ids</code>. Every value must match a <code>restic-repositories.id</code> value.</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
 <span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
 <span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">description</span><span class="kw">:</span><span class="at"> Back up local documents.</span></span>
-<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
-<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
-<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
-<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span>
-<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="co">    # Optional; defaults to the job ID.</span></span>
-<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="co">    # tag: documents</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-ids</span><span class="kw">:</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> personal-b2</span></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> personal-local</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
+<span id="cb8-9"><a href="#cb8-9" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span>
+<span id="cb8-10"><a href="#cb8-10" aria-hidden="true" tabindex="-1"></a><span class="co">    # Optional; defaults to the job ID.</span></span>
+<span id="cb8-11"><a href="#cb8-11" aria-hidden="true" tabindex="-1"></a><span class="co">    # tag: documents</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>job-id</code> is the stable name used to select the configured backup job in commands and menus. <code>paths</code> is the non-empty list of local files or directories passed to <code>restic backup</code>; <code>~</code> is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.</p>
+<p>When a backup runs in the TUI, every configured repository starts deselected; select one or more with Space. This prevents a job from writing to an unintended destination. Non-interactive commands must repeat <code>--repository</code> for every destination. Each repository remains independent and receives its own restic snapshot.</p>
 <p><code>tag</code> is optional restic metadata applied automatically to every snapshot created through that job. It defaults to <code>job-id</code>, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.</p>
 <p>Run the configured backup with:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>

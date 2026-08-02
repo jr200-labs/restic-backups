@@ -285,7 +285,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>give the backup job a useful <code>job-id</code> such as <code>documents</code>;</li>
 <li>list the local files or directories under its <code>paths</code> field;</li>
 <li>omit <code>tag</code> unless it should differ from the job ID;</li>
-<li>make its <code>restic-repository-id</code> match the enabled repository ID;</li>
+<li>list one or more enabled repository IDs under <code>restic-repository-ids</code>;</li>
 <li>delete unused example entries if desired.</li>
 </ul>
 <p>Keep the repository password safe: restic cannot decrypt snapshots without it.</p>
@@ -303,7 +303,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Then create a snapshot from the paths configured for <code>documents</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Running <code>generic repository init</code> again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass <code>--all</code> to initialize every enabled repository. <code>generic backup run</code> uses the selected backup’s repository, paths, and default or configured tag.</p>
+<p>Running <code>generic repository init</code> again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass <code>--all</code> to initialize every enabled repository. <code>generic backup run</code> shows the repositories configured for the job with none selected; use Space to choose one or more destinations. The job’s paths and default or configured tag are used for every selected repository.</p>
 </section>
 <section id="verify-a-restore" class="level2">
 <h2 class="anchored" data-anchor-id="verify-a-restore">4. Verify a restore</h2>
