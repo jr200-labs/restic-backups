@@ -144,6 +144,11 @@ def repository_menu() -> None:
                     "prime-cache",
                 ),
                 menu_choice(
+                    "Prune / compact",
+                    "Remove unused data or repack repository files",
+                    "prune",
+                ),
+                menu_choice(
                     "Destroy repository",
                     "Permanently erase repository objects",
                     "destroy",
@@ -167,11 +172,89 @@ def repository_menu() -> None:
             elif selected == "prime-cache":
                 prime_cache_command(None)
                 return
+            elif selected == "prune":
+                prune_menu()
+                return
             elif selected == "destroy":
                 destroy_command(None, choose_dry_run())
                 return
         except typer.Abort:
             continue
+
+
+def prune_menu() -> None:
+    """Choose native restic prune behavior with described arrow-key options."""
+    while True:
+        selected = select(
+            "Repository maintenance:",
+            choices=[
+                menu_choice(
+                    "Standard prune",
+                    "Remove unused data with restic defaults",
+                    "standard",
+                    22,
+                ),
+                menu_choice(
+                    "Minimize bandwidth",
+                    "Keep partly used data packs",
+                    "bandwidth",
+                    22,
+                ),
+                menu_choice(
+                    "Metadata only",
+                    "Repack only cacheable metadata",
+                    "metadata",
+                    22,
+                ),
+                menu_choice(
+                    "Compact small packs",
+                    "Combine packs below a size threshold",
+                    "small-packs",
+                    22,
+                ),
+                menu_choice(
+                    "Limit repacking",
+                    "Cap data rewritten in this run",
+                    "limit",
+                    22,
+                ),
+                menu_choice("Help", "Show restic prune flags", "help", 22),
+                menu_choice("Back", "Return to repository commands", "back", 22),
+                questionary.Separator(" "),
+            ],
+        ).unsafe_ask()
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            try:
+                console.print(restic.command_help("prune"))
+            except BackupError as exc:
+                fail(str(exc))
+            continue
+
+        options: dict[str, Any] = {}
+        if selected == "bandwidth":
+            options["max_unused"] = "unlimited"
+        elif selected == "metadata":
+            options["repack_cacheable_only"] = True
+        elif selected in {"small-packs", "limit"}:
+            label = (
+                "Repack packs smaller than (for example 20M):"
+                if selected == "small-packs"
+                else "Maximum data to repack (for example 1G):"
+            )
+            size = questionary.text(label).unsafe_ask()
+            if not size or not size.strip():
+                error_console.print(Text("A size is required.", style="yellow"))
+                continue
+            key = (
+                "repack_smaller_than"
+                if selected == "small-packs"
+                else "max_repack_size"
+            )
+            options[key] = size.strip()
+        prune_command(None, dry_run=choose_dry_run(), **options)
+        return
 
 
 def backup_menu() -> None:
@@ -673,6 +756,112 @@ def prime_cache_command(
     if code:
         raise typer.Exit(code)
     error_console.print(Text(f"{repository_id}: cache primed", style="bold green"))
+
+
+@repository_app.command("prune")
+def prune_command(
+    repository_id: Annotated[
+        str | None,
+        typer.Argument(help="Repository ID; prompts when omitted."),
+    ] = None,
+    dry_run: Annotated[
+        bool,
+        typer.Option("--dry-run", help="Show what prune would do without writing."),
+    ] = False,
+    max_unused: Annotated[
+        str | None,
+        typer.Option("--max-unused", help="Restic's allowed unused-data limit."),
+    ] = None,
+    max_repack_size: Annotated[
+        str | None,
+        typer.Option("--max-repack-size", help="Limit data repacked in this run."),
+    ] = None,
+    repack_cacheable_only: Annotated[
+        bool,
+        typer.Option("--repack-cacheable-only", help="Repack only cacheable metadata."),
+    ] = False,
+    repack_smaller_than: Annotated[
+        str | None,
+        typer.Option(
+            "--repack-smaller-than", help="Repack pack files below this size."
+        ),
+    ] = None,
+    yes: Annotated[
+        bool,
+        typer.Option("--yes", help="Run prune without interactive confirmation."),
+    ] = False,
+) -> None:
+    """Remove unused data and optionally repack repository files."""
+    _, storage, repositories, _ = validated()
+    if repository_id is None:
+        if not sys.stdin.isatty():
+            fail("repository ID is required when stdin is not interactive")
+        selected = select(
+            "Repository to prune:",
+            choices=[
+                questionary.Choice(
+                    f"{item_id}  ({repository.location(item, storage[item['storage-id']])})",
+                    item_id,
+                )
+                for item_id, item in repositories.items()
+                if item["enabled"]
+            ]
+            + [questionary.Separator(" ")],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        repository_id = str(selected)
+
+    restic_repository = repositories.get(repository_id)
+    if restic_repository is None:
+        fail(f"repository '{repository_id}' not found in {config.config_path()}")
+    if not restic_repository["enabled"]:
+        fail(f"restic repository '{repository_id}' is disabled")
+    sizes = (max_unused, max_repack_size, repack_smaller_than)
+    if any(value is not None and not value.strip() for value in sizes):
+        fail("prune size and limit values cannot be empty")
+
+    args = ["prune"]
+    for flag, value in (
+        ("--max-unused", max_unused),
+        ("--max-repack-size", max_repack_size),
+        ("--repack-smaller-than", repack_smaller_than),
+    ):
+        if value is not None:
+            args.extend((flag, value))
+    if repack_cacheable_only:
+        args.append("--repack-cacheable-only")
+    if dry_run:
+        args.append("--dry-run")
+
+    if not dry_run and not yes:
+        if not sys.stdin.isatty():
+            fail("prune requires --yes when stdin is not interactive")
+        confirmed = questionary.confirm(
+            f"Prune '{repository_id}'? Restic may download, re-upload, and delete repository pack files.",
+            default=False,
+        ).unsafe_ask()
+        if confirmed is not True:
+            error_console.print(
+                Text("Cancelled; repository unchanged.", style="yellow")
+            )
+            return
+
+    audit_command("repository", "prune", repository_id, *args[1:])
+    mode = "previewing prune" if dry_run else "pruning repository"
+    error_console.print(Text(f"{repository_id}: {mode}", style="cyan"))
+    try:
+        code = restic.repository_command(
+            restic_repository,
+            storage[restic_repository["storage-id"]],
+            args,
+        )
+    except BackupError as exc:
+        fail(str(exc))
+    if code:
+        raise typer.Exit(code)
+    message = "dry run complete; repository unchanged" if dry_run else "prune complete"
+    error_console.print(Text(f"{repository_id}: {message}", style="bold green"))
 
 
 def load_snapshots(
