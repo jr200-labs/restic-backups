@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.6](https://github.com/jr200-labs/restic-backups/compare/v0.1.5...v0.1.6) (2026-08-02)
+
+
+### Features
+
+* support multi-repository backup jobs ([#28](https://github.com/jr200-labs/restic-backups/issues/28)) ([11f327f](https://github.com/jr200-labs/restic-backups/commit/11f327f355ef70257314f828b5f335475223c1c3))
+
 ## [0.1.5](https://github.com/jr200-labs/restic-backups/compare/v0.1.4...v0.1.5) (2026-08-02)
 
 
