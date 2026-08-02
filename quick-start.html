@@ -281,11 +281,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <section id="initialize-and-back-up" class="level2">
 <h2 class="anchored" data-anchor-id="initialize-and-back-up">3. Initialize and back up</h2>
 <p>Initialize a new repository once:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository init b2-store</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Then create a snapshot from the paths configured for <code>documents</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Running <code>generic repository init</code> again is safe: existing repositories are detected and skipped. Initialization covers every enabled repository; <code>generic backup run</code> uses the selected backup’s repository, paths, and default or configured tag.</p>
+<p>Running <code>generic repository init</code> again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass <code>--all</code> to initialize every enabled repository. <code>generic backup run</code> uses the selected backup’s repository, paths, and default or configured tag.</p>
 </section>
 <section id="verify-a-restore" class="level2">
 <h2 class="anchored" data-anchor-id="verify-a-restore">4. Verify a restore</h2>

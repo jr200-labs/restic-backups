@@ -281,8 +281,8 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>Repository</td>
-<td><code>generic repository init</code></td>
-<td>Initialize each new enabled repository</td>
+<td><code>generic repository init [REPOSITORY] [--all]</code></td>
+<td>Initialize new repositories</td>
 <td>Yes</td>
 </tr>
 <tr class="odd">
@@ -336,9 +336,9 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tbody>
 </table>
 <p>Commands that accept <code>[BACKUP]</code> prompt when it is omitted in an interactive terminal. Non-interactive callers must provide the backup ID.</p>
-<p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a section menu for repositories, backups, snapshots, and advanced restic commands. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Advanced restic</strong> reads the installed restic version’s command list and descriptions, lets you select one, then prompts only for its arguments. Enter <code>--help</code> at that prompt to see the selected command’s options.</p>
+<p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a section menu for repositories, backups, snapshots, and advanced restic commands. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Advanced restic</strong> reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable <code>uv run restic-backups</code> command. Choose <strong>Run</strong>, <strong>Print only</strong>, or <strong>Cancel</strong>. Enter <code>--help</code> as the arguments to see the selected command’s full options.</p>
 <p><code>generic repository list</code> shows every store, even when no configured backup references it. <code>generic backup list</code> shows the configured backup jobs.</p>
-<p><code>generic repository init</code> reports each configured store, skips disabled or already initialized stores, and initializes every enabled store that is missing.</p>
+<p><code>generic repository init</code> prompts for one repository, with <strong>All repositories</strong> as the first option. Scripts must pass a repository ID or <code>--all</code>. Disabled or already initialized repositories are reported and skipped.</p>
 <p><code>generic repository prime-cache</code> runs <code>restic check --with-cache</code> for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when <code>--read-data</code> is requested explicitly.</p>
 </section>
 <section id="create-a-snapshot" class="level2">
@@ -379,10 +379,11 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect and check the repository</span></span>
 <span id="cb6-2"><a href="#cb6-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span>
 <span id="cb6-3"><a href="#cb6-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents check</span>
-<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
-<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
-<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb6-4"><a href="#cb6-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents list snapshots</span>
+<span id="cb6-5"><a href="#cb6-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb6-6"><a href="#cb6-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
+<span id="cb6-7"><a href="#cb6-7" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
+<span id="cb6-8"><a href="#cb6-8" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository and credentials only to the child process and does not print them. For the <code>backup</code> command, it also adds the configured restic tag automatically; additional <code>--tag</code> arguments remain supported.</p>
 </section>
 <section id="managed-data-directory" class="level2">
