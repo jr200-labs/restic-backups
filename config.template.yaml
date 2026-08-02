@@ -91,14 +91,16 @@ jobs:
 
     - job-id: example-github-repository
       type: github-repository
-      description: Back up one GitHub repository and its selected GitHub data.
+      description: Back up GitHub repositories and their selected GitHub data.
       restic-repository-ids:
           - personal-b2
           - personal-local
       # GitHub jobs use a managed local workspace.
       source:
           # github.com SSH and token-free HTTPS clone URLs are supported.
-          repository-url: git@github.com:example/example-repository.git
+          repository-urls:
+              - git@github.com:example/example-repository.git
+              - git@github.com:example/another-repository.git
           authentication:
               # Optional for SSH when an existing agent/config already works.
               git:

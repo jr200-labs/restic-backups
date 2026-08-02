@@ -209,7 +209,9 @@ jobs:
       - personal-b2
       - personal-local
     source:
-      repository-url: git@github.com:example/example-repository.git
+      repository-urls:
+        - git@github.com:example/example-repository.git
+        - git@github.com:example/another-repository.git
       authentication:
         api:
           token:
@@ -227,7 +229,10 @@ All component flags are required and at least one must be enabled. `lfs`
 requires `git`. API authentication is required for `metadata` and
 `release-assets`; Git-only jobs do not require `gh` or an API token. Secret
 sources contain exactly one `env` or `file` key, so secret values remain outside
-the YAML. See [GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
+the YAML. `repository-urls` must be a non-empty list identifying distinct
+GitHub repositories. The previous singular `repository-url` is accepted
+temporarily for migration, but new configurations should use the list. See
+[GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
 Git authentication, migration permissions, commands, workspace layout, and
 restore steps.
 

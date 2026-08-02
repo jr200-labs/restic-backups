@@ -134,7 +134,7 @@ class VoiceMemosCliTest(unittest.TestCase):
             },
             "source-code": {
                 "type": "github-repository",
-                "source": {"repository-url": "git@github.com:example/repo.git"},
+                "source": {"repository-urls": ["git@github.com:example/repo.git"]},
                 "restic-repository-ids": ["repo"],
             },
             "memos": {
@@ -714,6 +714,44 @@ backups:
             "--sops generic restic run --backup documents --repository store list snapshots",
             output,
         )
+
+    def test_advanced_restic_ls_prompts_for_a_snapshot(self) -> None:
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        jobs = {"documents": {"restic-repository-id": "store"}}
+        snapshot_id = "a" * 64
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, storage, repositories, jobs),
+            ),
+            patch.dict("os.environ", {"RESTIC_BACKUPS_CONFIG": "/tmp/config.yaml"}),
+            patch(
+                "restic_backups.generic.cli.restic.command_output",
+                return_value=json.dumps(
+                    [
+                        {
+                            "id": snapshot_id,
+                            "short_id": "aaaaaaaa",
+                            "time": "2026-08-02T12:00:00Z",
+                            "hostname": "host",
+                            "paths": ["/data"],
+                        }
+                    ]
+                ),
+            ),
+            patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.console.print") as print_line,
+            patch("restic_backups.generic.cli.restic.command") as command,
+        ):
+            select.return_value.unsafe_ask.side_effect = [snapshot_id, "print"]
+            run_args("documents", ["ls"], interactive=True)
+
+        command.assert_not_called()
+        snapshot_choices = select.call_args_list[0].args[1]
+        self.assertEqual(snapshot_choices[0].value, snapshot_id)
+        output = "\n".join(str(item.args[0]) for item in print_line.call_args_list)
+        self.assertIn(f"ls {snapshot_id}", output)
 
     def test_advanced_restic_picker_includes_github_jobs(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}

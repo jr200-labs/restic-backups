@@ -102,7 +102,7 @@ def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
             or parsed.query
             or parsed.fragment
         ):
-            raise ConfigError(f"{owner}.repository-url must be a safe github.com URL")
+            raise ConfigError(f"{owner} must be a safe github.com URL")
         path = parsed.path.lstrip("/")
         transport = "https"
     parts = path.removesuffix(".git").split("/")
@@ -110,15 +110,39 @@ def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
         not re.fullmatch(r"[A-Za-z0-9_.-]+", part) or part in {".", ".."}
         for part in parts
     ):
-        raise ConfigError(f"{owner}.repository-url must identify OWNER/REPOSITORY")
+        raise ConfigError(f"{owner} must identify OWNER/REPOSITORY")
     return parts[0], parts[1], transport
 
 
 def validate_github(github: dict[str, Any], job_id: str) -> None:
-    _, _, transport = github_repository_name(
-        required_text(github, "repository-url", f"{job_id}.source"),
-        f"{job_id}.source",
-    )
+    urls = github.get("repository-urls")
+    legacy_url = github.get("repository-url")
+    if urls is not None and legacy_url is not None:
+        raise ConfigError(
+            f"{job_id}.source cannot define both repository-url and repository-urls"
+        )
+    if urls is None:
+        urls = [required_text(github, "repository-url", f"{job_id}.source")]
+    if (
+        not isinstance(urls, list)
+        or not urls
+        or any(not isinstance(url, str) or not url for url in urls)
+        or len(urls) != len(set(urls))
+    ):
+        raise ConfigError(
+            f"{job_id}.source.repository-urls must be a non-empty list of unique URLs"
+        )
+    parsed = [
+        github_repository_name(url, f"{job_id}.source.repository-urls[{index}]")
+        for index, url in enumerate(urls)
+    ]
+    identities = [(owner.lower(), name.lower()) for owner, name, _ in parsed]
+    if len(identities) != len(set(identities)):
+        raise ConfigError(
+            f"{job_id}.source.repository-urls must identify unique repositories"
+        )
+    transports = {transport for _, _, transport in parsed}
+    github["repository-urls"] = urls
     components = github.get("components")
     fields = {"git", "lfs", "wiki", "metadata", "release-assets"}
     if not isinstance(components, dict) or set(components) != fields:
@@ -148,9 +172,9 @@ def validate_github(github: dict[str, Any], job_id: str) -> None:
     git_auth = authentication.get("git", {})
     if not isinstance(git_auth, dict) or set(git_auth) - {"ssh", "https"}:
         raise ConfigError(f"{job_id}.source.authentication.git is invalid")
-    if transport == "ssh" and "https" in git_auth:
+    if transports == {"ssh"} and "https" in git_auth:
         raise ConfigError(f"{job_id}: HTTPS authentication requires an HTTPS URL")
-    if transport == "https" and "ssh" in git_auth:
+    if transports == {"https"} and "ssh" in git_auth:
         raise ConfigError(f"{job_id}: SSH authentication requires an SSH URL")
     if "ssh" in git_auth:
         ssh = git_auth["ssh"]

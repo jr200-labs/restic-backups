@@ -966,6 +966,29 @@ def load_snapshots(
     return tag, loaded
 
 
+def choose_snapshot(snapshots: list[dict[str, Any]], prompt: str) -> str:
+    choices: list[questionary.Choice | questionary.Separator] = []
+    for snapshot in snapshots:
+        snapshot_id = snapshot["id"]
+        timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]
+        short_id = str(snapshot.get("short_id", snapshot_id[:8]))
+        hostname = str(snapshot.get("hostname", "unknown host"))
+        paths = snapshot.get("paths", [])
+        if not isinstance(paths, list):
+            fail("restic snapshots returned invalid JSON")
+        choices.append(
+            questionary.Choice(
+                f"{timestamp}  {short_id}  {hostname}  {', '.join(map(str, paths))}",
+                snapshot_id,
+            )
+        )
+    choices.append(questionary.Separator(" "))
+    selected = select(prompt, choices).unsafe_ask()
+    if selected is None:
+        raise typer.Abort()
+    return str(selected)
+
+
 @snapshot_app.command("list")
 @app.command("snapshots", hidden=True)
 def snapshots_command(
@@ -1047,29 +1070,11 @@ def forget_command(
         )
         return
 
-    choices: list[questionary.Choice] = []
     snapshot_by_id: dict[str, dict[str, Any]] = {}
     for snapshot in snapshots:
         snapshot_id = snapshot["id"]
         snapshot_by_id[snapshot_id] = snapshot
-        timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]
-        short_id = str(snapshot.get("short_id", snapshot_id[:8]))
-        hostname = str(snapshot.get("hostname", "unknown host"))
-        snapshot_paths = snapshot.get("paths", [])
-        if not isinstance(snapshot_paths, list):
-            fail("restic snapshots returned invalid JSON")
-        paths = ", ".join(str(path) for path in snapshot_paths)
-        choices.append(
-            questionary.Choice(
-                f"{timestamp}  {short_id}  {hostname}  {paths}", snapshot_id
-            )
-        )
-
-    choices.append(questionary.Separator(" "))
-    selected = select("Snapshot to forget:", choices).unsafe_ask()
-    if selected is None:
-        raise typer.Abort()
-    snapshot_id = str(selected)
+    snapshot_id = choose_snapshot(snapshots, "Snapshot to forget:")
     short_id = str(snapshot_by_id[snapshot_id].get("short_id", snapshot_id[:8]))
     if not dry_run:
         confirmed = questionary.confirm(
@@ -1250,6 +1255,13 @@ def run_args(
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     if not args:
         fail("a restic command is required after 'run'")
+    if interactive and args == ["ls"]:
+        tag, snapshots = load_snapshots(
+            backup_id, repository_id, storage, repositories, backups
+        )
+        if not snapshots:
+            fail(f"{backup_id}: no snapshots tagged '{tag}'")
+        args.append(choose_snapshot(snapshots, "Snapshot to inspect:"))
     if interactive:
         console.print(Text("Command:", style="bold"))
         console.print(

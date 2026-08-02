@@ -74,7 +74,7 @@ def authentication(
                 f"ssh -i {key} -o IdentitiesOnly=yes -o UserKnownHostsFile={hosts} "
                 "-o StrictHostKeyChecking=yes"
             )
-        elif git and "https" in git_auth:
+        if git and "https" in git_auth:
             askpass = directory / "askpass"
             askpass.write_text(
                 "#!/bin/sh\ncase \"$1\" in *Username*) printf '%s\\n' x-access-token;; "
@@ -353,40 +353,56 @@ def _component_path(root: Path, component: str) -> Path:
     }[component]
 
 
-def backup(
-    job_id: str,
-    backup_config: Mapping[str, Any],
-    selected_repositories: list[str],
-    storage: dict[str, dict[str, Any]],
-    repositories: dict[str, dict[str, Any]],
-    backups: dict[str, dict[str, Any]],
-    *,
-    dry_run: bool = False,
-) -> tuple[dict[str, str], dict[str, bool]]:
-    github = backup_config["source"]
-    owner, name, _ = config.github_repository_name(
-        github["repository-url"], f"{job_id}.github"
-    )
-    if dry_run:
-        return (
-            {
-                component: "disabled" if not enabled else "planned"
-                for component, enabled in github["components"].items()
-            },
-            {repository_id: True for repository_id in selected_repositories},
-        )
+def _migrate_legacy_layout(
+    root: Path, repositories: list[tuple[str, str, str]]
+) -> None:
+    legacy = [
+        root / name
+        for name in ("repository.git", "wiki.git", "github-export", "release-assets")
+        if (root / name).exists()
+    ]
+    if not legacy:
+        return
+    previous_source: str | None = None
+    try:
+        manifest = json.loads((root / "backup-manifest.json").read_text())
+        if isinstance(manifest.get("source"), str):
+            previous_source = manifest["source"]
+    except (FileNotFoundError, json.JSONDecodeError):
+        pass
+    matches = [item for item in repositories if item[0] == previous_source]
+    if not matches and len(repositories) == 1:
+        matches = repositories
+    if not matches:
+        logger.warning("legacy GitHub workspace could not be assigned to a source")
+        return
+    _, owner, name = matches[0]
+    destination = root / owner / name
+    destination.mkdir(parents=True, exist_ok=True)
+    for path in legacy:
+        target = destination / path.name
+        if not target.exists():
+            path.replace(target)
 
-    root = data_dir(job_id)
-    root.mkdir(parents=True, exist_ok=True)
+
+def _update_repository(
+    job_id: str,
+    github: Mapping[str, Any],
+    repository_url: str,
+    owner: str,
+    name: str,
+    root: Path,
+) -> tuple[dict[str, str], dict[str, str]]:
     statuses: dict[str, str] = {}
     errors: dict[str, str] = {}
+    label = f"{owner}/{name}"
     for component in ("git", "lfs", "wiki", "metadata", "release-assets"):
         if not github["components"][component]:
             statuses[component] = "disabled"
             continue
         path = _component_path(root, component)
         existed = path.exists()
-        logger.info("%s: updating %s", job_id, component)
+        logger.info("%s: %s: updating %s", job_id, label, component)
         try:
             with authentication(
                 github,
@@ -394,15 +410,11 @@ def backup(
                 api=component in {"metadata", "release-assets"},
             ) as env:
                 if component == "git":
-                    statuses[component] = _git_mirror(
-                        github["repository-url"], path, env
-                    )
+                    statuses[component] = _git_mirror(repository_url, path, env)
                 elif component == "lfs":
                     statuses[component] = _lfs(root / "repository.git", env)
                 elif component == "wiki":
-                    statuses[component] = _wiki(
-                        github["repository-url"], owner, name, path, env
-                    )
+                    statuses[component] = _wiki(repository_url, owner, name, path, env)
                 elif component == "metadata":
                     statuses[component] = _metadata(
                         owner,
@@ -422,29 +434,88 @@ def backup(
         ) as exc:
             statuses[component] = "stale" if existed else "failed"
             errors[component] = str(exc)
+    return statuses, errors
+
+
+def backup(
+    job_id: str,
+    backup_config: Mapping[str, Any],
+    selected_repositories: list[str],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+    *,
+    dry_run: bool = False,
+) -> tuple[dict[str, str], dict[str, bool]]:
+    github = backup_config["source"]
+    parsed = [
+        (
+            url,
+            *config.github_repository_name(
+                url, f"{job_id}.source.repository-urls[{index}]"
+            )[:2],
+        )
+        for index, url in enumerate(github["repository-urls"])
+    ]
+    if dry_run:
+        return (
+            {
+                f"{owner}/{name}:{component}": (
+                    "disabled" if not enabled else "planned"
+                )
+                for _, owner, name in parsed
+                for component, enabled in github["components"].items()
+            },
+            {repository_id: True for repository_id in selected_repositories},
+        )
+
+    root = data_dir(job_id)
+    root.mkdir(parents=True, exist_ok=True)
+    _migrate_legacy_layout(root, parsed)
+    statuses: dict[str, str] = {}
+    manifest_repositories: dict[str, Any] = {}
+    paths: list[str] = []
+    excludes: list[str] = []
+    for repository_url, owner, name in parsed:
+        label = f"{owner}/{name}"
+        repository_root = root / owner / name
+        repository_statuses, errors = _update_repository(
+            job_id, github, repository_url, owner, name, repository_root
+        )
+        statuses.update(
+            {
+                f"{label}:{component}": status
+                for component, status in repository_statuses.items()
+            }
+        )
+        manifest_repositories[label] = {
+            "source": repository_url,
+            "components": {
+                component: {
+                    "status": status,
+                    **({"error": errors[component]} if component in errors else {}),
+                }
+                for component, status in repository_statuses.items()
+            },
+        }
+        for component in ("git", "wiki", "metadata", "release-assets"):
+            path = _component_path(repository_root, component)
+            if repository_statuses.get(component) in USABLE and path.exists():
+                paths.append(str(path))
+        if not github["components"]["lfs"]:
+            excludes.extend(
+                ["--exclude", str(repository_root / "repository.git" / "lfs")]
+            )
 
     manifest = {
         "job-id": job_id,
-        "source": github["repository-url"],
+        "sources": github["repository-urls"],
         "updated-at": datetime.now(UTC).isoformat(),
-        "components": {
-            component: {
-                "status": status,
-                **({"error": errors[component]} if component in errors else {}),
-            }
-            for component, status in statuses.items()
-        },
+        "repositories": manifest_repositories,
     }
     manifest_path = root / "backup-manifest.json"
     _atomic_json(manifest_path, manifest)
-    paths = [str(manifest_path)]
-    for component in ("git", "wiki", "metadata", "release-assets"):
-        path = _component_path(root, component)
-        if statuses.get(component) in USABLE and path.exists():
-            paths.append(str(path))
-    args = ["backup", *paths]
-    if not github["components"]["lfs"]:
-        args[1:1] = ["--exclude", str(root / "repository.git" / "lfs")]
+    args = ["backup", *excludes, str(manifest_path), *paths]
     destinations: dict[str, bool] = {}
     for repository_id in selected_repositories:
         logger.info("%s: snapshotting to %s", job_id, repository_id)
@@ -472,3 +543,17 @@ def read_manifest(job_id: str) -> dict[str, Any] | None:
         return None
     except json.JSONDecodeError:
         fail(f"backup manifest for '{job_id}' is invalid")
+
+
+def manifest_components(
+    manifest: Mapping[str, Any],
+) -> list[tuple[str, Mapping[str, Any]]]:
+    """Return labeled component results from current and legacy manifests."""
+    repositories = manifest.get("repositories")
+    if isinstance(repositories, dict):
+        return [
+            (f"{repository}:{component}", result)
+            for repository, details in repositories.items()
+            for component, result in details.get("components", {}).items()
+        ]
+    return list(manifest.get("components", {}).items())

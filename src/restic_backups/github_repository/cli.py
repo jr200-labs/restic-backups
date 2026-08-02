@@ -74,7 +74,8 @@ def choose_job(job_id: str | None, backups: dict[str, dict[str, Any]]) -> str:
         "GitHub repository job:",
         choices=[
             questionary.Choice(
-                f"{item_id}  ({item['source']['repository-url']})", item_id
+                f"{item_id}  ({len(item['source']['repository-urls'])} repository URL(s))",
+                item_id,
             )
             for item_id, item in jobs.items()
         ]
@@ -146,7 +147,7 @@ def list_command() -> None:
     _, _, _, backups = validated()
     table = Table(title="GitHub repository backups", box=box.ROUNDED)
     table.add_column("Job ID", style="cyan")
-    table.add_column("Repository")
+    table.add_column("Repositories")
     table.add_column("Destinations")
     table.add_column("Components")
     for job_id, item in github_jobs(backups).items():
@@ -155,7 +156,7 @@ def list_command() -> None:
         ]
         table.add_row(
             job_id,
-            item["source"]["repository-url"],
+            "\n".join(item["source"]["repository-urls"]),
             "\n".join(config.backup_repository_ids(item, job_id)),
             ", ".join(components),
         )
@@ -224,7 +225,7 @@ def status_command(
         component_status = (
             ", ".join(
                 f"{name}: {result['status']}"
-                for name, result in manifest["components"].items()
+                for name, result in workflow.manifest_components(manifest)
             )
             if manifest
             else "not run"
@@ -288,7 +289,7 @@ def status_command(
             detail.add_column("Component")
             detail.add_column("Status")
             detail.add_column("Error")
-            for component, result in manifest["components"].items():
+            for component, result in workflow.manifest_components(manifest):
                 detail.add_row(component, result["status"], result.get("error", "—"))
             console.print(detail)
     if failed:
