@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.4](https://github.com/jr200-labs/restic-backups/compare/v0.1.3...v0.1.4) (2026-08-02)
+
+
+### Features
+
+* add generic dry-run controls ([#17](https://github.com/jr200-labs/restic-backups/issues/17)) ([7c5cee5](https://github.com/jr200-labs/restic-backups/commit/7c5cee5c94230fbbc5b7e40d626ab0339923b350))
+
 ## [0.1.3](https://github.com/jr200-labs/restic-backups/compare/v0.1.2...v0.1.3) (2026-08-02)
 
 
