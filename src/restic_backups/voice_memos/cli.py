@@ -13,6 +13,7 @@ import questionary
 from .. import audit, config
 from ..errors import BackupError
 from ..generic import sops
+from ..generic.tui import select
 from . import parallel, pipeline, workflow
 
 
@@ -43,7 +44,7 @@ def audit_command(*args: str) -> None:
 def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
     """Navigate Voice Memos commands with an arrow-key menu."""
     while True:
-        selected = questionary.select(
+        selected = select(
             "Voice Memos command:",
             choices=[
                 *[
@@ -59,7 +60,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 menu_choice("Back", "Return to the previous menu", "back"),
                 questionary.Separator(" "),
             ],
-        ).ask()
+        ).unsafe_ask()
         if selected in {None, "back"}:
             return
         if selected == "help":
@@ -73,7 +74,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
         context = click.Context(command, info_name=str(selected), parent=parent)
         click.echo(command.get_usage(context).strip())
         while True:
-            command_action = questionary.select(
+            command_action = select(
                 f"voice-memos {selected}:",
                 choices=[
                     menu_choice(
@@ -88,7 +89,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                     ),
                     questionary.Separator(" "),
                 ],
-            ).ask()
+            ).unsafe_ask()
             if command_action in {None, "back"}:
                 break
             if command_action == "help":
@@ -96,7 +97,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 continue
             arguments = questionary.text(
                 f"Arguments for 'voice-memos {selected}' (optional):"
-            ).ask()
+            ).unsafe_ask()
             if arguments is None:
                 continue
             try:
@@ -120,7 +121,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             click.echo("Command:")
             click.echo(shlex.join(copyable))
             while True:
-                action = questionary.select(
+                action = select(
                     "Action:",
                     choices=[
                         questionary.Choice("Run", "run"),
@@ -132,7 +133,9 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                         questionary.Choice("Cancel", "cancel"),
                         questionary.Separator(" "),
                     ],
-                ).ask()
+                ).unsafe_ask()
+                if action is None:
+                    break
                 if action == "help":
                     click.echo(command.get_help(context))
                     continue

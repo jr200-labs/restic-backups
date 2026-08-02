@@ -65,8 +65,8 @@ class S3DeletionTest(unittest.TestCase):
             patch("restic_backups.generic.cli.questionary.text") as text,
             patch("restic_backups.generic.cli.s3.delete_repository") as delete,
         ):
-            confirm.return_value.ask.return_value = True
-            text.return_value.ask.return_value = "wrong"
+            confirm.return_value.unsafe_ask.return_value = True
+            text.return_value.unsafe_ask.return_value = "wrong"
 
             with self.assertRaises(typer.Exit):
                 cli.destroy_command("repository")
