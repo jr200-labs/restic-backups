@@ -241,6 +241,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
   <ul class="collapse">
   <li><a href="#dry-runs" id="toc-dry-runs" class="nav-link" data-scroll-target="#dry-runs">Dry runs</a></li>
   </ul></li>
+  <li><a href="#prune-or-compact-a-repository" id="toc-prune-or-compact-a-repository" class="nav-link" data-scroll-target="#prune-or-compact-a-repository">Prune or compact a repository</a></li>
   <li><a href="#create-a-snapshot" id="toc-create-a-snapshot" class="nav-link" data-scroll-target="#create-a-snapshot">Create a snapshot</a></li>
   <li><a href="#list-snapshots" id="toc-list-snapshots" class="nav-link" data-scroll-target="#list-snapshots">List snapshots</a></li>
   <li><a href="#forget-one-snapshot" id="toc-forget-one-snapshot" class="nav-link" data-scroll-target="#forget-one-snapshot">Forget one snapshot</a></li>
@@ -313,41 +314,47 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 <tr class="even">
 <td>Repository</td>
+<td><code>generic repository prune [REPOSITORY] [OPTIONS]</code></td>
+<td>Prune or repack repository data</td>
+<td>Yes</td>
+</tr>
+<tr class="odd">
+<td>Repository</td>
 <td><code>generic repository destroy [REPOSITORY] [--dry-run]</code></td>
 <td>Permanently erase one repository</td>
 <td>Yes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Backup</td>
 <td><code>generic backup list</code></td>
 <td>Show configured backup jobs</td>
 <td>No</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Backup</td>
 <td><code>generic backup run [JOB_ID] [--dry-run]</code></td>
 <td>Create a snapshot from configured paths</td>
 <td>Yes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Backup</td>
 <td><code>generic backup data-dir [JOB_ID]</code></td>
 <td>Print the managed private-data directory</td>
 <td>No</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Snapshot</td>
 <td><code>generic snapshot list [JOB_ID]</code></td>
 <td>List snapshots for a configured backup</td>
 <td>Yes</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td>Snapshot</td>
 <td><code>generic snapshot forget [JOB_ID] [--dry-run]</code></td>
 <td>Forget one tagged snapshot and prune</td>
 <td>Yes</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td>Restic</td>
 <td><code>generic restic run --backup JOB_ID ...</code></td>
 <td>Pass trailing arguments directly to restic</td>
@@ -359,45 +366,62 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Running <code>restic-backups generic</code> without a subcommand in an interactive terminal opens a section menu for repositories, backups, snapshots, and advanced restic commands. Every section and command has a short description and is selectable with the arrow keys. Explicit subcommands remain available for scripts and scheduled jobs. <strong>Advanced restic</strong> reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable <code>uv run restic-backups</code> command. Choose <strong>Run</strong>, <strong>Print only</strong>, or <strong>Cancel</strong>. Choose <strong>Help</strong> at any level to see help for the current section or selected restic command and return to the same menu. Showing help does not load the configuration, select a backup, or contact the repository. <strong>Back</strong> returns one level without restarting the menu tree. Entering <code>--help</code> or <code>-h</code> in the argument prompt has the same local-help behavior.</p>
 <section id="dry-runs" class="level3">
 <h3 class="anchored" data-anchor-id="dry-runs">Dry runs</h3>
-<p>The interactive menu shows a <strong>Dry run</strong> checkbox for repository initialization, repository destruction, backup creation, and snapshot forgetting. Press Space to toggle it, then Enter to continue. A dry run performs any reads needed to report what would happen but does not initialize or destroy a repository, upload backup data, create a snapshot, forget a snapshot, or prune data.</p>
+<p>The interactive menu shows a <strong>Dry run</strong> checkbox for repository initialization, pruning, repository destruction, backup creation, and snapshot forgetting. Press Space to toggle it, then Enter to continue. A dry run performs any reads needed to report what would happen but does not initialize or destroy a repository, upload backup data, create a snapshot, forget a snapshot, or prune data.</p>
 <p>Advanced restic commands show the same checkbox when the installed restic version advertises a native <code>--dry-run</code> flag for the selected command. Commands without that flag do not show the checkbox; use <strong>Print only</strong> to inspect their complete command without running it.</p>
 <p>Explicit commands can pass <code>--dry-run</code> directly to the managed write commands:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository init personal <span class="at">--dry-run</span></span>
-<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents <span class="at">--dry-run</span></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot forget documents <span class="at">--dry-run</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy personal <span class="at">--dry-run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository prune personal <span class="at">--dry-run</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents <span class="at">--dry-run</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot forget documents <span class="at">--dry-run</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy personal <span class="at">--dry-run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p><code>generic repository list</code> shows every restic repository, even when no configured backup references it. <code>generic backup list</code> shows the configured backup jobs.</p>
 <p><code>generic repository init</code> prompts for one repository, with <strong>All repositories</strong> as the first option. Scripts must pass a repository ID or <code>--all</code>. Disabled or already initialized repositories are reported and skipped.</p>
 <p><code>generic repository prime-cache</code> runs <code>restic check --with-cache</code> for one repository. It downloads repository indexes, snapshots, and tree metadata into the configured cache while also validating repository structure. It does not download backed-up file contents; restic only does that when <code>--read-data</code> is requested explicitly.</p>
 </section>
 </section>
+<section id="prune-or-compact-a-repository" class="level2">
+<h2 class="anchored" data-anchor-id="prune-or-compact-a-repository">Prune or compact a repository</h2>
+<p>Choose <strong>Repositories</strong> → <strong>Prune / compact</strong> in the TUI. The maintenance menu uses the <a href="https://restic.readthedocs.io/en/stable/060_forget.html#customizing-pruning">native restic prune options</a> and provides:</p>
+<ul>
+<li><strong>Standard prune</strong>: remove unused data with restic’s defaults;</li>
+<li><strong>Minimize bandwidth</strong>: pass <code>--max-unused unlimited</code> and retain partly used data packs;</li>
+<li><strong>Metadata only</strong>: pass <code>--repack-cacheable-only</code> and repack only cacheable metadata;</li>
+<li><strong>Compact small packs</strong>: pass <code>--repack-smaller-than SIZE</code>;</li>
+<li><strong>Limit repacking</strong>: pass <code>--max-repack-size SIZE</code>.</li>
+</ul>
+<p>Select a repository, then use the <strong>Dry run</strong> checkbox to preview the operation. A real run requires confirmation. Explicit commands expose the same flags and accept <code>--yes</code> for deliberate non-interactive maintenance:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository prune personal <span class="at">--dry-run</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository prune personal <span class="dt">\</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--max-unused</span> unlimited <span class="at">--yes</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Snapshots already share deduplicated data, so pruning does not combine them into one snapshot. It scans snapshot references, deletes wholly unused packs, and may download and re-upload partially used packs before deleting the originals. The configured local cache helps with metadata, but normal repacking still operates on repository data. Remote storage may therefore incur retrieval, request, and transfer charges. Use <strong>Metadata only</strong>, <strong>Minimize bandwidth</strong>, or <code>--max-repack-size</code> when limiting remote I/O matters.</p>
+</section>
 <section id="create-a-snapshot" class="level2">
 <h2 class="anchored" data-anchor-id="create-a-snapshot">Create a snapshot</h2>
 <p>Configure the local source paths once, then select the backup by its ID:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="fu">backups</span><span class="kw">:</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="kw">-</span><span class="at"> </span><span class="fu">job-id</span><span class="kw">:</span><span class="at"> documents</span></span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">restic-repository-id</span><span class="kw">:</span><span class="at"> personal-b2</span></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">paths</span><span class="kw">:</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Documents</span></span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="kw">-</span><span class="at"> ~/Desktop</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup run documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The command expands <code>~</code>, passes the paths to <code>restic backup</code>, and applies the job ID as the restic tag unless <code>tag</code> is explicitly configured. Every run creates a snapshot of the complete source state while restic uploads only new or changed file data.</p>
 </section>
 <section id="list-snapshots" class="level2">
 <h2 class="anchored" data-anchor-id="list-snapshots">List snapshots</h2>
 <p>List snapshots with the configured backup tag:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The table shows each snapshot’s short restic ID, timestamp, host, paths, and tags.</p>
 </section>
 <section id="forget-one-snapshot" class="level2">
 <h2 class="anchored" data-anchor-id="forget-one-snapshot">Forget one snapshot</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot forget</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot forget</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Forgetting is interactive-only. Select a configured backup, select one snapshot with its configured restic tag, and confirm. The CLI runs <code>restic forget --prune</code>, so the snapshot and data no longer referenced by any other snapshot are permanently removed. The configured backup and repository remain available.</p>
 <p>When several configured backups share a repository, their restic tags keep their snapshots distinct in the picker.</p>
 </section>
 <section id="permanently-destroy-a-repository" class="level2">
 <h2 class="anchored" data-anchor-id="permanently-destroy-a-repository">Permanently destroy a repository</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic repository destroy</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Destruction is interactive-only. The CLI shows the full target, asks for a yes/no confirmation, then requires the exact repository ID. For S3 it deletes every object, object version, and delete marker below the configured <code>bucket</code> and <code>key_prefix</code>; it does not delete the bucket. For local storage it removes the configured repository directory but not the storage root. It never changes the YAML configuration.</p>
 <p>S3 credentials need permission to list and delete objects and versions. An empty <code>key_prefix</code> is always rejected to prevent accidental bucket deletion.</p>
 <div class="callout-danger">
@@ -406,26 +430,26 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </section>
 <section id="common-operations" class="level2">
 <h2 class="anchored" data-anchor-id="common-operations">Common operations</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect and check the repository</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents check</span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents list snapshots</span>
-<span id="cb7-5"><a href="#cb7-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb7-6"><a href="#cb7-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
-<span id="cb7-7"><a href="#cb7-7" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
-<span id="cb7-8"><a href="#cb7-8" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Inspect and check the repository</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents check</span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents list snapshots</span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb8-6"><a href="#cb8-6" aria-hidden="true" tabindex="-1"></a><span class="co"># Restore a snapshot</span></span>
+<span id="cb8-7"><a href="#cb8-7" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic restic run <span class="at">--backup</span> documents <span class="dt">\</span></span>
+<span id="cb8-8"><a href="#cb8-8" aria-hidden="true" tabindex="-1"></a>  restore <span class="op">&lt;</span>snapshot-id<span class="op">&gt;</span> --target /tmp/documents-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Arguments after the backup selection are passed to restic unchanged. The CLI exports the selected repository details, password, and any S3 credentials only to the child process and does not print them. For the <code>backup</code> command, it also adds the configured restic tag automatically; additional <code>--tag</code> arguments remain supported.</p>
 </section>
 <section id="managed-data-directory" class="level2">
 <h2 class="anchored" data-anchor-id="managed-data-directory">Managed data directory</h2>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic backup data-dir documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>The result follows <code>data/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/</code> beside the selected config file. For S3, the repository path is <code>&lt;bucket&gt;/&lt;key-prefix&gt;</code>; for local storage it is the repository’s relative <code>path</code>. This directory is for private generated metadata; generic backup sources do not need to live there.</p>
 </section>
 <section id="cold-s3-storage" class="level2">
 <h2 class="anchored" data-anchor-id="cold-s3-storage">Cold S3 storage</h2>
 <p><code>GLACIER_IR</code> supports immediate access. <code>GLACIER</code> and <code>DEEP_ARCHIVE</code> permit uploads, but retrieval-related commands require the configured restore policy and an explicit acknowledgement:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
-<span id="cb9-2"><a href="#cb9-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> archive restore latest <span class="at">--target</span> /tmp/archive-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb10"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" aria-hidden="true" tabindex="-1"></a><span class="va">ALLOW_ARCHIVE_RETRIEVAL</span><span class="op">=</span>1 <span class="ex">uv</span> run restic-backups generic restic run <span class="dt">\</span></span>
+<span id="cb10-2"><a href="#cb10-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--backup</span> archive restore latest <span class="at">--target</span> /tmp/archive-restore</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Other restic commands are rejected for cold repositories when the CLI cannot determine that they are safe. See <a href="./configuration.html">Configuration</a> for the archive policy fields.</p>
 
 
