@@ -31,6 +31,16 @@ def run(
             jobs,
             dry_run=dry_run,
         )
+    if job["type"] == "github-owner":
+        return github_workflow.backup_owner(
+            job_id,
+            job,
+            selected_repositories,
+            storage,
+            repositories,
+            jobs,
+            dry_run=dry_run,
+        )
 
     source = job["source"]
     if job["type"] == "files":

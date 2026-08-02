@@ -212,6 +212,39 @@ def _gh_json(args: list[str], env: Mapping[str, str]) -> Any:
         fail("GitHub returned invalid JSON")
 
 
+def owner_repository_urls(github: Mapping[str, Any]) -> list[str]:
+    """Enumerate repositories visible to the configured GitHub API token."""
+    owner = config.github_owner_name(github["owner-url"], "owner-url")
+    with authentication(github, git=False) as env:
+        account = _gh_json([f"users/{owner}"], env)
+        if account.get("type") == "Organization":
+            endpoint = f"orgs/{owner}/repos?per_page=100&type=all&sort=full_name"
+        else:
+            viewer = _gh_json(["user"], env)
+            endpoint = (
+                "user/repos?per_page=100&affiliation=owner&visibility=all&sort=full_name"
+                if str(viewer.get("login", "")).lower() == owner.lower()
+                else f"users/{owner}/repos?per_page=100&type=owner&sort=full_name"
+            )
+        pages = _gh_json(["--paginate", "--slurp", endpoint], env)
+    field = "ssh_url" if github["clone-protocol"] == "ssh" else "clone_url"
+    try:
+        repositories = [item for page in pages for item in page]
+        urls = [
+            item[field]
+            for item in sorted(
+                repositories, key=lambda item: str(item["full_name"]).lower()
+            )
+        ]
+        if any(not isinstance(url, str) or not url for url in urls):
+            raise TypeError
+        for index, url in enumerate(urls):
+            config.github_repository_name(url, f"enumerated repository {index}")
+        return urls
+    except (config.ConfigError, KeyError, TypeError):
+        fail("GitHub repository enumeration returned invalid data")
+
+
 def _safe_extract(archive: Path, destination: Path) -> None:
     destination.mkdir(parents=True)
     root = destination.resolve()
@@ -510,6 +543,7 @@ def backup(
     manifest = {
         "job-id": job_id,
         "sources": github["repository-urls"],
+        **({"owner": github["owner-url"]} if "owner-url" in github else {}),
         "updated-at": datetime.now(UTC).isoformat(),
         "repositories": manifest_repositories,
     }
@@ -534,6 +568,36 @@ def backup(
         except (BackupError, OSError):
             destinations[repository_id] = False
     return statuses, destinations
+
+
+def backup_owner(
+    job_id: str,
+    backup_config: Mapping[str, Any],
+    selected_repositories: list[str],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+    backups: dict[str, dict[str, Any]],
+    *,
+    dry_run: bool = False,
+) -> tuple[dict[str, str], dict[str, bool]]:
+    """Enumerate one GitHub owner and run the shared repository workflow."""
+    github = dict(backup_config["source"])
+    urls = owner_repository_urls(github)
+    if not urls:
+        fail(f"no repositories are visible for {github['owner-url']}")
+    logger.info("%s: discovered %d GitHub repositories", job_id, len(urls))
+    github["repository-urls"] = urls
+    expanded = dict(backup_config)
+    expanded["source"] = github
+    return backup(
+        job_id,
+        expanded,
+        selected_repositories,
+        storage,
+        repositories,
+        backups,
+        dry_run=dry_run,
+    )
 
 
 def read_manifest(job_id: str) -> dict[str, Any] | None:

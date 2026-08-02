@@ -56,7 +56,7 @@ def github_jobs(backups: dict[str, dict[str, Any]]) -> dict[str, dict[str, Any]]
     return {
         job_id: item
         for job_id, item in backups.items()
-        if item["type"] == "github-repository"
+        if item["type"] in {"github-owner", "github-repository"}
     }
 
 
@@ -74,7 +74,7 @@ def choose_job(job_id: str | None, backups: dict[str, dict[str, Any]]) -> str:
         "GitHub repository job:",
         choices=[
             questionary.Choice(
-                f"{item_id}  ({len(item['source']['repository-urls'])} repository URL(s))",
+                f"{item_id}  ({item['source'].get('owner-url', 'configured URLs')})",
                 item_id,
             )
             for item_id, item in jobs.items()
@@ -156,7 +156,9 @@ def list_command() -> None:
         ]
         table.add_row(
             job_id,
-            "\n".join(item["source"]["repository-urls"]),
+            str(item["source"]["owner-url"])
+            if "owner-url" in item["source"]
+            else "\n".join(item["source"]["repository-urls"]),
             "\n".join(config.backup_repository_ids(item, job_id)),
             ", ".join(components),
         )

@@ -124,3 +124,25 @@ jobs:
               release-assets: true
           # Maximum wait for GitHub to prepare a migration export.
           migration-timeout-seconds: 3600
+
+    - job-id: example-github-owner
+      type: github-owner
+      description: Discover and back up every repository owned by a GitHub account.
+      restic-repository-ids:
+          - personal-local
+      source:
+          owner-url: https://github.com/example
+          # Clone discovered repositories over ssh (default) or https.
+          clone-protocol: ssh
+          # Optional: omit locally to use credentials from `gh auth login`.
+          # authentication:
+          #     api:
+          #         token:
+          #             env: GITHUB_TOKEN
+          components:
+              git: true
+              lfs: false
+              wiki: false
+              metadata: false
+              release-assets: false
+          migration-timeout-seconds: 3600

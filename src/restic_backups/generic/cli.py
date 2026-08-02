@@ -450,7 +450,10 @@ def choose_backup(
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
-        if not include_github and backups[backup_id]["type"] == "github-repository":
+        if not include_github and backups[backup_id]["type"] in {
+            "github-owner",
+            "github-repository",
+        }:
             fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
@@ -461,7 +464,7 @@ def choose_backup(
             value=item_id,
         )
         for item_id, item in backups.items()
-        if include_github or item["type"] != "github-repository"
+        if include_github or item["type"] not in {"github-owner", "github-repository"}
         if any(
             repositories[value]["enabled"]
             for value in config.backup_repository_ids(item, item_id)

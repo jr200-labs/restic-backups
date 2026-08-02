@@ -3,7 +3,8 @@
 YAML configuration and a Python CLI for running multiple restic repositories,
 with optional SOPS decryption. The package currently includes a complete macOS
 Voice Memos workflow for backup, transcription, summarisation, and speaker
-diarization, plus managed GitHub repository backups.
+diarization, plus managed backups of explicit GitHub repositories or every
+repository owned by a GitHub organization or user.
 
 ## Why
 
@@ -70,10 +71,15 @@ The configuration separates:
 - `restic-repositories`: encrypted repositories within storage, including the
   bucket/key prefix or local path, restic password, cache, and archive policy;
 - `jobs`: typed work linked to one or more restic repositories. `files`,
-  `github-repository`, and `voice-memos` jobs share the same destination and
-snapshot fields while defining their input under `source`.
+  `github-repository`, `github-owner`, and `voice-memos` jobs share the same
+  destination and snapshot fields while defining their input under `source`.
 One `github-repository` job may incrementally maintain multiple repository URLs
 and snapshot their combined state together.
+One `github-owner` job discovers every repository visible to the active GitHub
+credentials before using that same multi-repository workflow. Local runs reuse
+`gh auth login`; unattended runs may read a token from an environment variable
+or mounted file. A dry run still performs read-only discovery so it can report
+the exact plan, but never runs Git or writes to restic.
 
 Multiple restic repositories may use one storage backend, one job may
 write to several repositories, and several jobs may share one repository. The
@@ -123,5 +129,6 @@ make docs-preview  # local preview server
 Start with the [Quick Start](docs/quick-start.qmd). Never commit decrypted SOPS
 configuration or anything below `data/`.
 
-For complete Git history plus optional LFS objects, wikis, GitHub metadata, and
-release assets, see [GitHub Repositories](docs/github-repositories.qmd).
+For complete reachable Git history, multiple explicit repository URLs, owner
+discovery, and optional LFS objects, wikis, GitHub metadata, and release assets,
+see [GitHub Backups](docs/github-repositories.qmd).
