@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.7](https://github.com/jr200-labs/restic-backups/compare/v0.1.6...v0.1.7) (2026-08-02)
+
+
+### Features
+
+* add GitHub repository backups ([#30](https://github.com/jr200-labs/restic-backups/issues/30)) ([a22b662](https://github.com/jr200-labs/restic-backups/commit/a22b66203b3a1c99bd465897577dd2a3f40a3ff4))
+* back up multiple GitHub repositories ([#33](https://github.com/jr200-labs/restic-backups/issues/33)) ([a96e278](https://github.com/jr200-labs/restic-backups/commit/a96e27834afa3838a57b8e6d3c791911bd1fc723))
+
+
+### Code Refactoring
+
+* unify backup jobs ([#32](https://github.com/jr200-labs/restic-backups/issues/32)) ([27bfd58](https://github.com/jr200-labs/restic-backups/commit/27bfd58559ede85900806b1fd60267526d136e8c))
+
 ## [0.1.6](https://github.com/jr200-labs/restic-backups/compare/v0.1.5...v0.1.6) (2026-08-02)
 
 
