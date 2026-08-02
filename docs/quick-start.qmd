@@ -2,7 +2,8 @@
 title: Quick Start
 ---
 
-This guide creates one generic S3-compatible backup from a source checkout.
+This guide creates one generic S3-compatible backup. A mounted local disk uses
+the same workflow; see [Configuration](configuration.qmd#storage).
 
 ## 1. Install
 
@@ -22,14 +23,16 @@ Copy the commented template:
 cp config.template.yaml config.yaml
 ```
 
-Edit its first credential, store, and backup entries. For a generic backup:
+Edit its first storage, restic repository, and backup entries:
 
-- replace every `CHANGE_ME` used by the enabled store;
-- set the store endpoint, region, bucket, and `key_prefix`;
+- replace every `CHANGE_ME` used by the enabled repository;
+- configure either S3 storage and credentials or an absolute local storage path;
+- configure the repository bucket and `key_prefix` for S3, or relative `path`
+  for local storage;
 - give the backup job a useful `job-id` such as `documents`;
 - list the local files or directories under its `paths` field;
 - omit `tag` unless it should differ from the job ID;
-- make its `restic-store-id` match the enabled store ID;
+- make its `restic-repository-id` match the enabled repository ID;
 - delete unused example entries if desired.
 
 Keep the repository password safe: restic cannot decrypt snapshots without it.
@@ -44,15 +47,15 @@ uv run restic-backups generic backup list
 ```
 
 The list output separates **Repositories** from **Backups**. Every configured
-store appears in the repository table, even before a configured backup references
-it.
+restic repository appears in the repository table, even before a configured
+backup references it.
 
 ## 3. Initialize and back up
 
 Initialize a new repository once:
 
 ```sh
-uv run restic-backups generic repository init b2-store
+uv run restic-backups generic repository init personal-b2
 ```
 
 Then create a snapshot from the paths configured for `documents`:

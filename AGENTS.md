@@ -20,11 +20,11 @@ downstream GitHub references to upstream issues or pull requests.
 - Keep generic restic CLI definitions in `restic_backups.generic.cli`.
 - Keep Voice Memos CLI definitions in `restic_backups.voice_memos.cli` and
   operational behavior in its pipeline/workflow modules.
-- Preserve the configuration layers: `credentials`, `restic-stores`, and
-  `backups` linked by `restic-store-id`. Stores use the S3 backend with an
-  optional `archive` policy.
+- Preserve the configuration layers: `storage`, `restic-repositories`, and
+  `backups` linked by `restic-repository-id`. Storage uses the S3 or local
+  backend; restic repositories may have an optional S3 `archive` policy.
 - Backup sources may be absolute paths outside this repository. Managed local
-  artifacts belong below `data/<store-id>/<bucket>/<key-prefix>/<job-id>/`.
+  artifacts belong below `data/<storage-id>/<repository-path>/<job-id>/`.
 
 ## Safety
 

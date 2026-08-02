@@ -77,7 +77,7 @@ The values `false`, `no`, and `off` are also accepted, case-insensitively.
 
 ## Root commands
 
-| Command | Purpose | Remote storage |
+| Command | Purpose | Repository access |
 |---|---|---|
 | `check-config` | Load and validate configuration | No |
 | `generic ...` | Run generic configured repository commands | Depends on subcommand |

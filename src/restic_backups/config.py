@@ -79,62 +79,95 @@ def validate(
     dict[str, dict[str, Any]],
     dict[str, dict[str, Any]],
 ]:
-    credentials = indexed(config, "credentials")
-    stores = indexed(config, "restic-stores")
+    storage = indexed(config, "storage")
+    repositories = indexed(config, "restic-repositories")
     backups = indexed(config, "backups", "job-id")
 
-    for credential_id, credential in credentials.items():
-        for field in ("access-key-id", "secret-access-key"):
-            required_text(credential, field, credential_id)
+    for storage_id, item in storage.items():
+        storage_type = required_text(item, "type", storage_id)
+        if storage_type == "s3":
+            required_text(item, "endpoint", storage_id)
+            required_text(item, "region", storage_id)
+            credentials = item.get("credentials")
+            if not isinstance(credentials, dict):
+                raise ConfigError(f"{storage_id}.credentials must be a mapping")
+            for field in ("access-key-id", "secret-access-key"):
+                required_text(credentials, field, f"{storage_id}.credentials")
+        elif storage_type == "local":
+            path = Path(required_text(item, "path", storage_id)).expanduser()
+            if not path.is_absolute():
+                raise ConfigError(f"{storage_id}.path must be absolute")
+        else:
+            raise ConfigError(f"{storage_id}.type must be 's3' or 'local'")
 
-    for store_id, store in stores.items():
-        credential_id = required_text(store, "credentials-id", store_id)
-        store_credential = credentials.get(credential_id)
-        if store_credential is None:
+    for repository_id, item in repositories.items():
+        storage_id = required_text(item, "storage-id", repository_id)
+        backend = storage.get(storage_id)
+        if backend is None:
             raise ConfigError(
-                f"{store_id} references unknown credentials '{credential_id}'"
+                f"{repository_id} references unknown storage '{storage_id}'"
             )
-        if not isinstance(store.get("enabled"), bool):
-            raise ConfigError(f"{store_id}.enabled must be true or false")
-        required = [
-            required_text(store, field, store_id)
-            for field in ("endpoint", "region", "bucket", "key_prefix", "password")
-        ]
-        if "cache-dir" in store:
-            required_text(store, "cache-dir", store_id)
-        if store["enabled"] and PLACEHOLDER in required:
-            raise ConfigError(f"{store_id} is enabled but contains placeholders")
-        if store["enabled"] and any(
-            store_credential[field] == PLACEHOLDER
-            for field in ("access-key-id", "secret-access-key")
-        ):
-            raise ConfigError(f"{store_id} uses placeholder credentials")
+        if not isinstance(item.get("enabled"), bool):
+            raise ConfigError(f"{repository_id}.enabled must be true or false")
+        required = [required_text(item, "password", repository_id)]
+        if "cache-dir" in item:
+            required_text(item, "cache-dir", repository_id)
+        if backend["type"] == "s3":
+            required.extend(
+                required_text(item, field, repository_id)
+                for field in ("bucket", "key_prefix")
+            )
+            required.extend(
+                required_text(backend, field, storage_id)
+                for field in ("endpoint", "region")
+            )
+            required.extend(
+                required_text(backend["credentials"], field, storage_id)
+                for field in ("access-key-id", "secret-access-key")
+            )
+        else:
+            repository_path = Path(required_text(item, "path", repository_id))
+            if (
+                repository_path.is_absolute()
+                or repository_path == Path(".")
+                or ".." in repository_path.parts
+            ):
+                raise ConfigError(f"{repository_id}.path must be a safe relative path")
+            required.append(str(backend["path"]))
+        if item["enabled"] and any(PLACEHOLDER in value for value in required):
+            raise ConfigError(f"{repository_id} is enabled but contains placeholders")
 
-        archive = store.get("archive")
+        archive = item.get("archive")
         if archive is None:
             continue
+        if backend["type"] != "s3":
+            raise ConfigError(f"{repository_id}.archive requires S3 storage")
         if not isinstance(archive, dict):
-            raise ConfigError(f"{store_id}.archive must be a mapping")
-        storage_class = required_text(archive, "storage-class", f"{store_id}.archive")
+            raise ConfigError(f"{repository_id}.archive must be a mapping")
+        storage_class = required_text(
+            archive, "storage-class", f"{repository_id}.archive"
+        )
         restore = archive.get("restore")
         if storage_class == "GLACIER_IR":
             if restore is not None:
-                raise ConfigError(f"{store_id}: GLACIER_IR forbids a restore policy")
+                raise ConfigError(
+                    f"{repository_id}: GLACIER_IR forbids a restore policy"
+                )
             continue
         tiers = {
             "GLACIER": {"Standard", "Bulk", "Expedited"},
             "DEEP_ARCHIVE": {"Standard", "Bulk"},
         }.get(storage_class)
         if tiers is None or not isinstance(restore, dict):
-            raise ConfigError(f"{store_id} has an invalid cold-storage policy")
+            raise ConfigError(f"{repository_id} has an invalid cold-storage policy")
         if restore.get("tier") not in tiers:
-            raise ConfigError(f"{store_id} has an invalid retrieval tier")
+            raise ConfigError(f"{repository_id} has an invalid retrieval tier")
         if not isinstance(restore.get("days"), int) or restore["days"] <= 0:
-            raise ConfigError(f"{store_id}.archive.restore.days must be positive")
-        required_text(restore, "timeout", f"{store_id}.archive.restore")
+            raise ConfigError(f"{repository_id}.archive.restore.days must be positive")
+        required_text(restore, "timeout", f"{repository_id}.archive.restore")
 
     for backup_id, backup in backups.items():
-        store_id = required_text(backup, "restic-store-id", backup_id)
+        repository_id = required_text(backup, "restic-repository-id", backup_id)
         if "tag" in backup:
             required_text(backup, "tag", backup_id)
         paths = backup.get("paths")
@@ -144,12 +177,12 @@ def validate(
             or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise ConfigError(f"{backup_id}.paths must be a non-empty list of paths")
-        if store_id not in stores:
+        if repository_id not in repositories:
             raise ConfigError(
-                f"{backup_id} references unknown restic store '{store_id}'"
+                f"{backup_id} references unknown restic repository '{repository_id}'"
             )
 
-    return credentials, stores, backups
+    return storage, repositories, backups
 
 
 def load_validated() -> tuple[
@@ -163,13 +196,13 @@ def load_validated() -> tuple[
     logger.info("Loading configuration: %s%s", path, " (SOPS)" if use_sops else "")
     loaded = load_config(path, use_sops)
     try:
-        credentials, stores, backups = validate(loaded)
+        storage, repositories, backups = validate(loaded)
     except ConfigError as exc:
         fail(f"invalid config in {path}: {exc}")
     logger.debug(
-        "Configuration loaded: credentials=%d stores=%d backups=%d",
-        len(credentials),
-        len(stores),
+        "Configuration loaded: storage=%d repositories=%d backups=%d",
+        len(storage),
+        len(repositories),
         len(backups),
     )
-    return loaded, credentials, stores, backups
+    return loaded, storage, repositories, backups

@@ -42,8 +42,8 @@ uv run restic-backups generic restic run --backup <job-id> ls <snapshot-id>
 The command downloads repository indexes, snapshot records, directory trees,
 and other required metadata. Commands such as `restore` and `dump` download file
 data. Restic's local cache can reduce metadata reads on subsequent commands.
-Set `cache-dir` on a `restic-stores` entry to give each repository a stable,
-separate cache location; see [Configuration](configuration.qmd).
+Set `cache-dir` on a `restic-repositories` entry to give each repository a
+stable, separate cache location; see [Configuration](configuration.qmd).
 
 Prime that cache with repository metadata before browsing snapshots:
 
@@ -77,8 +77,8 @@ month.
 
 AWS and Backblaze prices are metered object-storage charges. Google Drive and
 OneDrive prices are fixed consumer subscription tiers that include other
-services. This project currently supports S3-compatible storage only, so Google
-Drive and OneDrive cannot be selected as `restic-stores`.
+services. This project supports S3-compatible and local filesystem storage;
+Google Drive and OneDrive cannot be selected as storage backends.
 
 Both Glacier classes have a 90-day minimum storage duration. Instant Retrieval
 is immediately readable but has a 128 KB minimum billable object size and

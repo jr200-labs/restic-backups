@@ -3,15 +3,15 @@ title: Restic Backups
 ---
 
 Restic Backups is a YAML configuration and CLI layer for multiple restic
-repositories, with optional SOPS decryption. It supports reusable S3-compatible
-credentials, multiple buckets and key prefixes, managed private metadata
-directories, and a complete macOS Voice Memos workflow.
+repositories, with optional SOPS decryption. It supports S3-compatible services,
+mounted local storage, multiple repositories and backup jobs, managed private
+metadata directories, and a complete macOS Voice Memos workflow.
 
 ## Start here
 
 - [Quick Start](quick-start.qmd) creates, validates, and restores a first backup.
-- [Configuration](configuration.qmd) describes credentials, stores, backups,
-  and Glacier policy.
+- [Configuration](configuration.qmd) describes storage, restic repositories,
+  backup jobs, and Glacier policy.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
 - [Voice Memos Backups](voice-memos.qmd) covers backup, transcription, recovery,
@@ -25,6 +25,7 @@ restic_backups/
   config.py              YAML loading and validation
   generic/
     cli.py               generic restic command definitions
+    local.py             local repository destruction
     sops.py              SOPS decryption
     repository.py        repository resolution and managed paths
     restic.py            restic execution and archive policy
@@ -45,7 +46,7 @@ repository, pipeline, workflow, and parallel modules perform the operational wor
 Managed artifacts use:
 
 ```text
-data/<store-id>/<bucket>/<key-prefix>/<job-id>/
+data/<storage-id>/<repository-path>/<job-id>/
 ```
 
 This path is relative to the selected configuration file. It does not constrain

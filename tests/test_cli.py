@@ -207,22 +207,24 @@ class VoiceMemosCliTest(unittest.TestCase):
 
     def test_config_path_option_and_environment_variable(self) -> None:
         config = """\
-credentials:
+storage:
   - id: b2
-    access-key-id: CHANGE_ME
-    secret-access-key: CHANGE_ME
-restic-stores:
-  - id: store
-    credentials-id: b2
-    enabled: false
+    type: s3
     endpoint: CHANGE_ME
     region: CHANGE_ME
+    credentials:
+      access-key-id: CHANGE_ME
+      secret-access-key: CHANGE_ME
+restic-repositories:
+  - id: store
+    storage-id: b2
+    enabled: false
     bucket: CHANGE_ME
     key_prefix: CHANGE_ME
     password: CHANGE_ME
 backups:
   - job-id: voice-memos
-    restic-store-id: store
+    restic-repository-id: store
 """
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yaml"
@@ -236,15 +238,15 @@ backups:
                 self.assertEqual(result.exit_code, 0, result.output)
 
     def test_forget_prunes_selected_tagged_snapshot(self) -> None:
-        credentials: dict[str, dict[str, object]] = {"credentials": {}}
-        stores = {"store": {"enabled": True}}
-        backups = {"backup": {"restic-store-id": "store", "tag": "documents"}}
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        backups = {"backup": {"restic-repository-id": "store", "tag": "documents"}}
         snapshot_id = "a" * 64
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, credentials, stores, backups),
+                return_value=({}, storage, repositories, backups),
             ),
             patch(
                 "restic_backups.generic.cli.restic.command_output",
@@ -278,15 +280,15 @@ backups:
                 call(
                     "backup",
                     ["snapshots", "--tag", "documents", "--json"],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
                 call(
                     "backup",
                     ["snapshots", "--tag", "documents", "--json"],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
             ],
@@ -297,15 +299,15 @@ backups:
                 call(
                     "backup",
                     ["forget", snapshot_id, "--prune"],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
                 call(
                     "backup",
                     ["forget", snapshot_id, "--prune", "--dry-run"],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
             ],
@@ -316,13 +318,13 @@ backups:
         )
 
     def test_snapshots_lists_configured_tag_as_table(self) -> None:
-        credentials: dict[str, dict[str, object]] = {"credentials": {}}
-        stores = {"store": {"enabled": True}}
-        backups = {"documents": {"restic-store-id": "store", "tag": "files"}}
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        backups = {"documents": {"restic-repository-id": "store", "tag": "files"}}
         with (
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, credentials, stores, backups),
+                return_value=({}, storage, repositories, backups),
             ),
             patch(
                 "restic_backups.generic.cli.restic.command_output",
@@ -350,24 +352,24 @@ backups:
         command_output.assert_called_once_with(
             "documents",
             ["snapshots", "--tag", "files", "--json"],
-            credentials,
-            stores,
+            storage,
+            repositories,
             backups,
         )
 
     def test_generic_backup_uses_configured_paths(self) -> None:
-        credentials: dict[str, dict[str, object]] = {"credentials": {}}
-        stores = {"store": {"enabled": True}}
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
         backups = {
             "documents": {
-                "restic-store-id": "store",
+                "restic-repository-id": "store",
                 "paths": ["~/Documents", "/tmp/example"],
             }
         }
         with (
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, credentials, stores, backups),
+                return_value=({}, storage, repositories, backups),
             ),
             patch(
                 "restic_backups.generic.cli.restic.command", return_value=0
@@ -386,8 +388,8 @@ backups:
                 call(
                     "documents",
                     ["backup", str(Path("~/Documents").expanduser()), "/tmp/example"],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
                 call(
@@ -398,26 +400,26 @@ backups:
                         str(Path("~/Documents").expanduser()),
                         "/tmp/example",
                     ],
-                    credentials,
-                    stores,
+                    storage,
+                    repositories,
                     backups,
                 ),
             ],
         )
 
-    @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
+    @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
     @patch("restic_backups.generic.cli.validated")
     def test_prime_cache_checks_repository_with_cache(self, validated, command) -> None:
-        credential = {"id": "credentials"}
-        store = {
+        storage = {"id": "storage", "type": "s3"}
+        restic_repository = {
             "id": "store",
             "enabled": True,
-            "credentials-id": "credentials",
+            "storage-id": "storage",
         }
         validated.return_value = (
             {},
-            {"credentials": credential},
-            {"store": store},
+            {"storage": storage},
+            {"store": restic_repository},
             {},
         )
 
@@ -427,16 +429,18 @@ backups:
 
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("store: cache primed", result.output)
-        command.assert_called_once_with(store, credential, ["check", "--with-cache"])
+        command.assert_called_once_with(
+            restic_repository, storage, ["check", "--with-cache"]
+        )
 
     def test_advanced_restic_can_print_without_running(self) -> None:
-        credentials: dict[str, dict[str, object]] = {"credentials": {}}
-        stores = {"store": {"enabled": True}}
-        backups = {"documents": {"restic-store-id": "store"}}
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        backups = {"documents": {"restic-repository-id": "store"}}
         with (
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, credentials, stores, backups),
+                return_value=({}, storage, repositories, backups),
             ),
             patch.dict(
                 "os.environ",
@@ -491,35 +495,46 @@ backups:
             None, ["backup", "--dry-run", "/data"], interactive=True
         )
 
-    @patch("restic_backups.generic.cli.restic.store_command")
+    @patch("restic_backups.generic.cli.restic.repository_command")
     @patch("restic_backups.generic.cli.validated")
     def test_init_skips_existing_repositories(self, validated, command) -> None:
-        credentials: dict[str, dict[str, object]] = {
-            "credentials": {"id": "credentials"}
-        }
-        stores = {
+        storage = {
             "existing": {
                 "id": "existing",
-                "enabled": True,
-                "credentials-id": "credentials",
+                "type": "s3",
                 "endpoint": "https://existing.example.com",
             },
             "new": {
                 "id": "new",
-                "enabled": True,
-                "credentials-id": "credentials",
+                "type": "s3",
                 "endpoint": "https://new.example.com",
             },
         }
-        backups = {"first": {"restic-store-id": "existing"}}
-        validated.return_value = ({}, credentials, stores, backups)
+        repositories = {
+            "existing": {
+                "id": "existing",
+                "enabled": True,
+                "storage-id": "existing",
+                "bucket": "bucket",
+                "key_prefix": "existing",
+            },
+            "new": {
+                "id": "new",
+                "enabled": True,
+                "storage-id": "new",
+                "bucket": "bucket",
+                "key_prefix": "new",
+            },
+        }
+        backups = {"first": {"restic-repository-id": "existing"}}
+        validated.return_value = ({}, storage, repositories, backups)
         command.side_effect = [0, 10, 0]
         runner = CliRunner()
 
-        repositories = runner.invoke(app, ["generic", "repository", "list"])
-        self.assertEqual(repositories.exit_code, 0, repositories.output)
+        repository_list = runner.invoke(app, ["generic", "repository", "list"])
+        self.assertEqual(repository_list.exit_code, 0, repository_list.output)
         for text in ("Repositories", "existing", "new"):
-            self.assertIn(text, repositories.output)
+            self.assertIn(text, repository_list.output)
 
         configured_backups = runner.invoke(app, ["generic", "backup", "list"])
         self.assertEqual(configured_backups.exit_code, 0, configured_backups.output)
@@ -542,18 +557,18 @@ backups:
             command.call_args_list,
             [
                 call(
-                    stores["existing"],
-                    credentials["credentials"],
+                    repositories["existing"],
+                    storage["existing"],
                     ["cat", "config"],
                     quiet=True,
                 ),
                 call(
-                    stores["new"],
-                    credentials["credentials"],
+                    repositories["new"],
+                    storage["new"],
                     ["cat", "config"],
                     quiet=True,
                 ),
-                call(stores["new"], credentials["credentials"], ["init"]),
+                call(repositories["new"], storage["new"], ["init"]),
             ],
         )
 
@@ -562,8 +577,8 @@ backups:
         result = runner.invoke(app, ["generic", "repository", "init", "existing"])
         self.assertEqual(result.exit_code, 0, result.output)
         command.assert_called_once_with(
-            stores["existing"],
-            credentials["credentials"],
+            repositories["existing"],
+            storage["existing"],
             ["cat", "config"],
             quiet=True,
         )
@@ -576,23 +591,29 @@ backups:
         self.assertEqual(result.exit_code, 0, result.output)
         self.assertIn("dry run; would initialize repository", result.output)
         command.assert_called_once_with(
-            stores["new"], credentials["credentials"], ["cat", "config"], quiet=True
+            repositories["new"], storage["new"], ["cat", "config"], quiet=True
         )
 
     def test_destroy_dry_run_does_not_delete(self) -> None:
-        store = {
+        restic_repository = {
             "id": "store",
             "enabled": True,
-            "credentials-id": "credentials",
-            "endpoint": "https://s3.example.com",
+            "storage-id": "s3",
             "bucket": "bucket",
             "key_prefix": "restic",
+        }
+        storage = {
+            "s3": {
+                "id": "s3",
+                "type": "s3",
+                "endpoint": "https://s3.example.com",
+            }
         }
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, {"credentials": {}}, {"store": store}, {}),
+                return_value=({}, storage, {"store": restic_repository}, {}),
             ),
             patch("restic_backups.generic.cli.s3.delete_repository") as delete,
             patch("restic_backups.generic.cli.questionary.confirm") as confirm,
@@ -604,19 +625,19 @@ backups:
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
     @patch("restic_backups.generic.cli.select")
-    @patch("restic_backups.generic.cli.restic.store_command", return_value=0)
+    @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
     @patch("restic_backups.generic.cli.validated")
     def test_init_prompt_lists_all_first(self, validated, command, select, _) -> None:
-        credential = {"id": "credentials"}
-        store = {
+        storage = {"id": "storage", "type": "s3"}
+        restic_repository = {
             "id": "store",
             "enabled": True,
-            "credentials-id": "credentials",
+            "storage-id": "storage",
         }
         validated.return_value = (
             {},
-            {"credentials": credential},
-            {"store": store},
+            {"storage": storage},
+            {"store": restic_repository},
             {},
         )
         select.return_value.unsafe_ask.return_value = "store"
@@ -626,7 +647,7 @@ backups:
         choices = select.call_args.kwargs["choices"]
         self.assertEqual(choice_title(choices[0]), "All repositories")
         command.assert_called_once_with(
-            store, credential, ["cat", "config"], quiet=True
+            restic_repository, storage, ["cat", "config"], quiet=True
         )
 
 

@@ -15,31 +15,79 @@ def fail(message: str) -> NoReturn:
 
 def resolve(
     backup_id: str,
-    credentials: dict[str, dict[str, Any]],
-    stores: dict[str, dict[str, Any]],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     backup = backups.get(backup_id)
     if backup is None:
         fail(f"backup job '{backup_id}' not found in {config_path()}")
-    store = stores[backup["restic-store-id"]]
-    if not store["enabled"]:
-        fail(f"restic store '{store['id']}' is disabled")
-    return store, credentials[store["credentials-id"]]
+    restic_repository = repositories[backup["restic-repository-id"]]
+    if not restic_repository["enabled"]:
+        fail(f"restic repository '{restic_repository['id']}' is disabled")
+    return restic_repository, storage[restic_repository["storage-id"]]
 
 
-def data_dir(backup_id: str, store: dict[str, Any]) -> Path:
-    key_prefix = store["key_prefix"].strip("/")
-    components = [store["id"], store["bucket"], backup_id]
+def relative_path(restic_repository: dict[str, Any], storage: dict[str, Any]) -> Path:
+    if storage["type"] == "s3":
+        bucket = restic_repository["bucket"]
+        key_prefix = restic_repository["key_prefix"].strip("/")
+        if (
+            bucket in {".", ".."}
+            or "/" in bucket
+            or any(part in {"", ".", ".."} for part in key_prefix.split("/"))
+        ):
+            fail("unsafe managed S3 repository path")
+        return Path(bucket) / key_prefix
+    return safe_local_repository_path(restic_repository)
+
+
+def safe_local_repository_path(restic_repository: dict[str, Any]) -> Path:
+    path = Path(restic_repository["path"])
+    if path.is_absolute() or path == Path(".") or ".." in path.parts:
+        fail("local restic repository path must be safe and relative")
+    return path
+
+
+def data_dir(
+    backup_id: str,
+    restic_repository: dict[str, Any],
+    storage: dict[str, Any],
+) -> Path:
+    components = [storage["id"], backup_id]
     if any(not value or value in {".", ".."} or "/" in value for value in components):
         fail("unsafe managed data path component")
-    parts = key_prefix.split("/")
-    if any(not part or part in {".", ".."} for part in parts):
-        fail("unsafe key prefix for managed data")
     root = config_path().resolve().parent
-    return root / "data" / components[0] / components[1] / Path(*parts) / backup_id
+    return (
+        root
+        / "data"
+        / storage["id"]
+        / relative_path(restic_repository, storage)
+        / backup_id
+    )
 
 
-def cache_dir(store: dict[str, Any]) -> Path:
-    path = Path(store["cache-dir"]).expanduser()
+def cache_dir(restic_repository: dict[str, Any]) -> Path:
+    path = Path(restic_repository["cache-dir"]).expanduser()
     return path if path.is_absolute() else config_path().resolve().parent / path
+
+
+def local_path(restic_repository: dict[str, Any], storage: dict[str, Any]) -> Path:
+    root = Path(storage["path"]).expanduser().resolve()
+    if not root.is_dir():
+        fail(f"local storage is not mounted or is not a directory: {root}")
+    path = (root / safe_local_repository_path(restic_repository)).resolve()
+    if not path.is_relative_to(root):
+        fail("local restic repository path resolves outside its storage root")
+    return path
+
+
+def location(restic_repository: dict[str, Any], storage: dict[str, Any]) -> str:
+    if storage["type"] == "local":
+        return str(
+            Path(storage["path"]).expanduser()
+            / safe_local_repository_path(restic_repository)
+        )
+    endpoint = storage["endpoint"].rstrip("/")
+    key_prefix = restic_repository["key_prefix"].strip("/")
+    return f"{endpoint}/{restic_repository['bucket']}/{key_prefix}"

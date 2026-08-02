@@ -27,16 +27,21 @@ class S3DeletionTest(unittest.TestCase):
             {},
         ]
         s3_client.delete_objects.return_value = {}
-        store = {
+        restic_repository = {
             "id": "repository",
-            "endpoint": "https://s3.example.com",
-            "region": "region",
             "bucket": "bucket",
             "key_prefix": "repo",
         }
-        credential = {"access-key-id": "key", "secret-access-key": "secret"}
+        storage = {
+            "endpoint": "https://s3.example.com",
+            "region": "region",
+            "credentials": {
+                "access-key-id": "key",
+                "secret-access-key": "secret",
+            },
+        }
 
-        deleted = s3.delete_repository(store, credential)
+        deleted = s3.delete_repository(restic_repository, storage)
 
         self.assertEqual(deleted, 3)
         self.assertEqual(s3_client.delete_objects.call_count, 2)
@@ -48,18 +53,20 @@ class S3DeletionTest(unittest.TestCase):
         client.assert_not_called()
 
     def test_destroy_requires_exact_repository_id(self) -> None:
-        store = {
+        restic_repository = {
             "id": "repository",
-            "credentials-id": "credentials",
-            "endpoint": "https://s3.example.com",
+            "storage-id": "s3",
             "bucket": "bucket",
             "key_prefix": "repo",
+        }
+        storage = {
+            "s3": {"id": "s3", "type": "s3", "endpoint": "https://s3.example.com"}
         }
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
             patch(
                 "restic_backups.generic.cli.validated",
-                return_value=({}, {"credentials": {}}, {"repository": store}, {}),
+                return_value=({}, storage, {"repository": restic_repository}, {}),
             ),
             patch("restic_backups.generic.cli.questionary.confirm") as confirm,
             patch("restic_backups.generic.cli.questionary.text") as text,

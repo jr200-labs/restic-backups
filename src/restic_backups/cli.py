@@ -207,10 +207,14 @@ def voice_memos_command(context: typer.Context) -> None:
 def prepare_voice_memos() -> None:
     if "SUMMARIES_DIR" in os.environ:
         return
-    _, credentials, stores, backups = validated()
+    _, storage, repositories, backups = validated()
     try:
-        store, _ = repository.resolve("voice-memos", credentials, stores, backups)
-        path = repository.data_dir("voice-memos", store) / "summaries"
+        restic_repository, backend = repository.resolve(
+            "voice-memos", storage, repositories, backups
+        )
+        path = (
+            repository.data_dir("voice-memos", restic_repository, backend) / "summaries"
+        )
     except BackupError as exc:
         fail(str(exc))
     os.environ["SUMMARIES_DIR"] = str(path)

@@ -88,47 +88,53 @@ def supports_dry_run(command: str) -> bool:
 def command(
     backup_id: str,
     args: list[str],
-    credentials: dict[str, dict[str, Any]],
-    stores: dict[str, dict[str, Any]],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
     *,
     quiet: bool = False,
 ) -> int:
-    store, credential = repository.resolve(backup_id, credentials, stores, backups)
+    restic_repository, backend = repository.resolve(
+        backup_id, storage, repositories, backups
+    )
     if args and args[0] == "backup":
         tag = str(backups[backup_id].get("tag", backup_id))
         args = ["backup", "--tag", tag, *args[1:]]
-    return store_command(store, credential, args, quiet=quiet)
+    return repository_command(restic_repository, backend, args, quiet=quiet)
 
 
-def store_command(
-    store: dict[str, Any],
-    credential: dict[str, Any],
+def repository_command(
+    restic_repository: dict[str, Any],
+    storage: dict[str, Any],
     args: list[str],
     *,
     quiet: bool = False,
 ) -> int:
-    code, _ = store_run(store, credential, args, quiet=quiet)
+    code, _ = repository_run(restic_repository, storage, args, quiet=quiet)
     return code
 
 
 def command_output(
     backup_id: str,
     args: list[str],
-    credentials: dict[str, dict[str, Any]],
-    stores: dict[str, dict[str, Any]],
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> str:
-    store, credential = repository.resolve(backup_id, credentials, stores, backups)
-    code, output = store_run(store, credential, args, quiet=True, capture=True)
+    restic_repository, backend = repository.resolve(
+        backup_id, storage, repositories, backups
+    )
+    code, output = repository_run(
+        restic_repository, backend, args, quiet=True, capture=True
+    )
     if code:
         fail(f"restic {args[0]} failed with exit code {code}")
     return output
 
 
-def store_run(
-    store: dict[str, Any],
-    credential: dict[str, Any],
+def repository_run(
+    restic_repository: dict[str, Any],
+    storage: dict[str, Any],
     args: list[str],
     *,
     quiet: bool = False,
@@ -136,22 +142,31 @@ def store_run(
 ) -> tuple[int, str]:
     if not args:
         fail("restic command required")
-    logger.debug("%s: running restic %s", store["id"], args[0])
+    logger.debug("%s: running restic %s", restic_repository["id"], args[0])
 
     env = os.environ.copy()
-    endpoint = store["endpoint"].rstrip("/")
-    key_prefix = store["key_prefix"].strip("/")
-    env.update(
-        AWS_ACCESS_KEY_ID=credential["access-key-id"],
-        AWS_SECRET_ACCESS_KEY=credential["secret-access-key"],
-        AWS_DEFAULT_REGION=store["region"],
-        RESTIC_PASSWORD=store["password"],
-        RESTIC_REPOSITORY=(f"s3:{endpoint}/{store['bucket']}/{key_prefix}"),
-    )
-    if "cache-dir" in store:
-        env["RESTIC_CACHE_DIR"] = str(repository.cache_dir(store))
-    options: list[str] = ["-o", f"s3.region={store['region']}"]
-    archive = store.get("archive")
+    env["RESTIC_PASSWORD"] = restic_repository["password"]
+    options: list[str] = []
+    if storage["type"] == "local":
+        env["RESTIC_REPOSITORY"] = str(
+            repository.local_path(restic_repository, storage)
+        )
+    else:
+        credentials = storage["credentials"]
+        endpoint = storage["endpoint"].rstrip("/")
+        key_prefix = restic_repository["key_prefix"].strip("/")
+        env.update(
+            AWS_ACCESS_KEY_ID=credentials["access-key-id"],
+            AWS_SECRET_ACCESS_KEY=credentials["secret-access-key"],
+            AWS_DEFAULT_REGION=storage["region"],
+            RESTIC_REPOSITORY=(
+                f"s3:{endpoint}/{restic_repository['bucket']}/{key_prefix}"
+            ),
+        )
+        options = ["-o", f"s3.region={storage['region']}"]
+    if "cache-dir" in restic_repository:
+        env["RESTIC_CACHE_DIR"] = str(repository.cache_dir(restic_repository))
+    archive = restic_repository.get("archive")
     if archive is not None:
         storage_class = archive["storage-class"]
         options.extend(("-o", f"s3.storage-class={storage_class}"))

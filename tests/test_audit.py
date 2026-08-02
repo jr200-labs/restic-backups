@@ -66,24 +66,30 @@ def test_installed_entrypoint_and_restic_log_exact_commands(monkeypatch) -> None
     record.assert_called_once_with("restic-backups", ["--help"])
     app.assert_called_once_with()
 
-    store = {
+    restic_repository = {
         "id": "store",
-        "endpoint": "https://s3.example.com",
-        "region": "region",
+        "storage-id": "s3",
+        "enabled": True,
         "bucket": "bucket",
         "key_prefix": "restic",
         "password": "repository-password",
     }
-    credential = {
-        "access-key-id": "access-key",
-        "secret-access-key": "secret-key",
+    storage = {
+        "id": "s3",
+        "type": "s3",
+        "endpoint": "https://s3.example.com",
+        "region": "region",
+        "credentials": {
+            "access-key-id": "access-key",
+            "secret-access-key": "secret-key",
+        },
     }
     result = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     with (
         patch.object(restic.audit, "record") as record,
         patch.object(restic.subprocess, "run", return_value=result),
     ):
-        restic.store_command(store, credential, ["snapshots", "--json"])
+        restic.repository_command(restic_repository, storage, ["snapshots", "--json"])
 
     record.assert_called_once_with(
         "restic", ["-o", "s3.region=region", "snapshots", "--json"]
