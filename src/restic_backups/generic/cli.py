@@ -75,6 +75,82 @@ def repository_choices(
     )
 
 
+def repository_initialization_states(
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+) -> dict[str, tuple[str, str | None]]:
+    states: dict[str, tuple[str, str | None]] = {}
+    for repository_id, item in repositories.items():
+        reason = config.repository_disabled_reason(item)
+        if reason:
+            states[repository_id] = ("disabled", reason)
+            continue
+        try:
+            code = restic.repository_command(
+                item,
+                storage[item["storage-id"]],
+                ["cat", "config"],
+                quiet=True,
+            )
+        except BackupError as exc:
+            states[repository_id] = ("disabled", str(exc))
+            continue
+        if code == 0:
+            states[repository_id] = ("initialized", None)
+        elif code == 10:
+            states[repository_id] = ("uninitialized", None)
+        else:
+            states[repository_id] = (
+                "disabled",
+                f"state check failed (exit {code})",
+            )
+    return states
+
+
+def initialization_repository_choices(
+    repositories: dict[str, dict[str, Any]],
+    states: dict[str, tuple[str, str | None]],
+    *,
+    source: bool = False,
+    exclude: set[str] | None = None,
+) -> list[questionary.Choice | questionary.Separator]:
+    """Group repositories by whether initialization may select them."""
+    uninitialized: list[str] = []
+    initialized: list[str] = []
+    disabled: list[tuple[str, str]] = []
+    for repository_id in repositories:
+        if repository_id in (exclude or set()):
+            continue
+        state, reason = states[repository_id]
+        if state == "initialized":
+            initialized.append(repository_id)
+        elif state == "uninitialized":
+            uninitialized.append(repository_id)
+        else:
+            disabled.append((repository_id, str(reason)))
+
+    selectable = initialized if source else uninitialized
+    unavailable = uninitialized if source else initialized
+    choices: list[questionary.Choice | questionary.Separator] = [
+        questionary.Choice(repository_id, repository_id) for repository_id in selectable
+    ]
+    choices = group_disabled_choices(
+        choices,
+        [
+            (repository_id, "not initialized" if source else "already initialized")
+            for repository_id in unavailable
+        ],
+        heading="Uninitialized repositories" if source else "Initialized repositories",
+        label_width=max(20, max(map(len, repositories))),
+    )
+    return group_disabled_choices(
+        choices,
+        disabled,
+        heading="Disabled repositories",
+        label_width=max(20, max(map(len, repositories))),
+    )
+
+
 def copyable_cli_command(*args: str) -> str:
     command = [
         "uv",
@@ -124,6 +200,11 @@ def repository_menu() -> None:
                     "prime-cache",
                 ),
                 menu_choice(
+                    "Copy",
+                    "Copy snapshots between repositories",
+                    "copy",
+                ),
+                menu_choice(
                     "Compact",
                     "Remove unused data or repack repository files",
                     "prune",
@@ -151,10 +232,13 @@ def repository_menu() -> None:
             elif selected == "list":
                 repository_list_command()
             elif selected == "init":
-                init_command()
+                init_menu()
                 return
             elif selected == "prime-cache":
                 prime_cache_command(None)
+                return
+            elif selected == "copy":
+                copy_command()
                 return
             elif selected == "prune":
                 prune_menu()
@@ -164,6 +248,108 @@ def repository_menu() -> None:
                 return
         except (typer.Abort, typer.Exit):
             continue
+
+
+def init_menu() -> None:
+    while True:
+        selected = select(
+            "Initialize repository:",
+            choices=[
+                menu_choice("Empty", "Create a new independent repository", "empty"),
+                menu_choice(
+                    "From existing",
+                    "Reuse another repository's chunker parameters",
+                    "from-existing",
+                ),
+                menu_choice("Help", "Show initialization flags", "help"),
+                menu_choice("Back", "Return to repository commands", "back"),
+                questionary.Separator(" "),
+            ],
+        ).unsafe_ask()
+        if selected in {None, "back"}:
+            return
+        if selected == "help":
+            print_typer_help(repository_app, "restic-backups generic repository")
+            continue
+        if selected == "empty":
+            init_command()
+        else:
+            init_from_menu()
+        return
+
+
+def init_from_menu() -> None:
+    _, storage, repositories, _ = validated()
+    states = repository_initialization_states(storage, repositories)
+    if not any(state == "initialized" for state, _ in states.values()):
+        fail("no initialized source repository is available")
+    selected = select(
+        "Source repository:",
+        choices=initialization_repository_choices(
+            repositories,
+            states,
+            source=True,
+        )
+        + [questionary.Separator(" ")],
+    ).unsafe_ask()
+    if selected is None:
+        raise typer.Abort()
+    source_id = str(selected)
+    destinations = {
+        repository_id: item
+        for repository_id, item in repositories.items()
+        if repository_id != source_id
+    }
+    if not any(
+        states[repository_id][0] == "uninitialized" for repository_id in destinations
+    ):
+        fail("no uninitialized destination repository is available")
+    selected = select(
+        "Destination repository:",
+        choices=initialization_repository_choices(
+            repositories,
+            states,
+            exclude={source_id},
+        )
+        + [questionary.Separator(" ")],
+    ).unsafe_ask()
+    if selected is None:
+        raise typer.Abort()
+    destination_id = str(selected)
+    scope = select(
+        "Snapshots after initialization:",
+        choices=[
+            menu_choice("None", "Initialize without copying snapshots", "none"),
+            menu_choice("All", "Copy every snapshot from the source", "all"),
+            menu_choice("Select", "Choose one or more snapshots", "select"),
+            menu_choice("Back", "Return to initialization options", "back"),
+            questionary.Separator(" "),
+        ],
+    ).unsafe_ask()
+    if scope in {None, "back"}:
+        raise typer.Abort()
+    snapshot_ids: list[str] = []
+    if scope == "select":
+        choices = repository_snapshot_choices(
+            repositories[source_id],
+            storage[repositories[source_id]["storage-id"]],
+        )
+        if not choices:
+            fail(f"repository '{source_id}' contains no snapshots")
+        selected = checkbox(
+            "Snapshots:",
+            required=True,
+            choices=[*choices, questionary.Separator(" ")],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        snapshot_ids = list(map(str, selected))
+    init_command(
+        destination_id,
+        from_repository=source_id,
+        copy_all_snapshots=scope == "all",
+        copy_snapshots=snapshot_ids,
+    )
 
 
 def prune_menu() -> None:
@@ -515,24 +701,138 @@ def init_command(
         bool,
         typer.Option("--all", help="Initialize every available repository."),
     ] = False,
+    from_repository: Annotated[
+        str | None,
+        typer.Option(
+            "--from-repository",
+            help="Copy chunker parameters from this repository ID.",
+        ),
+    ] = None,
+    copy_all_snapshots: Annotated[
+        bool,
+        typer.Option(
+            "--copy-all-snapshots",
+            help="Copy every source snapshot after initialization.",
+        ),
+    ] = False,
+    copy_snapshots: Annotated[
+        list[str] | None,
+        typer.Option(
+            "--copy-snapshot",
+            help="Snapshot ID to copy after initialization; repeat as needed.",
+        ),
+    ] = None,
     dry_run: Annotated[
         bool | None,
         typer.Option("--dry-run", help="Check without initializing repositories."),
     ] = None,
 ) -> None:
-    """Initialize one repository, or every available repository with --all."""
+    """Initialize repositories from scratch or a source, optionally copying snapshots."""
     _, storage, repositories, _ = validated()
+    if (copy_all_snapshots or copy_snapshots) and from_repository is None:
+        fail("snapshot copying requires --from-repository")
+    if copy_all_snapshots and copy_snapshots:
+        fail("--copy-all-snapshots and --copy-snapshot cannot be used together")
+    if from_repository is not None:
+        if all_repositories:
+            fail("--from-repository and --all cannot be used together")
+        if repository_id is None:
+            fail("destination repository ID is required with --from-repository")
+        source = repositories.get(from_repository)
+        destination = repositories.get(repository_id)
+        if source is None:
+            fail(f"repository '{from_repository}' not found in {config.config_path()}")
+        if destination is None:
+            fail(f"repository '{repository_id}' not found in {config.config_path()}")
+        for selected_id, item in (
+            (from_repository, source),
+            (repository_id, destination),
+        ):
+            reason = config.repository_disabled_reason(item)
+            if reason:
+                fail(f"repository '{selected_id}' is unavailable: {reason}")
+        if from_repository == repository_id:
+            fail("source and destination repositories must be different")
+        copy_args = (
+            ["--copy-all-snapshots"]
+            if copy_all_snapshots
+            else [
+                value
+                for snapshot_id in copy_snapshots or []
+                for value in ("--copy-snapshot", snapshot_id)
+            ]
+        )
+        command = copyable_cli_command(
+            "generic",
+            "repository",
+            "init",
+            repository_id,
+            "--from-repository",
+            from_repository,
+            *copy_args,
+        )
+        if dry_run is None:
+            dry_run = choose_dry_run(command) if sys.stdin.isatty() else False
+        audit_command(
+            "repository",
+            "init",
+            repository_id,
+            "--from-repository",
+            from_repository,
+            *copy_args,
+            *(["--dry-run"] if dry_run else []),
+        )
+        try:
+            if copy_all_snapshots or copy_snapshots:
+                code = restic.copy_repository(
+                    source,
+                    storage[source["storage-id"]],
+                    destination,
+                    storage[destination["storage-id"]],
+                    list(copy_snapshots or []),
+                    dry_run=dry_run,
+                )
+            else:
+                code = restic.initialize_repository_from_source(
+                    source,
+                    storage[source["storage-id"]],
+                    destination,
+                    storage[destination["storage-id"]],
+                    dry_run=dry_run,
+                )
+        except BackupError as exc:
+            fail(str(exc))
+        if code:
+            raise typer.Exit(code)
+        if dry_run:
+            message = "dry run complete; repository unchanged"
+        elif copy_all_snapshots or copy_snapshots:
+            message = "initialization and snapshot copy complete"
+        else:
+            message = "initialization complete"
+        error_console.print(
+            Text(
+                f"{from_repository} → {repository_id}: {message}",
+                style="bold green",
+            )
+        )
+        return
     if repository_id is not None and all_repositories:
         fail("repository ID and --all cannot be used together")
     if repository_id is None and not all_repositories:
         if not sys.stdin.isatty():
             fail("repository ID or --all is required when stdin is not interactive")
+        states = repository_initialization_states(storage, repositories)
+        if not any(state == "uninitialized" for state, _ in states.values()):
+            fail("no uninitialized repository is available")
         selected = select(
             "Repository to initialize:",
-            choices=[questionary.Choice("All repositories", ALL_REPOSITORIES)]
-            + repository_choices(
+            choices=[
+                questionary.Choice("All uninitialized repositories", ALL_REPOSITORIES)
+            ]
+            + initialization_repository_choices(
                 repositories,
-                lambda repository_id, _: repository_id,
+                states,
             )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
@@ -660,6 +960,186 @@ def prime_cache_command(
     if code:
         raise typer.Exit(code)
     error_console.print(Text(f"{repository_id}: cache primed", style="bold green"))
+
+
+def repository_snapshot_choices(
+    restic_repository: dict[str, Any], storage: dict[str, Any]
+) -> list[questionary.Choice | questionary.Separator]:
+    try:
+        code, output = restic.repository_run(
+            restic_repository,
+            storage,
+            ["snapshots", "--json"],
+            quiet=True,
+            capture=True,
+        )
+        if code:
+            raise typer.Exit(code)
+        snapshots = json.loads(output)
+    except (BackupError, json.JSONDecodeError) as exc:
+        fail(str(exc))
+    if not isinstance(snapshots, list):
+        fail("restic snapshots returned invalid JSON")
+    choices: list[questionary.Choice | questionary.Separator] = []
+    for snapshot in snapshots:
+        if not isinstance(snapshot, dict) or not isinstance(snapshot.get("id"), str):
+            fail("restic snapshots returned invalid JSON")
+        snapshot_id = snapshot["id"]
+        timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]
+        short_id = str(snapshot.get("short_id", snapshot_id[:8]))
+        tags = ", ".join(map(str, snapshot.get("tags", []))) or "no tags"
+        choices.append(
+            questionary.Choice(
+                f"{timestamp}  {short_id}  {tags}",
+                snapshot_id,
+            )
+        )
+    return choices
+
+
+@repository_app.command("copy")
+def copy_command(
+    source_id: Annotated[
+        str | None,
+        typer.Argument(help="Source repository ID; prompts when omitted."),
+    ] = None,
+    destination_id: Annotated[
+        str | None,
+        typer.Argument(help="Destination repository ID; prompts when omitted."),
+    ] = None,
+    snapshot_ids: Annotated[
+        list[str] | None,
+        typer.Argument(help="Snapshot IDs; omit to copy every snapshot."),
+    ] = None,
+    dry_run: Annotated[
+        bool | None,
+        typer.Option("--dry-run", help="Show what would be copied without writing."),
+    ] = None,
+) -> None:
+    """Copy snapshots from one configured repository to another."""
+    _, storage, repositories, _ = validated()
+    prompted = source_id is None or destination_id is None
+    if source_id is None:
+        if not sys.stdin.isatty():
+            fail("source repository ID is required when stdin is not interactive")
+        selected = select(
+            "Source repository:",
+            choices=repository_choices(
+                repositories,
+                lambda repository_id, _: repository_id,
+            )
+            + [questionary.Separator(" ")],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        source_id = str(selected)
+
+    source = repositories.get(source_id)
+    if source is None:
+        fail(f"repository '{source_id}' not found in {config.config_path()}")
+    reason = config.repository_disabled_reason(source)
+    if reason:
+        fail(f"repository '{source_id}' is unavailable: {reason}")
+
+    if destination_id is None:
+        if not sys.stdin.isatty():
+            fail("destination repository ID is required when stdin is not interactive")
+        destinations = {
+            repository_id: item
+            for repository_id, item in repositories.items()
+            if repository_id != source_id
+        }
+        if not destinations:
+            fail("no destination repository is configured")
+        selected = select(
+            "Destination repository:",
+            choices=repository_choices(
+                destinations,
+                lambda repository_id, _: repository_id,
+            )
+            + [questionary.Separator(" ")],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        destination_id = str(selected)
+
+    destination = repositories.get(destination_id)
+    if destination is None:
+        fail(f"repository '{destination_id}' not found in {config.config_path()}")
+    reason = config.repository_disabled_reason(destination)
+    if reason:
+        fail(f"repository '{destination_id}' is unavailable: {reason}")
+    if source_id == destination_id:
+        fail("source and destination repositories must be different")
+
+    selected_snapshots = list(snapshot_ids or [])
+    if prompted:
+        scope = select(
+            "Snapshots to copy:",
+            choices=[
+                menu_choice("All", "Copy every snapshot not already copied", "all"),
+                menu_choice("Select", "Choose one or more snapshots", "select"),
+                menu_choice("Back", "Return to repository commands", "back"),
+                questionary.Separator(" "),
+            ],
+        ).unsafe_ask()
+        if scope in {None, "back"}:
+            raise typer.Abort()
+        if scope == "select":
+            choices = repository_snapshot_choices(source, storage[source["storage-id"]])
+            if not choices:
+                fail(f"repository '{source_id}' contains no snapshots")
+            selected = checkbox(
+                "Snapshots:",
+                required=True,
+                choices=[*choices, questionary.Separator(" ")],
+            ).unsafe_ask()
+            if selected is None:
+                raise typer.Abort()
+            selected_snapshots = list(map(str, selected))
+
+    command = copyable_cli_command(
+        "generic",
+        "repository",
+        "copy",
+        source_id,
+        destination_id,
+        *selected_snapshots,
+    )
+    if dry_run is None:
+        dry_run = choose_dry_run(command) if sys.stdin.isatty() else False
+    audit_command(
+        "repository",
+        "copy",
+        source_id,
+        destination_id,
+        *selected_snapshots,
+        *(["--dry-run"] if dry_run else []),
+    )
+    if not dry_run:
+        error_console.print(
+            Text(
+                f"{source_id} → {destination_id}: copying snapshots; cloud reads and writes may incur charges",
+                style="cyan",
+            )
+        )
+    try:
+        code = restic.copy_repository(
+            source,
+            storage[source["storage-id"]],
+            destination,
+            storage[destination["storage-id"]],
+            selected_snapshots,
+            dry_run=dry_run,
+        )
+    except BackupError as exc:
+        fail(str(exc))
+    if code:
+        raise typer.Exit(code)
+    message = "dry run complete; nothing copied" if dry_run else "copy complete"
+    error_console.print(
+        Text(f"{source_id} → {destination_id}: {message}", style="bold green")
+    )
 
 
 @repository_app.command("prune")

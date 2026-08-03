@@ -304,6 +304,95 @@ Usage:
         with self.assertRaisesRegex(BackupError, "not mounted"):
             restic.repository_command(restic_repository, storage, ["snapshots"])
 
+    def test_copy_repository_uses_native_restic_copy(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            storage = {"id": "disk", "type": "local", "path": directory}
+            source = {
+                "id": "source",
+                "path": "restic/source",
+                "password": "source-password",
+            }
+            destination = {
+                "id": "destination",
+                "path": "restic/destination",
+                "password": "destination-password",
+            }
+            missing: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                [], 10
+            )
+            success: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                [], 0
+            )
+            with patch(
+                "subprocess.run", side_effect=[missing, success, success]
+            ) as run:
+                code = restic.copy_repository(
+                    source,
+                    storage,
+                    destination,
+                    storage,
+                    ["abc123"],
+                )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(run.call_args_list[0].args[0], ["restic", "cat", "config"])
+        self.assertEqual(
+            run.call_args_list[1].args[0],
+            [
+                "restic",
+                "init",
+                "--from-repo",
+                str(Path(directory).resolve() / "restic/source"),
+                "--copy-chunker-params",
+            ],
+        )
+        self.assertEqual(
+            run.call_args_list[2].args[0],
+            [
+                "restic",
+                "copy",
+                "--verbose",
+                "--from-repo",
+                str(Path(directory).resolve() / "restic/source"),
+                "abc123",
+            ],
+        )
+        environment = run.call_args_list[2].kwargs["env"]
+        self.assertEqual(environment["RESTIC_PASSWORD"], "destination-password")
+        self.assertEqual(environment["RESTIC_FROM_PASSWORD"], "source-password")
+        self.assertEqual(environment["RESTIC_PROGRESS_FPS"], "1")
+        self.assertNotIn("capture_output", run.call_args_list[2].kwargs)
+
+    def test_copy_dry_run_does_not_initialize_destination(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            storage = {"id": "disk", "type": "local", "path": directory}
+            source = {
+                "id": "source",
+                "path": "restic/source",
+                "password": "source-password",
+            }
+            destination = {
+                "id": "destination",
+                "path": "restic/destination",
+                "password": "destination-password",
+            }
+            missing: subprocess.CompletedProcess[str] = subprocess.CompletedProcess(
+                [], 10
+            )
+            with patch("subprocess.run", return_value=missing) as run:
+                code = restic.copy_repository(
+                    source,
+                    storage,
+                    destination,
+                    storage,
+                    [],
+                    dry_run=True,
+                )
+
+        self.assertEqual(code, 0)
+        self.assertEqual(run.call_count, 1)
+        self.assertEqual(run.call_args.args[0], ["restic", "cat", "config"])
+
     def test_restic_output_uses_python_logging(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             storage = {"id": "disk", "type": "local", "path": directory}
