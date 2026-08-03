@@ -4,7 +4,7 @@ import pytest
 from prompt_toolkit.keys import Keys
 
 from restic_backups import cli
-from restic_backups.generic.tui import select
+from restic_backups.generic.tui import DISABLED_STYLE, select
 
 
 def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
@@ -26,3 +26,9 @@ def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
     ):
         cli.main()
     assert stopped.value.code == 0
+
+
+def test_disabled_choices_are_grey() -> None:
+    attrs = DISABLED_STYLE.get_attrs_for_style_str("class:disabled")
+
+    assert attrs.color == "ansibrightblack"

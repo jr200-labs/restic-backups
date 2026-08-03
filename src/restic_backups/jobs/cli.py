@@ -38,8 +38,13 @@ def menu_choice(
     reserve_disabled_prefix: bool = False,
 ) -> questionary.Choice:
     prefix = "  " if reserve_disabled_prefix and disabled is None else ""
+    label_style = "class:disabled" if disabled else "fg:ansicyan bold"
+    description_style = "class:disabled" if disabled else ""
     return questionary.Choice(
-        [("fg:ansicyan bold", f"{prefix}{label:<{width}}  "), ("", description)],
+        [
+            (label_style, f"{prefix}{label:<{width}}  "),
+            (description_style, description),
+        ],
         value,
         disabled=disabled,
     )

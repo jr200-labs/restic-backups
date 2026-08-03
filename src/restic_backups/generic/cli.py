@@ -18,7 +18,7 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import local, repository, restic, s3, sops
-from .tui import select
+from .tui import DISABLED_STYLE, select
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -500,6 +500,7 @@ def choose_repositories(
             fail(f"backup job '{backup_id}' has no available repositories")
         selected = questionary.checkbox(
             "Repositories (Space to toggle, Enter to continue):",
+            style=DISABLED_STYLE,
             choices=[
                 questionary.Choice(
                     f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",
