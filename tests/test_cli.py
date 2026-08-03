@@ -162,12 +162,12 @@ class VoiceMemosCliTest(unittest.TestCase):
             "offline": {"enabled": True, "_storage-enabled": False},
         }
         jobs = {
+            "offline": {"type": "files", "restic-repository-ids": ["offline"]},
             "active": {
                 "type": "files",
                 "description": "Active job.\n",
                 "restic-repository-ids": ["available"],
             },
-            "offline": {"type": "files", "restic-repository-ids": ["offline"]},
         }
         with (
             patch("restic_backups.jobs.cli.sys.stdin.isatty", return_value=True),
@@ -181,8 +181,10 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertNotIn("\n", choice_title(choices[0]))
         self.assertTrue(choices[0].title[0][1].endswith("  "))
         self.assertIsInstance(choices[1], questionary.Separator)
-        self.assertIn("offline", choice_title(choices[1]))
-        self.assertIn("no available repositories", choice_title(choices[1]))
+        self.assertEqual(choice_title(choices[1]), "Disabled")
+        self.assertIsInstance(choices[2], questionary.Separator)
+        self.assertIn("offline", choice_title(choices[2]))
+        self.assertIn("no available repositories", choice_title(choices[2]))
 
     def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
         repositories = {"disabled": {"enabled": False}}

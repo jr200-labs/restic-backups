@@ -78,6 +78,7 @@ def choose_job(
         fail("job ID is required when stdin is not interactive")
     width = max(20, max(map(len, jobs)))
     choices: list[questionary.Choice | questionary.Separator] = []
+    disabled_choices: list[questionary.Separator] = []
     for item_id, job in jobs.items():
         description = f"[{job['type']}]  {str(job.get('description', '')).strip()}"
         available = any(
@@ -87,11 +88,13 @@ def choose_job(
         if available:
             choices.append(menu_choice(item_id, description, item_id, width))
         else:
-            choices.append(
+            disabled_choices.append(
                 questionary.Separator(
                     f"{item_id:<{width}}  {description}  (no available repositories)"
                 )
             )
+    if disabled_choices:
+        choices.extend([questionary.Separator("Disabled"), *disabled_choices])
     choices.extend(
         [
             menu_choice("Back", "Return to the Jobs menu", "back", width),
