@@ -339,7 +339,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td>Repository</td>
 <td><code>generic repository list</code></td>
 <td>Show configured repositories</td>
-<td>No</td>
+<td>Read-only</td>
 </tr>
 <tr class="even">
 <td>Repository</td>
@@ -403,7 +403,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </tr>
 </tbody>
 </table>
-<p>Commands that accept <code>[JOB_ID]</code> prompt when it is omitted in an interactive terminal. Repository-specific operations also prompt when a job has several available repositories. A repository on disabled storage remains visible but cannot be selected. Non-interactive callers must provide the job ID and repository ID explicitly.</p>
+<p>Commands that accept <code>[JOB_ID]</code> prompt when it is omitted in an interactive terminal. Repository-specific operations also prompt when a job has several available repositories. A repository on disabled storage remains visible but cannot be selected. An uninitialized repository is likewise shown in the grey disabled section everywhere except the initialization picker. The UI checks for the Restic <code>config</code> file locally or with an S3 metadata request; it does not download repository contents. Non-interactive callers must provide the job ID and repository ID explicitly.</p>
 <p>The top-level TUI provides described menus for repositories, jobs, snapshots, and advanced restic commands. <strong>Advanced restic</strong> reads the installed restic version’s command list and descriptions. After selection it shows the command’s restic usage, prompts for arguments, and prints the complete copyable <code>uv run restic-backups</code> command. Choose <strong>Run</strong>, <strong>Print only</strong>, or <strong>Cancel</strong>. Choose <strong>Help</strong> at any level to see help for the current section or selected restic command and return to the same menu. Showing help does not load the configuration, select a backup, or contact the repository. <strong>Back</strong> returns one level without restarting the menu tree. Entering <code>--help</code> or <code>-h</code> in the argument prompt has the same local-help behavior.</p>
 <p>For <code>restic ls</code>, leave the argument prompt empty to choose from the job’s available tagged snapshots. The selected full snapshot ID is inserted into the copyable command. Enter an ID or <code>latest</code> directly to skip the picker.</p>
 <section id="dry-runs" class="level3">
