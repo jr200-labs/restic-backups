@@ -47,6 +47,10 @@ credentials or repository passwords:
 uv run restic-backups --verbose generic repository init
 ```
 
+User-facing Restic stdout and stderr use the same logger, so repository output
+also carries timestamps and levels. Machine-readable internal calls remain
+quiet unless they fail.
+
 ## Prometheus metrics
 
 Jobs can push their latest result to a Prometheus Pushgateway. Set its URL before

@@ -247,6 +247,28 @@ Usage:
         with self.assertRaisesRegex(BackupError, "not mounted"):
             restic.repository_command(restic_repository, storage, ["snapshots"])
 
+    def test_restic_output_uses_python_logging(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            storage = {"id": "disk", "type": "local", "path": directory}
+            restic_repository = {
+                "id": "local",
+                "storage-id": "disk",
+                "enabled": True,
+                "path": "restic/personal",
+                "password": "password",
+            }
+            result = subprocess.CompletedProcess(
+                [], 0, stdout="snapshot saved\n", stderr="repository opened\n"
+            )
+            with (
+                patch("subprocess.run", return_value=result),
+                self.assertLogs("restic_backups.generic.restic", level="INFO") as logs,
+            ):
+                restic.repository_command(restic_repository, storage, ["backup"])
+
+        self.assertIn("local: restic stdout: snapshot saved", logs.output[0])
+        self.assertIn("local: restic stderr: repository opened", logs.output[1])
+
     def test_invalid_repository_references_and_paths(self) -> None:
         config_data: dict[str, Any] = {
             "storage": [{"id": "disk", "type": "local", "path": "/Volumes/disk"}],
