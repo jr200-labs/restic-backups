@@ -36,6 +36,39 @@ error_console = Console(stderr=True)
 ALL_REPOSITORIES = "__all_repositories__"
 
 
+def repository_disabled_reason(item: dict[str, Any]) -> str | None:
+    return config.repository_disabled_reason(item) or (
+        "not initialized" if item.get("_initialized") is False else None
+    )
+
+
+def repository_is_available(item: dict[str, Any]) -> bool:
+    return repository_disabled_reason(item) is None
+
+
+def probe_repository_initialization(
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+) -> None:
+    """Mark configured repositories whose Restic config object is missing."""
+    for item in repositories.values():
+        if config.repository_disabled_reason(item) is not None:
+            continue
+        storage_id = item.get("storage-id")
+        if storage_id not in storage:
+            continue
+        try:
+            backend = storage[storage_id]
+            initialized = (
+                local.is_initialized(item, backend)
+                if backend["type"] == "local"
+                else s3.is_initialized(item, backend)
+            )
+        except (BackupError, KeyError):
+            continue
+        item["_initialized"] = initialized
+
+
 def menu_choice(
     label: str, description: str, value: str, width: int = 23
 ) -> questionary.Choice:
@@ -49,7 +82,7 @@ def repository_choices(
     checked: str | None = None,
     disabled_reason: Callable[
         [dict[str, Any]], str | None
-    ] = config.repository_disabled_reason,
+    ] = repository_disabled_reason,
 ) -> list[questionary.Choice | questionary.Separator]:
     """Build repository choices with unavailable entries grouped consistently."""
     available: list[questionary.Choice | questionary.Separator] = []
@@ -550,7 +583,7 @@ def choose_backup(
     for item_id, item in backups.items():
         label = f"{item_id}  ({', '.join(config.job_repository_ids(item, item_id))})"
         if any(
-            config.repository_is_enabled(repositories[value])
+            repository_is_available(repositories[value])
             for value in config.job_repository_ids(item, item_id)
         ):
             choices.append(questionary.Choice(label, value=item_id))
@@ -586,7 +619,7 @@ def choose_repositories(
         enabled = [
             value
             for value in configured
-            if config.repository_is_enabled(repositories[value])
+            if repository_is_available(repositories[value])
         ]
         if not enabled:
             fail(f"backup job '{backup_id}' has no available repositories")
@@ -631,9 +664,7 @@ def choose_repository(
     if requested is not None:
         return choose_repositories(backup_id, [requested], repositories, backups)[0]
     enabled = [
-        value
-        for value in configured
-        if config.repository_is_enabled(repositories[value])
+        value for value in configured if repository_is_available(repositories[value])
     ]
     if not enabled:
         fail(f"backup job '{backup_id}' has no available repositories")
@@ -670,7 +701,7 @@ def show_repositories(
     store_table.add_column("State")
     for repository_id, restic_repository in repositories.items():
         backend = storage[restic_repository["storage-id"]]
-        reason = config.repository_disabled_reason(restic_repository)
+        reason = repository_disabled_reason(restic_repository)
         state = "enabled" if reason is None else reason
         store_table.add_row(
             Text(repository_id),
@@ -688,6 +719,7 @@ def repository_list_command() -> None:
     """Show configured restic repositories."""
     audit_command("repository", "list")
     _, storage, repositories, _ = validated()
+    probe_repository_initialization(storage, repositories)
     show_repositories(storage, repositories)
 
 
@@ -926,6 +958,7 @@ def prime_cache_command(
     """Download and validate repository metadata into its local cache."""
     _, storage, repositories, _ = validated()
     if repository_id is None:
+        probe_repository_initialization(storage, repositories)
         if not sys.stdin.isatty():
             fail("repository ID is required when stdin is not interactive")
         selected = select(
@@ -1178,6 +1211,7 @@ def prune_command(
     """Remove unused data and optionally repack repository files."""
     _, storage, repositories, _ = validated()
     if repository_id is None:
+        probe_repository_initialization(storage, repositories)
         if not sys.stdin.isatty():
             fail("repository ID is required when stdin is not interactive")
         selected = select(
@@ -1325,6 +1359,8 @@ def snapshots_command(
 ) -> None:
     """List snapshots for a configured backup."""
     _, storage, repositories, backups = validated()
+    if backup is None or repository_id is None:
+        probe_repository_initialization(storage, repositories)
     backup_id = choose_backup(backup, repositories, backups)
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     audit_command("snapshot", "list", backup_id, "--repository", repository_id)
@@ -1380,6 +1416,8 @@ def forget_command(
     if not sys.stdin.isatty():
         fail("forget requires an interactive terminal")
     _, storage, repositories, backups = validated()
+    if backup is None or repository_id is None:
+        probe_repository_initialization(storage, repositories)
     backup_id = choose_backup(backup, repositories, backups)
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     tag, snapshots = load_snapshots(
@@ -1467,6 +1505,7 @@ def destroy_command(
         fail("destroy requires an interactive terminal")
     _, storage, repositories, _ = validated()
     if repository_id is None:
+        probe_repository_initialization(storage, repositories)
         selected = select(
             "Repository to permanently destroy:",
             choices=repository_choices(
@@ -1476,9 +1515,11 @@ def destroy_command(
                     f"({repository.location(item, storage[item['storage-id']])})"
                 ),
                 disabled_reason=lambda item: (
-                    None
-                    if storage[item["storage-id"]].get("enabled", True)
-                    else "storage disabled"
+                    "storage disabled"
+                    if not storage[item["storage-id"]].get("enabled", True)
+                    else "not initialized"
+                    if item.get("_initialized") is False
+                    else None
                 ),
             )
             + [questionary.Separator(" ")],
@@ -1581,6 +1622,8 @@ def run_args(
     allow_dry_run: bool = False,
 ) -> None:
     _, storage, repositories, backups = validated()
+    if backup is None or repository_id is None:
+        probe_repository_initialization(storage, repositories)
     backup_id = choose_backup(backup, repositories, backups)
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
     if not args:

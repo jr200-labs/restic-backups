@@ -77,7 +77,7 @@ def choose_job(
     for item_id, job in jobs.items():
         description = f"[{job['type']}]  {str(job.get('description', '')).strip()}"
         available = any(
-            config.repository_is_enabled(repositories[value])
+            generic_cli.repository_is_available(repositories[value])
             for value in config.job_repository_ids(job, item_id)
         )
         if available:
@@ -146,7 +146,8 @@ def interactive_menu() -> None:
         elif selected == "help":
             generic_cli.print_typer_help(app, "restic-backups job")
         else:
-            _, _, repositories, jobs = validated()
+            _, storage, repositories, jobs = validated()
+            generic_cli.probe_repository_initialization(storage, repositories)
             try:
                 job_menu(choose_job(None, jobs, repositories))
             except typer.Abort:
@@ -168,6 +169,14 @@ def job_menu(job_id: str) -> None:
                     "github-restore",
                 )
             )
+        if job["type"] == "voice-memos":
+            choices.append(
+                menu_choice(
+                    "Tools",
+                    "Transcribe, diarize, restore, and inspect",
+                    "voice",
+                )
+            )
         choices.extend(
             [
                 menu_choice(
@@ -180,14 +189,6 @@ def job_menu(job_id: str) -> None:
         if job["type"] in {"github-owner", "github-repository"}:
             choices.append(
                 menu_choice("Data", "Show the managed GitHub workspace", "data-dir")
-            )
-        if job["type"] == "voice-memos":
-            choices.append(
-                menu_choice(
-                    "Tools",
-                    "Transcribe, diarize, restore, and inspect",
-                    "voice",
-                )
             )
         choices.extend(
             [
@@ -257,7 +258,8 @@ def source_summary(job: dict[str, Any]) -> str:
 @app.command("list")
 def list_command() -> None:
     """Show every configured job, regardless of type."""
-    _, _, repositories, jobs = validated()
+    _, storage, repositories, jobs = validated()
+    generic_cli.probe_repository_initialization(storage, repositories)
     table = Table(title="Jobs", box=box.ROUNDED)
     table.add_column("Job ID", style="cyan")
     table.add_column("Type")
@@ -268,7 +270,7 @@ def list_command() -> None:
     for job_id, job in jobs.items():
         repository_ids = config.job_repository_ids(job, job_id)
         enabled = sum(
-            config.repository_is_enabled(repositories[value])
+            generic_cli.repository_is_available(repositories[value])
             for value in repository_ids
         )
         table.add_row(
@@ -276,7 +278,7 @@ def list_command() -> None:
             job["type"],
             str(job.get("description", "—")),
             "\n".join(
-                f"{value}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[value])) else ''}"
+                f"{value}{f' ({reason})' if (reason := generic_cli.repository_disabled_reason(repositories[value])) else ''}"
                 for value in repository_ids
             ),
             source_summary(job),
@@ -299,6 +301,8 @@ def run_command(
 ) -> None:
     """Run any configured job type."""
     _, storage, repositories, jobs = validated()
+    if job is None or repository_ids is None:
+        generic_cli.probe_repository_initialization(storage, repositories)
     job_id = choose_job(job, jobs, repositories)
     selected = generic_cli.choose_repositories(
         job_id, repository_ids, repositories, jobs
@@ -400,6 +404,8 @@ def restore_command(
 ) -> None:
     """Restore one repository from a GitHub job snapshot."""
     _, storage, repositories, jobs = validated()
+    if job is None or repository_id is None:
+        generic_cli.probe_repository_initialization(storage, repositories)
     github_jobs = {
         job_id: item
         for job_id, item in jobs.items()
@@ -440,6 +446,7 @@ def data_dir_command(
 def status_command(job: str | None = typer.Argument(None)) -> None:
     """Show latest Restic snapshots for all jobs or one job."""
     _, storage, repositories, jobs = validated()
+    generic_cli.probe_repository_initialization(storage, repositories)
     selected_jobs = jobs
     if job is not None:
         job_id = choose_job(job, jobs, repositories)
@@ -463,8 +470,10 @@ def status_command(job: str | None = typer.Argument(None)) -> None:
             )
         for repository_id in config.job_repository_ids(item, job_id):
             snapshot_id = snapshot_time = "—"
-            if not config.repository_is_enabled(repositories[repository_id]):
-                snapshot_id = "disabled"
+            if not generic_cli.repository_is_available(repositories[repository_id]):
+                snapshot_id = str(
+                    generic_cli.repository_disabled_reason(repositories[repository_id])
+                )
             else:
                 try:
                     if repository_id not in snapshots_by_repository:
