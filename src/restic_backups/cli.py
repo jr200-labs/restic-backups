@@ -53,7 +53,7 @@ error_console = Console(stderr=True)
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
-    return tui_menu_choice(label, description, value, 21)
+    return tui_menu_choice(label, description, value, 12)
 
 
 @app.callback()

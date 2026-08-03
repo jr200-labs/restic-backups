@@ -34,9 +34,8 @@ def menu_choice(
     label: str,
     description: str,
     value: str,
-    width: int = 20,
+    width: int = 17,
     disabled: str | None = None,
-    reserve_disabled_prefix: bool = False,
 ) -> questionary.Choice:
     return tui_menu_choice(
         label,
@@ -44,7 +43,6 @@ def menu_choice(
         value,
         width,
         disabled=disabled,
-        reserve_disabled_prefix=reserve_disabled_prefix,
     )
 
 
@@ -77,36 +75,30 @@ def choose_job(
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
     width = max(20, max(map(len, jobs)))
+    choices: list[questionary.Choice | questionary.Separator] = []
+    for item_id, job in jobs.items():
+        description = f"[{job['type']}]  {str(job.get('description', '')).strip()}"
+        available = any(
+            config.repository_is_enabled(repositories[value])
+            for value in config.job_repository_ids(job, item_id)
+        )
+        if available:
+            choices.append(menu_choice(item_id, description, item_id, width))
+        else:
+            choices.append(
+                questionary.Separator(
+                    f"{item_id:<{width}}  {description}  (no available repositories)"
+                )
+            )
+    choices.extend(
+        [
+            menu_choice("Back", "Return to the Jobs menu", "back", width),
+            questionary.Separator(" "),
+        ]
+    )
     selected = select(
         "Job:",
-        choices=[
-            menu_choice(
-                job_id,
-                f"[{job['type']}]  {str(job.get('description', '')).strip()}",
-                job_id,
-                width,
-                disabled=(
-                    None
-                    if any(
-                        config.repository_is_enabled(repositories[value])
-                        for value in config.job_repository_ids(job, job_id)
-                    )
-                    else "no available repositories"
-                ),
-                reserve_disabled_prefix=True,
-            )
-            for job_id, job in jobs.items()
-        ]
-        + [
-            menu_choice(
-                "Back",
-                "Return to the Jobs menu",
-                "back",
-                width,
-                reserve_disabled_prefix=True,
-            )
-        ]
-        + [questionary.Separator(" ")],
+        choices=choices,
     ).unsafe_ask()
     if selected in {None, "back"}:
         raise typer.Abort()
@@ -127,13 +119,15 @@ def interactive_menu() -> None:
         selected = select(
             "Jobs:",
             choices=[
-                menu_choice("List jobs", "Show every configured job", "list"),
-                menu_choice("Status", "Show latest snapshots for every job", "status"),
+                menu_choice("List jobs", "Show every configured job", "list", 10),
                 menu_choice(
-                    "Select job", "Run or inspect one configured job", "select"
+                    "Status", "Show latest snapshots for every job", "status", 10
                 ),
-                menu_choice("Help", "Show job commands and flags", "help"),
-                menu_choice("Back", "Return to the top-level menu", "back"),
+                menu_choice(
+                    "Select job", "Run or inspect one configured job", "select", 10
+                ),
+                menu_choice("Help", "Show job commands and flags", "help", 10),
+                menu_choice("Back", "Return to the top-level menu", "back", 10),
                 questionary.Separator(" "),
             ],
         ).unsafe_ask()
@@ -185,7 +179,7 @@ def job_menu(job_id: str) -> None:
             ]
         )
         selected = select(
-            f"Job: {job_id} [{job['type']}]", choices=choices
+            f"Job {job_id} [{job['type']}]:", choices=choices
         ).unsafe_ask()
         if selected in {None, "back"}:
             return

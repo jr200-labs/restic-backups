@@ -1,6 +1,7 @@
 from unittest.mock import Mock, patch
 
 import pytest
+import questionary
 from prompt_toolkit.keys import Keys
 
 from restic_backups import cli
@@ -8,7 +9,11 @@ from restic_backups.generic.tui import TUI_STYLE, checkbox, menu_choice, select
 
 
 def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
-    question = select("Menu:", choices=["Item"])
+    with patch(
+        "restic_backups.generic.tui.questionary.select", wraps=questionary.select
+    ) as prompt:
+        question = select("Menu:", choices=["Item"])
+    assert prompt.call_args.kwargs["instruction"] == " "
     with patch.object(question, "unsafe_ask", return_value="Item"):
         assert question.unsafe_ask() == "Item"
 

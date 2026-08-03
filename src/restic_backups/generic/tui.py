@@ -15,6 +15,7 @@ TUI_STYLE = Style(
         ("control", "fg:ansiwhite bold"),
         ("disabled", "fg:ansibrightblack"),
         ("pointer", "fg:ansiwhite bold"),
+        ("separator", "fg:ansibrightblack"),
     ]
 )
 CONTROL_VALUES = {"back", "cancel", "exit", "help"}
@@ -27,9 +28,7 @@ def menu_choice(
     width: int,
     *,
     disabled: str | None = None,
-    reserve_disabled_prefix: bool = False,
 ) -> questionary.Choice:
-    prefix = "  " if reserve_disabled_prefix and disabled is None else ""
     label_style = (
         "class:disabled"
         if disabled
@@ -40,7 +39,7 @@ def menu_choice(
     description_style = "class:disabled" if disabled else ""
     return questionary.Choice(
         [
-            (label_style, f"{prefix}{label:<{width}}  "),
+            (label_style, f"{label:<{width}}  "),
             (description_style, description),
         ],
         value,
@@ -57,6 +56,7 @@ def checkbox(*args: Any, **kwargs: Any) -> Question:
 
 def select(*args: Any, **kwargs: Any) -> Question:
     """Create a selection prompt with Escape bound to back."""
+    kwargs.setdefault("instruction", " ")
     kwargs.setdefault("style", TUI_STYLE)
     question = questionary.select(*args, **kwargs)
     bindings = cast(KeyBindings, question.application.key_bindings)
