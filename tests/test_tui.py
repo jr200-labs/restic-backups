@@ -4,7 +4,7 @@ import pytest
 from prompt_toolkit.keys import Keys
 
 from restic_backups import cli
-from restic_backups.generic.tui import TUI_STYLE, menu_choice, select
+from restic_backups.generic.tui import TUI_STYLE, checkbox, menu_choice, select
 
 
 def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
@@ -44,3 +44,12 @@ def test_navigation_controls_and_pointer_are_white() -> None:
     assert data.title[0][0] == "fg:ansicyan bold"
     assert TUI_STYLE.get_attrs_for_style_str("class:control").color == "ansiwhite"
     assert TUI_STYLE.get_attrs_for_style_str("class:pointer").color == "ansiwhite"
+
+
+def test_checkbox_uses_concise_navigation_help() -> None:
+    with patch("restic_backups.generic.tui.questionary.checkbox") as prompt:
+        checkbox("Options:", choices=["Dry run"])
+
+    assert prompt.call_args.kwargs["instruction"] == (
+        "(Use arrow keys to move, <space> to select)"
+    )

@@ -59,13 +59,13 @@ class VoiceMemosCliTest(unittest.TestCase):
             self.assertEqual(workflow.SUMMARIES_DIR, path)
 
     def test_dry_run_is_a_spacebar_checkbox(self) -> None:
-        with patch("restic_backups.generic.cli.questionary.checkbox") as checkbox:
-            checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
+        with patch("restic_backups.generic.cli.checkbox") as prompt:
+            prompt.return_value.unsafe_ask.return_value = ["dry-run"]
 
             self.assertTrue(choose_dry_run())
 
-        self.assertIn("Space to toggle", checkbox.call_args.args[0])
-        self.assertEqual(checkbox.call_args.kwargs["choices"][0].value, "dry-run")
+        self.assertEqual(prompt.call_args.args[0], "Options:")
+        self.assertEqual(prompt.call_args.kwargs["choices"][0].value, "dry-run")
 
     def test_backup_repositories_are_explicit_unchecked_choices(self) -> None:
         repositories = {
@@ -75,7 +75,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         backups = {"documents": {"restic-repository-ids": ["first", "second"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
         ):
             checkbox.return_value.unsafe_ask.return_value = ["second"]
             selected = choose_repositories("documents", None, repositories, backups)
@@ -90,7 +90,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         jobs = {"documents": {"restic-repository-ids": ["only"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
         ):
             checkbox.return_value.unsafe_ask.return_value = ["only"]
             selected = choose_repositories("documents", None, repositories, jobs)
@@ -106,7 +106,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         jobs = {"documents": {"restic-repository-ids": ["available", "offline"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
         ):
             checkbox.return_value.unsafe_ask.return_value = ["available"]
             selected = choose_repositories("documents", None, repositories, jobs)
@@ -154,7 +154,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         jobs = {"documents": {"restic-repository-ids": ["disabled"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
             self.assertRaises(typer.Exit) as raised,
         ):
             choose_repositories("documents", None, repositories, jobs)

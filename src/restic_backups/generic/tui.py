@@ -48,6 +48,13 @@ def menu_choice(
     )
 
 
+def checkbox(*args: Any, **kwargs: Any) -> Question:
+    """Create a checkbox with concise, consistent navigation help."""
+    kwargs.setdefault("instruction", "(Use arrow keys to move, <space> to select)")
+    kwargs.setdefault("style", TUI_STYLE)
+    return questionary.checkbox(*args, **kwargs)
+
+
 def select(*args: Any, **kwargs: Any) -> Question:
     """Create a selection prompt with Escape bound to back."""
     kwargs.setdefault("style", TUI_STYLE)

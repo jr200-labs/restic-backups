@@ -18,7 +18,7 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import local, repository, restic, s3, sops
-from .tui import TUI_STYLE, select
+from .tui import checkbox, select
 from .tui import menu_choice as tui_menu_choice
 
 app = typer.Typer(
@@ -46,8 +46,8 @@ def menu_choice(
 
 
 def choose_dry_run() -> bool:
-    selected = questionary.checkbox(
-        "Options (Space to toggle, Enter to continue):",
+    selected = checkbox(
+        "Options:",
         choices=[
             menu_choice("Dry run", "Show what would happen without writing", "dry-run"),
             questionary.Separator(" "),
@@ -497,9 +497,8 @@ def choose_repositories(
         ]
         if not enabled:
             fail(f"backup job '{backup_id}' has no available repositories")
-        selected = questionary.checkbox(
-            "Repositories (Space to toggle, Enter to continue):",
-            style=TUI_STYLE,
+        selected = checkbox(
+            "Repositories:",
             choices=[
                 questionary.Choice(
                     f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",
