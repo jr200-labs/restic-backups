@@ -11,6 +11,28 @@
     ]
   },
   {
+    "objectID": "configuration.html#logging",
+    "href": "configuration.html#logging",
+    "title": "Configuration",
+    "section": "Logging",
+    "text": "Logging\nrestic-backups uses the standard Python logging framework and writes logs to stderr. Each entry includes a local ISO 8601 timestamp, level, logger name, and message:\n2026-08-03T11:44:44+0900 INFO     restic_backups.github_repository.workflow: github-org-example: discovered 18 GitHub repositories\nThe default level for application loggers is INFO. Pass the global --verbose option before the subcommand, or set RESTIC_BACKUPS_VERBOSE=1, to include DEBUG entries such as the Restic command being executed:\nuv run restic-backups --verbose job run documents\n\nexport RESTIC_BACKUPS_VERBOSE=1\nuv run restic-backups job run documents\nUser-facing Restic stdout and stderr are routed through the same logger, so Restic output also receives timestamps and levels. Machine-readable internal calls remain quiet unless they fail. Credentials and repository passwords are not included in application log messages.",
+    "crumbs": [
+      "Setup",
+      "Configuration"
+    ]
+  },
+  {
+    "objectID": "configuration.html#prometheus",
+    "href": "configuration.html#prometheus",
+    "title": "Configuration",
+    "section": "Prometheus",
+    "text": "Prometheus\nJob metrics are disabled by default. To enable them, deploy a Prometheus Pushgateway and set its URL in the process that runs restic-backups:\nexport RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091\nuv run restic-backups job run documents\nThis environment variable is sufficient; Prometheus settings do not belong in config.yaml or config.sops.yaml. Every completed job run pushes these gauges:\n\n\n\n\n\n\n\nMetric\nMeaning\n\n\n\n\nrestic_backups_job_last_run_timestamp_seconds\nCompletion time\n\n\nrestic_backups_job_last_run_duration_seconds\nRun duration\n\n\nrestic_backups_job_last_run_success\nOverall result (1 or 0)\n\n\nrestic_backups_job_repository_success\nResult for each destination (1 or 0)\n\n\n\nMetrics are grouped by hostname and job ID. They also carry job_type and dry_run labels; the repository result additionally carries repository_id. Each push replaces the previous values for the same hostname and job ID. A Pushgateway connection failure is logged after a five-second timeout and does not change the backup result.\nPrometheus must scrape the Pushgateway separately. For example:\nscrape_configs:\n  - job_name: pushgateway\n    honor_labels: true\n    static_configs:\n      - targets:\n          - pushgateway:9091",
+    "crumbs": [
+      "Setup",
+      "Configuration"
+    ]
+  },
+  {
     "objectID": "configuration.html#storage",
     "href": "configuration.html#storage",
     "title": "Configuration",
@@ -633,7 +655,18 @@
     "href": "cli.html",
     "title": "CLI",
     "section": "",
-    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Jobs, Repositories, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use colored, level-aware stderr logging for configuration and operation progress. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:",
+    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Jobs, Repositories, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use standard Python stderr logging with local ISO 8601 timestamps, levels, and logger names. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:\nUser-facing Restic stdout and stderr use the same logger, so repository output also carries timestamps and levels. Machine-readable internal calls remain quiet unless they fail. See Logging configuration for the complete behavior and example output.",
+    "crumbs": [
+      "Setup",
+      "CLI"
+    ]
+  },
+  {
+    "objectID": "cli.html#prometheus-metrics",
+    "href": "cli.html#prometheus-metrics",
+    "title": "CLI",
+    "section": "Prometheus metrics",
+    "text": "Prometheus metrics\nJobs can push their latest result to a Prometheus Pushgateway. Set its URL before running a job:\nexport RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091\nuv run restic-backups job run photos\nMetrics are disabled when the environment variable is unset. See Prometheus configuration for metric names, labels, Pushgateway behavior, and a Prometheus scrape example.",
     "crumbs": [
       "Setup",
       "CLI"
