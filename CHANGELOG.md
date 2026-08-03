@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.9](https://github.com/jr200-labs/restic-backups/compare/v0.1.8...v0.1.9) (2026-08-03)
+
+
+### Features
+
+* restore GitHub repositories ([#40](https://github.com/jr200-labs/restic-backups/issues/40)) ([30d54b1](https://github.com/jr200-labs/restic-backups/commit/30d54b1430352c8837d5f72bf584b6708721b6a4))
+
 ## [0.1.8](https://github.com/jr200-labs/restic-backups/compare/v0.1.7...v0.1.8) (2026-08-03)
 
 
