@@ -18,7 +18,8 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import local, repository, restic, s3, sops
-from .tui import DISABLED_STYLE, select
+from .tui import TUI_STYLE, select
+from .tui import menu_choice as tui_menu_choice
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
@@ -41,9 +42,7 @@ ALL_REPOSITORIES = "__all_repositories__"
 def menu_choice(
     label: str, description: str, value: str, width: int = 23
 ) -> questionary.Choice:
-    return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
-    )
+    return tui_menu_choice(label, description, value, width)
 
 
 def choose_dry_run() -> bool:
@@ -500,7 +499,7 @@ def choose_repositories(
             fail(f"backup job '{backup_id}' has no available repositories")
         selected = questionary.checkbox(
             "Repositories (Space to toggle, Enter to continue):",
-            style=DISABLED_STYLE,
+            style=TUI_STYLE,
             choices=[
                 questionary.Choice(
                     f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",

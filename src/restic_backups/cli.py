@@ -20,6 +20,7 @@ from .errors import BackupError
 from .generic import cli as generic_cli
 from .generic import repository
 from .generic import sops as sops_module
+from .generic.tui import menu_choice as tui_menu_choice
 from .generic.tui import select
 from .github_repository import cli as github_repository_cli
 from .jobs import cli as jobs_cli
@@ -52,9 +53,7 @@ error_console = Console(stderr=True)
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
-    return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<21}"), ("", description)], value
-    )
+    return tui_menu_choice(label, description, value, 21)
 
 
 @app.callback()

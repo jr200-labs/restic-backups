@@ -18,6 +18,7 @@ from .. import audit, config
 from ..errors import BackupError
 from ..generic import cli as generic_cli
 from ..generic import restic
+from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
 from ..github_repository import workflow as github_workflow
 from . import workflow
@@ -37,16 +38,13 @@ def menu_choice(
     disabled: str | None = None,
     reserve_disabled_prefix: bool = False,
 ) -> questionary.Choice:
-    prefix = "  " if reserve_disabled_prefix and disabled is None else ""
-    label_style = "class:disabled" if disabled else "fg:ansicyan bold"
-    description_style = "class:disabled" if disabled else ""
-    return questionary.Choice(
-        [
-            (label_style, f"{prefix}{label:<{width}}  "),
-            (description_style, description),
-        ],
+    return tui_menu_choice(
+        label,
+        description,
         value,
+        width,
         disabled=disabled,
+        reserve_disabled_prefix=reserve_disabled_prefix,
     )
 
 

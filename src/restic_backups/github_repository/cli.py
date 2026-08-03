@@ -17,6 +17,7 @@ from .. import config
 from ..errors import BackupError
 from ..generic import restic
 from ..generic.cli import choose_dry_run, print_typer_help
+from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
 from . import workflow
 
@@ -30,9 +31,7 @@ error_console = Console(stderr=True)
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
-    return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<18}"), ("", description)], value
-    )
+    return tui_menu_choice(label, description, value, 18)
 
 
 def fail(message: str) -> NoReturn:

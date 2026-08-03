@@ -4,7 +4,7 @@ import pytest
 from prompt_toolkit.keys import Keys
 
 from restic_backups import cli
-from restic_backups.generic.tui import DISABLED_STYLE, select
+from restic_backups.generic.tui import TUI_STYLE, menu_choice, select
 
 
 def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
@@ -29,6 +29,18 @@ def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
 
 
 def test_disabled_choices_are_grey() -> None:
-    attrs = DISABLED_STYLE.get_attrs_for_style_str("class:disabled")
+    attrs = TUI_STYLE.get_attrs_for_style_str("class:disabled")
 
     assert attrs.color == "ansibrightblack"
+
+
+def test_navigation_controls_and_pointer_are_white() -> None:
+    control = menu_choice("Back", "Return", "back", 10)
+    data = menu_choice("Repository", "Select data", "repository", 10)
+
+    assert isinstance(control.title, list)
+    assert isinstance(data.title, list)
+    assert control.title[0][0] == "class:control"
+    assert data.title[0][0] == "fg:ansicyan bold"
+    assert TUI_STYLE.get_attrs_for_style_str("class:control").color == "ansiwhite"
+    assert TUI_STYLE.get_attrs_for_style_str("class:pointer").color == "ansiwhite"
