@@ -308,7 +308,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 
 <p>On an interactive laptop, omit <code>authentication</code>. GitHub API commands then use the current <code>gh auth login</code> session, while clone operations use the normal Git credential helper or SSH agent. Configure explicit secret sources only when those credentials are unavailable, such as in a container or Kubernetes CronJob.</p>
-<p>Every secret source contains exactly one <code>env</code> or <code>file</code> key. It is read again on every run, so rotated secrets are picked up without changing the backup configuration. Secret values are not placed in command arguments, logs, manifests, or the audit log.</p>
+<p>Every secret source is a SOPS-encrypted string or contains exactly one <code>env</code> or <code>file</code> key. Referenced environment variables and files are read again on every run, so rotated secrets are picked up without changing the backup configuration. Secret values are not placed in command arguments, logs, manifests, or the audit log.</p>
 <section id="ssh" class="level2">
 <h2 class="anchored" data-anchor-id="ssh">SSH</h2>
 <p>For SSH clone URLs, omit <code>authentication.git</code> to use the existing SSH agent and configuration, or configure both a private key and pinned <code>known_hosts</code> file:</p>
