@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.10](https://github.com/jr200-labs/restic-backups/compare/v0.1.9...v0.1.10) (2026-08-03)
+
+
+### Bug Fixes
+
+* validate required checkbox selections ([#43](https://github.com/jr200-labs/restic-backups/issues/43)) ([b073d0e](https://github.com/jr200-labs/restic-backups/commit/b073d0e57d7068d3cec6ea952c7fec8fe87700da))
+
 ## [0.1.9](https://github.com/jr200-labs/restic-backups/compare/v0.1.8...v0.1.9) (2026-08-03)
 
 
