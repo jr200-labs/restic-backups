@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.8](https://github.com/jr200-labs/restic-backups/compare/v0.1.7...v0.1.8) (2026-08-03)
+
+
+### Features
+
+* add job logging and Prometheus metrics ([#38](https://github.com/jr200-labs/restic-backups/issues/38)) ([2a89d28](https://github.com/jr200-labs/restic-backups/commit/2a89d28bf288f19333b5cd4f6987f0219f0eebad))
+* support disabled storage and unavailable jobs ([#37](https://github.com/jr200-labs/restic-backups/issues/37)) ([7683930](https://github.com/jr200-labs/restic-backups/commit/7683930d38395ca0b509f46168578885c1d44d7c))
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#35](https://github.com/jr200-labs/restic-backups/issues/35)) ([f2e7915](https://github.com/jr200-labs/restic-backups/commit/f2e7915a69aa55bbec8a24f8a1b66e81c7386cd0))
+
 ## [0.1.7](https://github.com/jr200-labs/restic-backups/compare/v0.1.6...v0.1.7) (2026-08-02)
 
 
