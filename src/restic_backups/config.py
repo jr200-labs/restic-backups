@@ -81,6 +81,18 @@ def job_repository_ids(job: dict[str, Any], job_id: str) -> list[str]:
 backup_repository_ids = job_repository_ids
 
 
+def repository_is_enabled(repository: dict[str, Any]) -> bool:
+    return bool(repository["enabled"] and repository.get("_storage-enabled", True))
+
+
+def repository_disabled_reason(repository: dict[str, Any]) -> str | None:
+    if not repository["enabled"]:
+        return "repository disabled"
+    if not repository.get("_storage-enabled", True):
+        return "storage disabled"
+    return None
+
+
 def credential_source(value: Any, owner: str) -> None:
     if not isinstance(value, dict) or set(value) not in ({"env"}, {"file"}):
         raise ConfigError(f"{owner} must contain exactly one of env or file")
@@ -302,6 +314,9 @@ def validate(
     jobs = indexed_jobs(config)
 
     for storage_id, item in storage.items():
+        item["enabled"] = item.get("enabled", True)
+        if not isinstance(item["enabled"], bool):
+            raise ConfigError(f"{storage_id}.enabled must be true or false")
         storage_type = required_text(item, "type", storage_id)
         if storage_type == "s3":
             required_text(item, "endpoint", storage_id)
@@ -327,6 +342,7 @@ def validate(
             )
         if not isinstance(item.get("enabled"), bool):
             raise ConfigError(f"{repository_id}.enabled must be true or false")
+        item["_storage-enabled"] = backend["enabled"]
         required_text(item, "password", repository_id)
         if "cache-dir" in item:
             required_text(item, "cache-dir", repository_id)
@@ -345,7 +361,7 @@ def validate(
                 or ".." in repository_path.parts
             ):
                 raise ConfigError(f"{repository_id}.path must be a safe relative path")
-        if check_placeholders and item["enabled"]:
+        if check_placeholders and repository_is_enabled(item):
             ensure_repository_ready(item, backend)
 
         archive = item.get("archive")
@@ -416,6 +432,8 @@ def ensure_repository_ready(
     restic_repository: dict[str, Any], storage: dict[str, Any]
 ) -> None:
     """Reject placeholders only when this repository is about to be used."""
+    if not storage.get("enabled", True):
+        raise ConfigError(f"storage '{storage['id']}' is disabled")
     values = [str(restic_repository["password"])]
     if storage["type"] == "s3":
         values = [

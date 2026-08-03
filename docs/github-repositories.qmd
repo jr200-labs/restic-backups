@@ -215,7 +215,7 @@ Use `restic ls` to browse files in a snapshot. The different `restic list`
 command lists internal repository objects and requires an object type such as
 `packs`, `snapshots`, or `keys`; it does not list configured backup jobs.
 
-The TUI preselects a sole enabled destination. With several destinations, all
+The TUI preselects a sole available destination. With several destinations, all
 start unchecked and must be selected with Space. An explicit-list dry run
 validates the plan without calling Git, GitHub, or restic and without writing
 the workspace. An owner dry run first contacts GitHub read-only to discover the

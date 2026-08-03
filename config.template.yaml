@@ -7,6 +7,8 @@ storage:
     - id: backblaze-b2
       # Optional user note; does not affect backup behavior.
       description: Backblaze B2 S3-compatible storage.
+      # Set false to keep this storage visible while disabling its repositories.
+      enabled: true
       type: s3
       endpoint: CHANGE_ME # For example: https://s3.us-west-004.backblazeb2.com
       region: CHANGE_ME
@@ -16,6 +18,7 @@ storage:
 
     - id: aws-s3
       description: AWS S3 storage.
+      enabled: false
       type: s3
       endpoint: https://s3.us-east-1.amazonaws.com
       region: us-east-1
@@ -25,6 +28,7 @@ storage:
 
     - id: external-disk
       description: Mounted external backup disk.
+      enabled: false
       type: local
       # Must be absolute. Commands fail if this directory is not mounted.
       path: /Volumes/CHANGE_ME

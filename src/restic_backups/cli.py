@@ -19,6 +19,7 @@ from .errors import BackupError
 from .generic import cli as generic_cli
 from .generic import repository
 from .generic import sops as sops_module
+from .generic.tui import menu_choice as tui_menu_choice
 from .generic.tui import select
 from .github_repository import cli as github_repository_cli
 from .jobs import cli as jobs_cli
@@ -51,9 +52,7 @@ error_console = Console(stderr=True)
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
-    return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<21}"), ("", description)], value
-    )
+    return tui_menu_choice(label, description, value, 12)
 
 
 @app.callback()
@@ -230,7 +229,7 @@ def prepare_voice_memos() -> None:
         repository_id = next(
             value
             for value in config_module.job_repository_ids(jobs[job_id], job_id)
-            if repositories[value]["enabled"]
+            if config_module.repository_is_enabled(repositories[value])
         )
         restic_repository, backend = repository.resolve(
             job_id, storage, repositories, jobs, repository_id

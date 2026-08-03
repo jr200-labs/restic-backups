@@ -26,7 +26,8 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 Commands that accept `[JOB_ID]` prompt when it is omitted in an interactive
 terminal. Repository-specific operations also prompt when a job has several
-enabled repositories. Non-interactive callers must provide the job ID and
+available repositories. A repository on disabled storage remains visible but
+cannot be selected. Non-interactive callers must provide the job ID and
 repository ID explicitly.
 
 Running `restic-backups generic` without a subcommand in an interactive terminal
@@ -136,8 +137,8 @@ jobs:
 uv run restic-backups job run documents
 ```
 
-The TUI preselects a sole enabled repository. When several are available, none
-start selected; use Space to select one or more, then Enter to run. From a
+The TUI preselects a sole available repository. When several are available,
+none start selected; use Space to select one or more, then Enter to run. From a
 non-interactive shell, repeat `--repository` explicitly:
 
 ```sh

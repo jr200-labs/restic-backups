@@ -13,6 +13,7 @@ import questionary
 from .. import audit, config
 from ..errors import BackupError
 from ..generic import sops
+from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
 from . import parallel, pipeline, workflow
 
@@ -20,9 +21,7 @@ from . import parallel, pipeline, workflow
 def menu_choice(
     label: str, description: str, value: str, width: int = 21
 ) -> questionary.Choice:
-    return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
-    )
+    return tui_menu_choice(label, description, value, width)
 
 
 def operation(action: Callable[[], int | None]) -> None:

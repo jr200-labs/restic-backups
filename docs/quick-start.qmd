@@ -25,14 +25,14 @@ cp config.template.yaml config.yaml
 
 Edit its first storage, restic repository, and job entries:
 
-- replace every `CHANGE_ME` used by the enabled repository;
+- replace every `CHANGE_ME` used by the available repository;
 - configure either S3 storage and credentials or an absolute local storage path;
 - configure the repository bucket and `key_prefix` for S3, or relative `path`
   for local storage;
 - give the backup job a useful `job-id` such as `documents`;
 - use `type: files` and list local files or directories under `source.paths`;
 - omit `tag` unless it should differ from the job ID;
-- list one or more enabled repository IDs under `restic-repository-ids`;
+- list one or more available repository IDs under `restic-repository-ids`;
 - delete unused example entries if desired.
 
 Keep the repository password safe: restic cannot decrypt snapshots without it.
@@ -67,9 +67,10 @@ uv run restic-backups generic snapshot list documents
 
 Running `generic repository init` again is safe: an existing repository is
 detected and skipped. Omit the repository ID to choose interactively, or pass
-`--all` to initialize every enabled repository. `job run` preselects a sole
-enabled destination; when several are available, use Space to choose one or
-more. The job's paths and default or configured tag are used
+`--all` to initialize every available repository. `job run` preselects a sole
+available destination; when several are available, use Space to choose one or
+more. Disabled storage and its repositories remain visible but unselectable.
+The job's paths and default or configured tag are used
 for every selected repository.
 
 ## 4. Verify a restore

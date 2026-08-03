@@ -25,6 +25,7 @@ from restic_backups.generic.cli import (
     run_args,
 )
 from restic_backups.generic.cli import menu as generic_menu
+from restic_backups.jobs.cli import choose_job
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
 
@@ -58,13 +59,13 @@ class VoiceMemosCliTest(unittest.TestCase):
             self.assertEqual(workflow.SUMMARIES_DIR, path)
 
     def test_dry_run_is_a_spacebar_checkbox(self) -> None:
-        with patch("restic_backups.generic.cli.questionary.checkbox") as checkbox:
-            checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
+        with patch("restic_backups.generic.cli.checkbox") as prompt:
+            prompt.return_value.unsafe_ask.return_value = ["dry-run"]
 
             self.assertTrue(choose_dry_run())
 
-        self.assertIn("Space to toggle", checkbox.call_args.args[0])
-        self.assertEqual(checkbox.call_args.kwargs["choices"][0].value, "dry-run")
+        self.assertEqual(prompt.call_args.args[0], "Options:")
+        self.assertEqual(prompt.call_args.kwargs["choices"][0].value, "dry-run")
 
     def test_backup_repositories_are_explicit_unchecked_choices(self) -> None:
         repositories = {
@@ -74,7 +75,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         backups = {"documents": {"restic-repository-ids": ["first", "second"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
         ):
             checkbox.return_value.unsafe_ask.return_value = ["second"]
             selected = choose_repositories("documents", None, repositories, backups)
@@ -89,13 +90,73 @@ class VoiceMemosCliTest(unittest.TestCase):
         jobs = {"documents": {"restic-repository-ids": ["only"]}}
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
-            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
         ):
             checkbox.return_value.unsafe_ask.return_value = ["only"]
             selected = choose_repositories("documents", None, repositories, jobs)
 
         self.assertEqual(selected, ["only"])
         self.assertTrue(checkbox.call_args.kwargs["choices"][0].checked)
+
+    def test_storage_disabled_repository_is_visible_but_unselectable(self) -> None:
+        repositories = {
+            "available": {"enabled": True},
+            "offline": {"enabled": True, "_storage-enabled": False},
+        }
+        jobs = {"documents": {"restic-repository-ids": ["available", "offline"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["available"]
+            selected = choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(selected, ["available"])
+        choices = checkbox.call_args.kwargs["choices"][:-1]
+        self.assertTrue(choices[0].checked)
+        self.assertEqual(choices[1].disabled, "storage disabled")
+        self.assertIn("storage disabled", choice_title(choices[1]))
+
+    def test_job_without_available_repositories_is_visible_but_disabled(self) -> None:
+        repositories = {
+            "available": {"enabled": True},
+            "offline": {"enabled": True, "_storage-enabled": False},
+        }
+        jobs = {
+            "active": {
+                "type": "files",
+                "description": "Active job.\n",
+                "restic-repository-ids": ["available"],
+            },
+            "offline": {"type": "files", "restic-repository-ids": ["offline"]},
+        }
+        with (
+            patch("restic_backups.jobs.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.jobs.cli.select") as select,
+        ):
+            select.return_value.unsafe_ask.return_value = "active"
+            selected = choose_job(None, jobs, repositories)
+
+        self.assertEqual(selected, "active")
+        choices = select.call_args.kwargs["choices"]
+        self.assertNotIn("\n", choice_title(choices[0]))
+        self.assertTrue(choices[0].title[0][1].endswith("  "))
+        self.assertIsInstance(choices[1], questionary.Separator)
+        self.assertIn("offline", choice_title(choices[1]))
+        self.assertIn("no available repositories", choice_title(choices[1]))
+
+    def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
+        repositories = {"disabled": {"enabled": False}}
+        jobs = {"documents": {"restic-repository-ids": ["disabled"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
+            self.assertRaises(typer.Exit) as raised,
+        ):
+            choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(raised.exception.exit_code, 1)
+        checkbox.assert_not_called()
 
     def test_root_and_generic_help_expose_subcommands(self) -> None:
         runner = CliRunner()
@@ -977,10 +1038,16 @@ backups:
             "enabled": True,
             "storage-id": "storage",
         }
+        offline_repository = {
+            "id": "offline",
+            "enabled": True,
+            "_storage-enabled": False,
+            "storage-id": "storage",
+        }
         validated.return_value = (
             {},
             {"storage": storage},
-            {"store": restic_repository},
+            {"store": restic_repository, "offline": offline_repository},
             {},
         )
         select.return_value.unsafe_ask.return_value = "store"
@@ -989,6 +1056,7 @@ backups:
 
         choices = select.call_args.kwargs["choices"]
         self.assertEqual(choice_title(choices[0]), "All repositories")
+        self.assertEqual(choices[2].disabled, "storage disabled")
         command.assert_called_once_with(
             restic_repository, storage, ["cat", "config"], quiet=True
         )
