@@ -21,6 +21,7 @@ from restic_backups.generic.cli import (
     destroy_command,
     forget_command,
     init_command,
+    probe_repository_initialization,
     repository_menu,
     restic_menu,
     run_args,
@@ -95,6 +96,25 @@ class VoiceMemosCliTest(unittest.TestCase):
         snapshots.assert_called_once_with("github")
         data_dir.assert_called_once_with("github")
         self.assertEqual(select.call_count, 4)
+
+        prompt.unsafe_ask.side_effect = ["back"]
+        with (
+            patch("restic_backups.jobs.cli.select", return_value=prompt) as select,
+            patch(
+                "restic_backups.jobs.cli.validated",
+                return_value=({}, {}, {}, {"memos": {"type": "voice-memos"}}),
+            ),
+        ):
+            jobs_cli.job_menu("memos")
+
+        voice_values = [
+            choice.value
+            for choice in select.call_args.kwargs["choices"]
+            if isinstance(choice, questionary.Choice)
+        ]
+        self.assertEqual(
+            voice_values[:5], ["run", "voice", "status", "snapshots", "restic"]
+        )
 
     def test_voice_memos_uses_configured_summary_directory(self) -> None:
         from restic_backups.voice_memos import pipeline, workflow
@@ -184,6 +204,39 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertIn("offline", choice_title(choices[2]))
         self.assertIn("(storage disabled)", choice_title(choices[2]))
         self.assertEqual(set(choice_title(choices[3])), {"─"})
+
+    def test_uninitialized_repository_is_visible_but_unselectable(self) -> None:
+        repositories = {
+            "ready": {"enabled": True},
+            "new": {"enabled": True, "_initialized": False},
+        }
+        jobs = {"documents": {"restic-repository-ids": ["ready", "new"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["ready"]
+            selected = choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(selected, ["ready"])
+        choices = checkbox.call_args.kwargs["choices"][:-1]
+        self.assertIn("new", choice_title(choices[2]))
+        self.assertIn("(not initialized)", choice_title(choices[2]))
+
+    def test_repository_initialization_probe_marks_missing_config(self) -> None:
+        storage = {"s3": {"type": "s3"}}
+        repositories = {
+            "ready": {"enabled": True, "storage-id": "s3"},
+            "new": {"enabled": True, "storage-id": "s3"},
+        }
+        with patch(
+            "restic_backups.generic.cli.s3.is_initialized",
+            side_effect=[True, False],
+        ):
+            probe_repository_initialization(storage, repositories)
+
+        self.assertTrue(repositories["ready"]["_initialized"])
+        self.assertFalse(repositories["new"]["_initialized"])
 
     def test_job_without_available_repositories_is_visible_but_disabled(self) -> None:
         repositories = {
@@ -1294,6 +1347,7 @@ jobs:
             "id": "store",
             "enabled": True,
             "storage-id": "storage",
+            "_initialized": False,
         }
         offline_repository = {
             "id": "offline",
@@ -1313,6 +1367,7 @@ jobs:
 
         choices = select.call_args.kwargs["choices"]
         self.assertEqual(choice_title(choices[0]), "All uninitialized repositories")
+        self.assertEqual(choices[1].value, "store")
         self.assertIn("─ Disabled repositories ─", choice_title(choices[2]))
         self.assertIn("offline", choice_title(choices[3]))
         self.assertIn("(storage disabled)", choice_title(choices[3]))

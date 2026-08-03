@@ -4,12 +4,32 @@ import unittest
 from unittest.mock import patch
 
 import typer
+from botocore.exceptions import ClientError  # type: ignore[import-untyped]
 
 from restic_backups.errors import BackupError
 from restic_backups.generic import cli, s3
 
 
 class S3DeletionTest(unittest.TestCase):
+    @patch("restic_backups.generic.s3.boto3.client")
+    def test_initialized_checks_restic_config_object(self, client) -> None:
+        storage = {
+            "endpoint": "https://s3.example.com",
+            "region": "region",
+            "credentials": {"access-key-id": "key", "secret-access-key": "secret"},
+        }
+        repository = {"id": "repo", "bucket": "bucket", "key_prefix": "restic/repo"}
+
+        self.assertTrue(s3.is_initialized(repository, storage))
+        client.return_value.head_object.assert_called_once_with(
+            Bucket="bucket", Key="restic/repo/config"
+        )
+
+        client.return_value.head_object.side_effect = ClientError(
+            {"Error": {"Code": "404", "Message": "missing"}}, "HeadObject"
+        )
+        self.assertFalse(s3.is_initialized(repository, storage))
+
     @patch("restic_backups.generic.s3.boto3.client")
     def test_delete_repository_removes_versions_markers_and_objects(
         self, client

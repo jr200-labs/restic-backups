@@ -55,7 +55,9 @@ def audit_command(*args: str) -> None:
 def choose_repository(requested: str | None = None) -> str:
     """Select one configured repository for a Voice Memos Restic command."""
     try:
-        _, _, repositories, jobs = config.load_validated()
+        _, storage, repositories, jobs = config.load_validated()
+        if requested is None:
+            generic_cli.probe_repository_initialization(storage, repositories)
         selected_job = workflow.job_id(jobs)
         return generic_cli.choose_repository(
             selected_job, requested, repositories, jobs

@@ -9,6 +9,11 @@ from ..errors import BackupError
 from . import repository
 
 
+def is_initialized(restic_repository: dict[str, Any], storage: dict[str, Any]) -> bool:
+    """Return whether the local repository has a Restic config file."""
+    return (repository.local_path(restic_repository, storage) / "config").is_file()
+
+
 def delete_repository(
     restic_repository: dict[str, Any], storage: dict[str, Any]
 ) -> int:

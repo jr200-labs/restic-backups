@@ -12,7 +12,7 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 
 | Group | Command | Purpose | Repository access |
 |---|---|---|---|
-| Repository | `generic repository list` | Show configured repositories | No |
+| Repository | `generic repository list` | Show configured repositories | Read-only |
 | Repository | `generic repository init [REPOSITORY] [--all] [--from-repository SOURCE] [--copy-all-snapshots | --copy-snapshot ID...] [--dry-run]` | Initialize new repositories | Yes |
 | Repository | `generic repository prime-cache [REPOSITORY]` | Cache and validate repository metadata | Yes |
 | Repository | `generic repository copy SOURCE DESTINATION [SNAPSHOT_ID...] [--dry-run]` | Copy snapshots between repositories | Yes |
@@ -27,8 +27,11 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 Commands that accept `[JOB_ID]` prompt when it is omitted in an interactive
 terminal. Repository-specific operations also prompt when a job has several
 available repositories. A repository on disabled storage remains visible but
-cannot be selected. Non-interactive callers must provide the job ID and
-repository ID explicitly.
+cannot be selected. An uninitialized repository is likewise shown in the grey
+disabled section everywhere except the initialization picker. The UI checks for
+the Restic `config` file locally or with an S3 metadata request; it does not
+download repository contents. Non-interactive callers must provide the job ID
+and repository ID explicitly.
 
 The top-level TUI provides described menus for repositories, jobs, snapshots,
 and advanced restic commands. **Advanced restic** reads the installed restic

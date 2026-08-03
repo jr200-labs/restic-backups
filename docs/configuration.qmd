@@ -193,10 +193,12 @@ irrecoverable.
 
 Disabled repositories, and repositories whose storage is disabled, are ignored
 by commands and may retain `CHANGE_ME` placeholders. `check-config` checks every
-available repository and reports any remaining placeholders. Operational
-commands check only the selected repository immediately before using it, so an
-unfinished repository or storage entry does not prevent a different configured
-repository from being listed, initialized, or accessed.
+available repository and reports any remaining placeholders. Interactive
+repository pickers make an inexpensive initialization check before displaying
+their choices. Uninitialized repositories remain visible as disabled and
+cannot be selected; the initialization picker is the exception. The check looks
+only for Restic's `config` file, using an S3 metadata request for remote storage,
+and does not retrieve backup data.
 
 `cache-dir` optionally selects restic's local cache for this repository. `~` is
 expanded, and a relative path is resolved beside the selected config file. If
@@ -241,7 +243,8 @@ paths remain relative to the directory where the command is run.
 When a job has one available repository, it starts selected in the TUI. When it
 has several, all start deselected and one or more must be selected with Space.
 Repositories on disabled storage remain visible with a `storage disabled`
-label but cannot be selected.
+label but cannot be selected. Uninitialized repositories behave the same way
+with a `not initialized` label until they are initialized.
 Non-interactive commands must repeat `--repository` for every
 destination. Each repository remains independent and receives its own restic
 snapshot.

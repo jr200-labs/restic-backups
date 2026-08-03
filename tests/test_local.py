@@ -6,6 +6,16 @@ from restic_backups.errors import BackupError
 from restic_backups.generic import local
 
 
+def test_local_initialized_checks_restic_config_file(tmp_path: Path) -> None:
+    storage = {"id": "disk", "type": "local", "path": str(tmp_path)}
+    repository = {"id": "repo", "path": "restic/repo"}
+
+    assert not local.is_initialized(repository, storage)
+    (tmp_path / "restic/repo").mkdir(parents=True)
+    (tmp_path / "restic/repo/config").touch()
+    assert local.is_initialized(repository, storage)
+
+
 def test_local_destroy_removes_only_repository_directory(tmp_path: Path) -> None:
     storage = {"id": "disk", "type": "local", "path": str(tmp_path)}
     restic_repository = {"id": "repo", "path": "restic/repo"}
