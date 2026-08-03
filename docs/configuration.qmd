@@ -286,14 +286,15 @@ jobs:
     source:
       authentication:
         hugging-face:
-          token:
-            env: HF_TOKEN
+          token: CHANGE_ME
 ```
 
-The token source may contain exactly one `env` or `file` key. Omit
-`authentication` to keep using `HF_TOKEN` or `HUGGINGFACE_TOKEN` directly from
-the process environment. The credential is resolved only by `diarize` and
-`diarize-parallel`; ordinary backups and transcription do not require it.
+Encrypt the `token` value with SOPS; the recommended `.sops.yaml` rule on the
+[SOPS](sops.qmd) page includes this field. Alternatively, use `{env: HF_TOKEN}`
+or `{file: /var/run/secrets/hugging-face/token}`. Omit `authentication` to keep
+using `HF_TOKEN` or `HUGGINGFACE_TOKEN` directly from the process environment.
+The credential is resolved only by `diarize` and `diarize-parallel`; ordinary
+backups and transcription do not require it.
 
 Credentials remain attached to what owns them: S3 credentials belong to
 `storage`, Restic passwords belong to `restic-repositories`, and external
@@ -333,9 +334,9 @@ All component flags are required and at least one must be enabled. `lfs`
 requires `git`. On a laptop, omit `authentication` to use `gh auth login` and
 the normal Git/SSH configuration. Configure explicit Git or API credential
 sources only when those local credentials are unavailable, such as in a
-container or Kubernetes CronJob. Secret sources contain exactly one `env` or
-`file` key, so secret values remain outside the YAML. `repository-urls` must be
-a non-empty list identifying distinct GitHub repositories. See
+container or Kubernetes CronJob. Secret sources may be SOPS-encrypted strings or
+contain exactly one `env` or `file` key. `repository-urls` must be a non-empty
+list identifying distinct GitHub repositories. See
 [GitHub Authentication](github-authentication.qmd) for SSH, HTTPS, API tokens,
 and migration permissions; [Run GitHub Backups](github-operations.qmd) for
 commands and workspace layout; and [Restore GitHub Backups](github-restore.qmd)

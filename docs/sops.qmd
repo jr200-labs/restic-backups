@@ -41,14 +41,15 @@ passwords used by `restic-backups`:
 creation_rules:
   - path_regex: config\.sops\.yaml$
     age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT
-    encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+    encrypted_regex: '^(access-key-id|secret-access-key|password|token)$'
     mac_only_encrypted: true
 ```
 
 Storage and repository IDs, descriptions, endpoints, paths, and other operational
-settings remain readable. SOPS encrypts matching leaf values anywhere in the
-YAML tree. `mac_only_encrypted: true` allows those readable values to be edited
-directly without invalidating the SOPS message authentication code (MAC).
+settings remain readable. SOPS encrypts matching leaf values—including inline
+job authentication tokens—anywhere in the YAML tree. `mac_only_encrypted: true`
+allows those readable values to be edited directly without invalidating the
+SOPS message authentication code (MAC).
 
 ::: {.callout-warning}
 With `mac_only_encrypted: true`, SOPS authenticates encrypted values but no
@@ -75,7 +76,7 @@ variable is always set for encryption, omit `age` from the creation rule:
 ```yaml
 creation_rules:
   - path_regex: config\.sops\.yaml$
-    encrypted_regex: '^(access-key-id|secret-access-key|password)$'
+    encrypted_regex: '^(access-key-id|secret-access-key|password|token)$'
     mac_only_encrypted: true
 ```
 

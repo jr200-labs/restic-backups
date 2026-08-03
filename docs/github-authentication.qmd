@@ -8,10 +8,11 @@ credential helper or SSH agent. Configure explicit secret sources only when
 those credentials are unavailable, such as in a container or Kubernetes
 CronJob.
 
-Every secret source contains exactly one `env` or `file` key. It is read again
-on every run, so rotated secrets are picked up without changing the backup
-configuration. Secret values are not placed in command arguments, logs,
-manifests, or the audit log.
+Every secret source is a SOPS-encrypted string or contains exactly one `env` or
+`file` key. Referenced environment variables and files are read again on every
+run, so rotated secrets are picked up without changing the backup configuration.
+Secret values are not placed in command arguments, logs, manifests, or the
+audit log.
 
 ## SSH
 

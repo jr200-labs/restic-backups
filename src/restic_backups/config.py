@@ -85,14 +85,25 @@ def repository_disabled_reason(repository: dict[str, Any]) -> str | None:
 
 
 def credential_source(value: Any, owner: str) -> None:
+    if isinstance(value, str):
+        if not value:
+            raise ConfigError(f"{owner} must be a non-empty string")
+        if PLACEHOLDER in value:
+            raise ConfigError(f"{owner} contains a placeholder")
+        return
     if not isinstance(value, dict) or set(value) not in ({"env"}, {"file"}):
-        raise ConfigError(f"{owner} must contain exactly one of env or file")
+        raise ConfigError(
+            f"{owner} must be a string or contain exactly one of env or file"
+        )
     required_text(value, next(iter(value)), owner)
 
 
-def credential_value(source: Mapping[str, str], name: str) -> str:
-    """Resolve a validated environment- or file-backed credential."""
-    if "env" in source:
+def credential_value(source: str | Mapping[str, str], name: str) -> str:
+    """Resolve a validated inline, environment-, or file-backed credential."""
+    value: str | None
+    if isinstance(source, str):
+        value = source
+    elif "env" in source:
         value = os.environ.get(source["env"])
         if value is None:
             fail(f"{name} environment variable '{source['env']}' is not set")
