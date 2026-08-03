@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
 import sys
+import time
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -12,9 +14,8 @@ import typer
 from rich import box
 from rich.console import Console
 from rich.table import Table
-from rich.text import Text
 
-from .. import audit, config
+from .. import audit, config, metrics
 from ..errors import BackupError
 from ..generic import cli as generic_cli
 from ..generic import restic
@@ -27,6 +28,7 @@ app = typer.Typer(
 )
 console = Console()
 error_console = Console(stderr=True)
+logger = logging.getLogger(__name__)
 
 
 def menu_choice(
@@ -38,7 +40,7 @@ def menu_choice(
 
 
 def fail(message: str) -> NoReturn:
-    error_console.print(Text(f"restic-backups: {message}", style="bold red"))
+    logger.error("%s", message)
     raise typer.Exit(1)
 
 
@@ -246,24 +248,36 @@ def run_command(
             *(["--dry-run"] if dry_run else []),
         ],
     )
+    started = time.monotonic()
     try:
         states, destinations = workflow.run(
             job_id, jobs[job_id], selected, storage, repositories, jobs, dry_run=dry_run
         )
     except (BackupError, OSError) as exc:
         audit.finish(event_id, False)
+        metrics.record_job(
+            job_id,
+            jobs[job_id]["type"],
+            False,
+            time.monotonic() - started,
+            {repository_id: False for repository_id in selected},
+            dry_run=dry_run,
+        )
         fail(str(exc))
     successful = all(
         value not in {"failed", "stale"} for value in states.values()
     ) and all(destinations.values())
     audit.finish(event_id, successful, {"job": states, "destinations": destinations})
+    metrics.record_job(
+        job_id,
+        jobs[job_id]["type"],
+        successful,
+        time.monotonic() - started,
+        destinations,
+        dry_run=dry_run,
+    )
     for name, state in states.items():
-        error_console.print(
-            Text(
-                f"{job_id}: {name}: {state}",
-                style="green" if state in {"updated", "planned"} else "yellow",
-            )
-        )
+        logger.info("%s: %s: %s", job_id, name, state)
     for repository_id, result in destinations.items():
         message = (
             "would snapshot"
@@ -272,11 +286,8 @@ def run_command(
             if result
             else "snapshot failed"
         )
-        error_console.print(
-            Text(
-                f"{job_id}: {repository_id}: {message}",
-                style="green" if result else "red",
-            )
+        (logger.info if result else logger.error)(
+            "%s: %s: %s", job_id, repository_id, message
         )
     if not successful:
         raise typer.Exit(1)

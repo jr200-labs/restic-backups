@@ -52,6 +52,10 @@ disable it. Passwords and other secret-like argument values are redacted.
 GitHub jobs also audit their raw `git`, `git lfs`, `gh`, and `restic` commands;
 tokens and temporary credential paths remain outside those arguments.
 
+Logs use standard Python logging with timestamps. To publish job result and
+duration metrics, set `RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL` to a
+Prometheus Pushgateway URL. See the CLI documentation for the metric names.
+
 ## Configuration
 
 Pass a plain YAML file explicitly:

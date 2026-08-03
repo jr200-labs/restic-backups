@@ -5,8 +5,6 @@ from __future__ import annotations
 import logging
 import os
 import subprocess
-import sys
-import tempfile
 from typing import Any, NoReturn
 
 from .. import audit, config
@@ -18,6 +16,13 @@ logger = logging.getLogger(__name__)
 
 def fail(message: str) -> NoReturn:
     raise BackupError(message)
+
+
+def log_output(repository_id: str, stream: str, output: str, level: int) -> None:
+    """Log non-empty Restic output lines."""
+    for line in output.splitlines():
+        if line.strip():
+            logger.log(level, "%s: restic %s: %s", repository_id, stream, line)
 
 
 def available_commands() -> list[tuple[str, str]]:
@@ -219,22 +224,17 @@ def repository_run(
                 fail(f"restic command '{args[0]}' is not supported for cold S3 storage")
 
     try:
-        output_target = subprocess.PIPE if capture else None
-        if quiet and not capture:
-            output_target = subprocess.DEVNULL
         raw_command = ["restic", *options, *args]
         event_id = audit.record(raw_command[0], raw_command[1:])
-        with tempfile.TemporaryFile(mode="w+") as errors:
-            result = subprocess.run(
-                raw_command,
-                env=env,
-                stdout=output_target,
-                stderr=errors,
-                check=False,
-                text=True,
-            )
-            errors.seek(0)
-            error_text = errors.read()
+        result = subprocess.run(
+            raw_command,
+            env=env,
+            capture_output=True,
+            check=False,
+            text=True,
+        )
+        output_text = result.stdout or ""
+        error_text = result.stderr or ""
     except FileNotFoundError:
         fail("restic is not installed")
     finally:
@@ -242,12 +242,19 @@ def repository_run(
             locals().get("event_id"),
             "result" in locals() and result.returncode == 0,
         )
-    if not quiet or result.returncode not in {0, 10}:
-        print(error_text, end="", file=sys.stderr)
-    if "operation not permitted" in error_text.lower():
-        print(
-            "\nrestic was blocked by macOS. Grant the terminal Full Disk Access, "
-            "quit it fully, reopen it, and retry.",
-            file=sys.stderr,
+    if not quiet:
+        log_output(restic_repository["id"], "stdout", output_text, logging.INFO)
+        log_output(
+            restic_repository["id"],
+            "stderr",
+            error_text,
+            logging.INFO if result.returncode == 0 else logging.ERROR,
         )
-    return result.returncode, result.stdout or ""
+    elif result.returncode not in {0, 10}:
+        log_output(restic_repository["id"], "stderr", error_text, logging.ERROR)
+    if "operation not permitted" in error_text.lower():
+        logger.error(
+            "restic was blocked by macOS. Grant the terminal Full Disk Access, "
+            "quit it fully, reopen it, and retry."
+        )
+    return result.returncode, output_text if capture else ""

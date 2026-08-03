@@ -11,7 +11,6 @@ from typing import Annotated, Any, NoReturn
 import questionary
 import typer
 from rich.console import Console
-from rich.logging import RichHandler
 from rich.text import Text
 
 from . import audit
@@ -90,14 +89,8 @@ def configure(
     """Configure storage before running a command."""
     logging.basicConfig(
         level=logging.WARNING,
-        format="%(message)s",
-        handlers=[
-            RichHandler(
-                console=error_console,
-                show_path=False,
-                show_time=False,
-            )
-        ],
+        format="%(asctime)s %(levelname)-8s %(name)s: %(message)s",
+        datefmt="%Y-%m-%dT%H:%M:%S%z",
         force=True,
     )
     logging.getLogger("restic_backups").setLevel(

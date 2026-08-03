@@ -38,14 +38,33 @@ uv run restic-backups --config config.sops.yaml --sops job list
 The equivalent environment variables are `RESTIC_BACKUPS_CONFIG` and
 `RESTIC_BACKUPS_SOPS=1`. See [Configuration](configuration.qmd) for setup.
 
-Commands use colored, level-aware stderr logging for configuration and operation
-progress. Add `--verbose` before the command, or set
+Commands use standard Python stderr logging with local ISO 8601 timestamps,
+levels, and logger names. Add `--verbose` before the command, or set
 `RESTIC_BACKUPS_VERBOSE=1`, to include command-level details without printing
 credentials or repository passwords:
 
 ```sh
 uv run restic-backups --verbose generic repository init
 ```
+
+User-facing Restic stdout and stderr use the same logger, so repository output
+also carries timestamps and levels. Machine-readable internal calls remain
+quiet unless they fail. See [Logging configuration](configuration.qmd#logging)
+for the complete behavior and example output.
+
+## Prometheus metrics
+
+Jobs can push their latest result to a Prometheus Pushgateway. Set its URL before
+running a job:
+
+```sh
+export RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091
+uv run restic-backups job run photos
+```
+
+Metrics are disabled when the environment variable is unset. See
+[Prometheus configuration](configuration.qmd#prometheus) for metric names,
+labels, Pushgateway behavior, and a Prometheus scrape example.
 
 ## Audit log
 
