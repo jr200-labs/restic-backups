@@ -191,10 +191,12 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertNotIn("\n", choice_title(choices[0]))
         self.assertTrue(choices[0].title[0][1].endswith("  "))
         self.assertIsInstance(choices[1], questionary.Separator)
-        self.assertEqual(choice_title(choices[1]), "Disabled")
+        self.assertIn("─ Disabled jobs ─", choice_title(choices[1]))
         self.assertIsInstance(choices[2], questionary.Separator)
+        self.assertTrue(choice_title(choices[2]).startswith("  offline"))
         self.assertIn("offline", choice_title(choices[2]))
         self.assertIn("no available repositories", choice_title(choices[2]))
+        self.assertEqual(set(choice_title(choices[3])), {"─"})
 
     def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
         repositories = {"disabled": {"enabled": False}}

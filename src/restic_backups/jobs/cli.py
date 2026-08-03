@@ -92,11 +92,18 @@ def choose_job(
         else:
             disabled_choices.append(
                 questionary.Separator(
-                    f"{item_id:<{width}}  {description}  (no available repositories)"
+                    f"  {item_id:<{width}}  {description}  (no available repositories)"
                 )
             )
     if disabled_choices:
-        choices.extend([questionary.Separator("Disabled"), *disabled_choices])
+        rule_width = max(32, width + 18)
+        choices.extend(
+            [
+                questionary.Separator(" Disabled jobs ".center(rule_width, "─")),
+                *disabled_choices,
+                questionary.Separator("─" * rule_width),
+            ]
+        )
     choices.extend(
         [
             menu_choice("Back", "Return to the Jobs menu", "back", width),
