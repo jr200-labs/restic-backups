@@ -59,7 +59,7 @@
     "href": "configuration.html#jobs",
     "title": "Configuration",
     "section": "jobs",
-    "text": "jobs\njobs defines every backup shown by job list and the Jobs TUI. Each job has a type, a type-specific source, and one or more destinations under restic-repository-ids. Every destination must match a restic-repositories.id value.\njobs:\n  - job-id: documents\n    type: files\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      paths:\n        - ~/Documents\n        - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the job in commands and menus. For a files job, source.paths is the non-empty list passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a job has one available repository, it starts selected in the TUI. When it has several, all start deselected and one or more must be selected with Space. Repositories on disabled storage remain visible with a storage disabled label but cannot be selected. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups job run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nThe supported types are files, github-repository, github-owner, and voice-memos. They all use the same job list, destination picker, run command, status table, snapshot tools, and audit result. The source mapping is the only type-specific part. See Jobs for all forms.\nFor compatibility, one release accepts the previous backups section and normalizes its paths or github fields. Do not define both sections. New and updated configurations should use jobs, explicit type, and source.\n\nGitHub jobs\nA GitHub repository job uses a GitHub source mapping:\njobs:\n  - job-id: example-github-repository\n    type: github-repository\n    description: Back up Git history and selected GitHub data.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      repository-urls:\n        - git@github.com:example/example-repository.git\n        - git@github.com:example/another-repository.git\n      authentication:\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nAll component flags are required and at least one must be enabled. lfs requires git. On a laptop, omit authentication to use gh auth login and the normal Git/SSH configuration. Configure explicit Git or API credential sources only when those local credentials are unavailable, such as in a container or Kubernetes CronJob. Secret sources contain exactly one env or file key, so secret values remain outside the YAML. repository-urls must be a non-empty list identifying distinct GitHub repositories. The previous singular repository-url is accepted temporarily for migration, but new configurations should use the list. See GitHub Repositories for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.\nTo discover every repository owned by one organization or user on each run, use type: github-owner and replace repository-urls with:\nsource:\n  owner-url: https://github.com/example\n  clone-protocol: ssh\n  components:\n    git: true\n    lfs: false\n    wiki: false\n    metadata: false\n    release-assets: false\n  migration-timeout-seconds: 3600\nclone-protocol defaults to ssh. Owner discovery uses the current gh auth login credentials when authentication.api.token is omitted; an unattended environment can supply that token through an env or file secret source. Owner-job dry runs contact GitHub read-only to report the repositories they would process, but never run Git or contact restic.",
+    "text": "jobs\njobs defines every backup shown by job list and the Jobs TUI. Each job has a type, a type-specific source, and one or more destinations under restic-repository-ids. Every destination must match a restic-repositories.id value.\njobs:\n  - job-id: documents\n    type: files\n    description: Back up local documents.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      paths:\n        - ~/Documents\n        - ~/Desktop\n    # Optional; defaults to the job ID.\n    # tag: documents\njob-id is the stable name used to select the job in commands and menus. For a files job, source.paths is the non-empty list passed to restic backup; ~ is expanded to the current user’s home directory. Relative paths remain relative to the directory where the command is run.\nWhen a job has one available repository, it starts selected in the TUI. When it has several, all start deselected and one or more must be selected with Space. Repositories on disabled storage remain visible with a storage disabled label but cannot be selected. Non-interactive commands must repeat --repository for every destination. Each repository remains independent and receives its own restic snapshot.\ntag is optional restic metadata applied automatically to every snapshot created through that job. It defaults to job-id, so it normally does not need to be configured. Restic generates a unique snapshot ID after each successful backup; a snapshot ID is not a configuration value.\nRun the configured backup with:\nuv run restic-backups job run documents\nRestic scans the configured paths and creates a new snapshot. It stores only new or changed file data, while the snapshot still represents the complete state of those paths at that time.\nSeveral backups may share a restic repository. Their tags distinguish their snapshots inside it.\nThe supported types are files, github-repository, github-owner, and voice-memos. They all use the same job list, destination picker, run command, status table, snapshot tools, and audit result. The source mapping is the only type-specific part. See Jobs for all forms.\nFor compatibility, one release accepts the previous backups section and normalizes its paths or github fields. Do not define both sections. New and updated configurations should use jobs, explicit type, and source.\n\nGitHub jobs\nA GitHub repository job uses a GitHub source mapping:\njobs:\n  - job-id: example-github-repository\n    type: github-repository\n    description: Back up Git history and selected GitHub data.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      repository-urls:\n        - git@github.com:example/example-repository.git\n        - git@github.com:example/another-repository.git\n      authentication:\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nAll component flags are required and at least one must be enabled. lfs requires git. On a laptop, omit authentication to use gh auth login and the normal Git/SSH configuration. Configure explicit Git or API credential sources only when those local credentials are unavailable, such as in a container or Kubernetes CronJob. Secret sources contain exactly one env or file key, so secret values remain outside the YAML. repository-urls must be a non-empty list identifying distinct GitHub repositories. The previous singular repository-url is accepted temporarily for migration, but new configurations should use the list. See GitHub Authentication for SSH, HTTPS, API tokens, and migration permissions; Run GitHub Backups for commands and workspace layout; and Restore GitHub Backups for recovery.\nTo discover every repository owned by one organization or user on each run, use type: github-owner and replace repository-urls with:\nsource:\n  owner-url: https://github.com/example\n  clone-protocol: ssh\n  components:\n    git: true\n    lfs: false\n    wiki: false\n    metadata: false\n    release-assets: false\n  migration-timeout-seconds: 3600\nclone-protocol defaults to ssh. Owner discovery uses the current gh auth login credentials when authentication.api.token is omitted; an unattended environment can supply that token through an env or file secret source. Owner-job dry runs contact GitHub read-only to report the repositories they would process, but never run Git or contact restic.",
     "crumbs": [
       "Setup",
       "Configuration"
@@ -88,159 +88,210 @@
     ]
   },
   {
-    "objectID": "quick-start.html",
-    "href": "quick-start.html",
-    "title": "Quick Start",
+    "objectID": "cli.html",
+    "href": "cli.html",
+    "title": "CLI",
     "section": "",
-    "text": "This guide creates one generic S3-compatible backup. A mounted local disk uses the same workflow; see Configuration.",
+    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Jobs, Repositories, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use standard Python stderr logging with local ISO 8601 timestamps, levels, and logger names. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:\nUser-facing Restic stdout and stderr use the same logger, so repository output also carries timestamps and levels. Machine-readable internal calls remain quiet unless they fail. See Logging configuration for the complete behavior and example output.",
     "crumbs": [
-      "Quick Start"
+      "Setup",
+      "CLI"
     ]
   },
   {
-    "objectID": "quick-start.html#install",
-    "href": "quick-start.html#install",
-    "title": "Quick Start",
-    "section": "1. Install",
-    "text": "1. Install\nmake install-deps\nmake install\nmake install-deps installs the required Homebrew tools. make install creates the uv environment.",
+    "objectID": "cli.html#prometheus-metrics",
+    "href": "cli.html#prometheus-metrics",
+    "title": "CLI",
+    "section": "Prometheus metrics",
+    "text": "Prometheus metrics\nJobs can push their latest result to a Prometheus Pushgateway. Set its URL before running a job:\nexport RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091\nuv run restic-backups job run photos\nMetrics are disabled when the environment variable is unset. See Prometheus configuration for metric names, labels, Pushgateway behavior, and a Prometheus scrape example.",
     "crumbs": [
-      "Quick Start"
+      "Setup",
+      "CLI"
     ]
   },
   {
-    "objectID": "quick-start.html#configure-a-repository",
-    "href": "quick-start.html#configure-a-repository",
-    "title": "Quick Start",
-    "section": "2. Configure a repository",
-    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first storage, restic repository, and job entries:\n\nreplace every CHANGE_ME used by the available repository;\nconfigure either S3 storage and credentials or an absolute local storage path;\nconfigure the repository bucket and key_prefix for S3, or relative path for local storage;\ngive the backup job a useful job-id such as documents;\nuse type: files and list local files or directories under source.paths;\nomit tag unless it should differ from the job ID;\nlist one or more available repository IDs under restic-repository-ids;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nuv run restic-backups job list\nThe list output separates Repositories from Jobs. Every configured restic repository appears in the repository table, even before a configured backup references it.",
+    "objectID": "cli.html#audit-log",
+    "href": "cli.html#audit-log",
+    "title": "CLI",
+    "section": "Audit log",
+    "text": "Audit log\nCommand auditing is enabled by default. restic-backups appends compact JSON objects to audit-log.json in the directory where it was started. Each command has two linked records:\n\na started event containing an id, start-time, hostname, command, and its exact args;\na finished event containing started-id, end-time, and successful. Workflows may also add non-secret component and destination results under details.\n\nThe started-id links completion to the corresponding started event. A started event without a matching finished event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (0600). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. GitHub repository jobs likewise record every raw git, git lfs, gh, and restic command. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with [REDACTED].\nThe log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:\nexport RESTIC_BACKUPS_AUDIT=0\nThe values false, no, and off are also accepted, case-insensitively.",
     "crumbs": [
-      "Quick Start"
+      "Setup",
+      "CLI"
     ]
   },
   {
-    "objectID": "quick-start.html#initialize-and-back-up",
-    "href": "quick-start.html#initialize-and-back-up",
-    "title": "Quick Start",
-    "section": "3. Initialize and back up",
-    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic repository init personal-b2\nThen create a snapshot from the paths configured for documents:\nuv run restic-backups job run documents\nuv run restic-backups generic snapshot list documents\nRunning generic repository init again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass --all to initialize every available repository. job run preselects a sole available destination; when several are available, use Space to choose one or more. Disabled storage and its repositories remain visible but unselectable. The job’s paths and default or configured tag are used for every selected repository.",
+    "objectID": "cli.html#root-commands",
+    "href": "cli.html#root-commands",
+    "title": "CLI",
+    "section": "Root commands",
+    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\njob ...\nList, run, and inspect every configured job type\nDepends on subcommand\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\ngithub-repository ...\nCompatibility and GitHub-specific commands\nDepends on subcommand\n\n\nvoice-memos ...\nCompatibility and Voice Memos-specific tools\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use GitHub Repositories for Git history and selected GitHub-hosted data. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups job --help\nuv run restic-backups generic --help\nuv run restic-backups github-repository --help\nuv run restic-backups voice-memos --help",
     "crumbs": [
-      "Quick Start"
+      "Setup",
+      "CLI"
     ]
   },
   {
-    "objectID": "quick-start.html#verify-a-restore",
-    "href": "quick-start.html#verify-a-restore",
-    "title": "Quick Start",
-    "section": "4. Verify a restore",
-    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or GitHub Backups for explicit repositories or an entire GitHub organization or user, or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS before committing a config.",
-    "crumbs": [
-      "Quick Start"
-    ]
-  },
-  {
-    "objectID": "index.html",
-    "href": "index.html",
-    "title": "Restic Backups",
+    "objectID": "storage-costs.html",
+    "href": "storage-costs.html",
+    "title": "Storage Cost Comparison",
     "section": "",
-    "text": "Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow. It can also maintain and snapshot complete GitHub repository mirrors and selected GitHub-hosted data, either from an explicit URL list or by discovering every repository owned by an organization or user.",
+    "text": "These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.",
     "crumbs": [
-      "Restic Backups"
+      "Setup",
+      "Storage Cost Comparison"
     ]
   },
   {
-    "objectID": "index.html#start-here",
-    "href": "index.html#start-here",
-    "title": "Restic Backups",
-    "section": "Start here",
-    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, jobs, and Glacier policy.\nJobs describes the shared model and commands for every job type.\nGeneric Backups covers standard restic operations for any local files or directories.\nGitHub Backups covers explicit repository lists, organization or user discovery, Git history, LFS, wikis, metadata, release assets, and unattended credentials.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
+    "objectID": "storage-costs.html#gb",
+    "href": "storage-costs.html#gb",
+    "title": "Storage Cost Comparison",
+    "section": "100 GB",
+    "text": "100 GB\nPrices as of 1 August 2026.\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$0.40\n$0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$0.36\n$0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$2.30\n$0.023/GB-month\nYes\n\n\nBackblaze B2\n$0.63\n$0.00695/GB-month after the first 10 GB free\nYes\n\n\nGoogle Drive\n$1.99\nGoogle One Basic 100 GB plan\nNo\n\n\nOneDrive\n$1.99\nMicrosoft 365 Basic 100 GB plan\nNo",
     "crumbs": [
-      "Restic Backups"
+      "Setup",
+      "Storage Cost Comparison"
     ]
   },
   {
-    "objectID": "index.html#architecture",
-    "href": "index.html#architecture",
-    "title": "Restic Backups",
-    "section": "Architecture",
-    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  jobs/\n    cli.py               unified job commands and job-first TUI\n    workflow.py          type dispatch and common snapshot execution\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  github_repository/\n    cli.py               GitHub repository commands and TUI\n    workflow.py          Git, GitHub export, and snapshot updates\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nThe root TUI and job command route every configured type through the common job dispatcher. Type-specific modules prepare source data; generic restic modules resolve destinations and execute restic.",
+    "objectID": "storage-costs.html#tb",
+    "href": "storage-costs.html#tb",
+    "title": "Storage Cost Comparison",
+    "section": "1 TB",
+    "text": "1 TB\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$4.00\n1,000 GB at $0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$3.60\n1,000 GB at $0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$23.00\n1,000 GB at $0.023/GB-month\nYes\n\n\nBackblaze B2\n$6.88\n990 billable GB after the first 10 GB free\nYes\n\n\nGoogle Drive\n$9.99\nCheapest plan covering 1 TB is the 2 TB plan\nNo\n\n\nOneDrive\n$9.99\nMicrosoft 365 Personal 1 TB plan\nNo",
     "crumbs": [
-      "Restic Backups"
+      "Setup",
+      "Storage Cost Comparison"
     ]
   },
   {
-    "objectID": "index.html#private-data-boundary",
-    "href": "index.html#private-data-boundary",
-    "title": "Restic Backups",
-    "section": "Private data boundary",
-    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\nGitHub repository jobs use data/github-repositories/&lt;job-id&gt;/ because their managed source workspace is shared by every selected restic destination.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
+    "objectID": "storage-costs.html#cost-of-listing-files-in-a-snapshot",
+    "href": "storage-costs.html#cost-of-listing-files-in-a-snapshot",
+    "title": "Storage Cost Comparison",
+    "section": "Cost of listing files in a snapshot",
+    "text": "Cost of listing files in a snapshot\nRestic can list a snapshot without downloading the backed-up file contents:\nuv run restic-backups generic restic run --backup &lt;job-id&gt; ls &lt;snapshot-id&gt;\nThe command downloads repository indexes, snapshot records, directory trees, and other required metadata. Commands such as restore and dump download file data. Restic’s local cache can reduce metadata reads on subsequent commands. Set cache-dir on a restic-repositories entry to give each repository a stable, separate cache location; see Configuration.\nPrime that cache with repository metadata before browsing snapshots:\nuv run restic-backups generic repository prime-cache &lt;repository-id&gt;\nThis runs restic check --with-cache; it does not download backed-up file data.\n\n\n\n\n\n\n\n\nProvider\nMetadata-read charges\nTypical cost\n\n\n\n\nBackblaze B2\nGET and LIST transactions are free; egress is free up to 3× average monthly storage\n$0 within the free egress allowance\n\n\nAWS S3 Glacier Instant Retrieval, US East\n$0.03/GB retrieved plus about $0.01 per 1,000 GET requests\nUsually less than $0.01\n\n\n\nGlacier Instant Retrieval examples below show retrieval charges only; request charges are additional:\n\n\n\nMetadata downloaded\nRetrieval charge\n\n\n\n\n10 MB\n~$0.0003\n\n\n100 MB\n~$0.003\n\n\n1 GB\n$0.03\n\n\n\nAWS currently includes the first 100 GB per month of internet data transfer out, aggregated across AWS services and regions. Backblaze charges $0.01/GB only for egress beyond its free allowance. Exact costs depend on the repository’s metadata size, object count, local cache, and other usage during the billing month.",
     "crumbs": [
-      "Restic Backups"
+      "Setup",
+      "Storage Cost Comparison"
     ]
   },
   {
-    "objectID": "sops.html",
-    "href": "sops.html",
-    "title": "SOPS",
+    "objectID": "storage-costs.html#important-differences",
+    "href": "storage-costs.html#important-differences",
+    "title": "Storage Cost Comparison",
+    "section": "Important differences",
+    "text": "Important differences\nAWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project supports S3-compatible and local filesystem storage; Google Drive and OneDrive cannot be selected as storage backends.\nBoth Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.\nFor Flexible Retrieval, configure a restore policy and set ALLOW_ARCHIVE_RETRIEVAL=1 when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.\nPrices vary by country and can change. Check the current official pages before choosing a provider:\n\nAmazon S3 pricing\nAWS archive retrieval options\nBackblaze B2 pricing\nBackblaze B2 transaction pricing\nGoogle One plans\nMicrosoft OneDrive plans",
+    "crumbs": [
+      "Setup",
+      "Storage Cost Comparison"
+    ]
+  },
+  {
+    "objectID": "github-repositories.html",
+    "href": "github-repositories.html",
+    "title": "GitHub Backups",
     "section": "",
-    "text": "SOPS encrypts secrets in the YAML configuration while leaving the file safe to store in Git. restic-backups asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.",
+    "text": "GitHub jobs incrementally maintain complete Git mirrors and can also collect Git LFS objects, wikis, repository metadata, and release assets. Each job snapshots its combined managed workspace to one or more Restic repositories.\nUse github-repository for an explicit URL list or github-owner to discover every repository owned by an organization or user.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
     ]
   },
   {
-    "objectID": "sops.html#install-sops-and-age",
-    "href": "sops.html#install-sops-and-age",
-    "title": "SOPS",
-    "section": "Install SOPS and age",
-    "text": "Install SOPS and age\nmake install-deps installs SOPS. Install age when age-keygen is not already available:\nbrew install age\nGenerate an age identity outside the repository:\nmkdir -p \"$HOME/.config/sops/age\"\nage-keygen -o \"$HOME/.config/sops/age/keys.txt\"\nage-keygen -y \"$HOME/.config/sops/age/keys.txt\"\nThe final command prints the public age1... recipient. It is safe to put that recipient in .sops.yaml. Never commit the private AGE-SECRET-KEY-1... identity or the identity file.",
+    "objectID": "github-repositories.html#explicit-repositories",
+    "href": "github-repositories.html#explicit-repositories",
+    "title": "GitHub Backups",
+    "section": "Explicit repositories",
+    "text": "Explicit repositories\nOne job can back up one or several repository URLs:\njobs:\n  - job-id: example-github-repositories\n    type: github-repository\n    description: Complete GitHub repository backups.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    source:\n      repository-urls:\n        - git@github.com:example/example-repository.git\n        - git@github.com:example/another-repository.git\n      components:\n        git: true\n        lfs: true\n        wiki: false\n        metadata: false\n        release-assets: false\n      migration-timeout-seconds: 3600\nEvery component flag is required, at least one must be true, and lfs requires git. Every URL uses the same component and authentication settings. The optional Restic tag defaults to job-id.\nOnly safe github.com clone URLs are accepted:\ngit@github.com:OWNER/REPOSITORY.git\nhttps://github.com/OWNER/REPOSITORY.git\nCredentials, query strings, and fragments embedded in URLs are rejected. The list must identify distinct repositories; SSH and HTTPS URLs for the same repository cannot appear together.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
     ]
   },
   {
-    "objectID": "sops.html#add-.sops.yaml",
-    "href": "sops.html#add-.sops.yaml",
-    "title": "SOPS",
-    "section": "Add .sops.yaml",
-    "text": "Add .sops.yaml\nThe SOPS configuration file must be named .sops.yaml, not .sops.yml. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.\nThis template encrypts only the credential fields and restic repository passwords used by restic-backups:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nStorage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. mac_only_encrypted: true allows those readable values to be edited directly without invalidating the SOPS message authentication code (MAC).\n\n\n\n\n\n\nWarning\n\n\n\nWith mac_only_encrypted: true, SOPS authenticates encrypted values but no longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job mappings. Review those changes through Git. Omit this setting when SOPS should protect the integrity of every value, accepting that all edits must then go through SOPS.\n\n\nSOPS also encrypts comments, so use the configuration’s description fields for readable notes.\nTo encrypt every value instead, omit encrypted_regex:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\nThe public recipient can instead come from SOPS_AGE_RECIPIENTS. When that variable is always set for encryption, omit age from the creation rule:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nSee the official SOPS configuration format for rule matching and other key providers.",
+    "objectID": "github-repositories.html#organization-or-user",
+    "href": "github-repositories.html#organization-or-user",
+    "title": "GitHub Backups",
+    "section": "Organization or user",
+    "text": "Organization or user\nUse github-owner to discover repositories on every run:\njobs:\n  - job-id: example-organization\n    type: github-owner\n    restic-repository-ids:\n      - personal-local\n    source:\n      owner-url: https://github.com/example\n      clone-protocol: ssh\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: false\n        release-assets: false\n      migration-timeout-seconds: 3600\nDiscovery includes public, private, archived, and fork repositories visible to the active GitHub credentials and owned by the account. clone-protocol defaults to ssh. With no explicit API token, discovery uses gh auth login.\nNew repositories receive new owner/repository workspaces. Repositories no longer returned by GitHub are omitted from new snapshots but remain available in older immutable snapshots. Their local workspace is not deleted automatically.\nOwner-job dry runs contact GitHub read-only to show the discovered plan. They do not create local files, run Git, or contact Restic.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
     ]
   },
   {
-    "objectID": "sops.html#create-the-encrypted-config",
-    "href": "sops.html#create-the-encrypted-config",
-    "title": "SOPS",
-    "section": "Create the encrypted config",
-    "text": "Create the encrypted config\nUse config.sops.yaml as the conventional name. The CLI accepts another name, but it must match path_regex and be passed through --config or RESTIC_BACKUPS_CONFIG.\nCopy the template, then edit it through SOPS so secrets are encrypted when the editor closes:\ncp config.template.yaml config.sops.yaml\nsops config.sops.yaml\nConfirm the file is encrypted and validate it without contacting remote storage:\nsops filestatus config.sops.yaml\nuv run restic-backups --config config.sops.yaml --sops check-config\nCommit .sops.yaml and the encrypted config.sops.yaml. Do not commit a plain config.yaml, the age identity, or decrypted command output.",
+    "objectID": "github-repositories.html#components",
+    "href": "github-repositories.html#components",
+    "title": "GitHub Backups",
+    "section": "Components",
+    "text": "Components\n\n\n\n\n\n\n\n\nComponent\nBacked-up data\nUpdate behavior\n\n\n\n\ngit\nObjects reachable through remote Git refs, including branch and tag history\nInitial git clone --mirror; later git remote update --prune\n\n\nlfs\nGit LFS objects reachable from the mirror\ngit lfs fetch --all origin\n\n\nwiki\nRepository wiki as a separate Git mirror\nMissing wikis are recorded as not-present\n\n\nmetadata\nGitHub migration export with issues, pull requests, comments, attachments, and release metadata\nA new migration archive is requested each run\n\n\nrelease-assets\nBinary files attached to releases\nNew and changed assets download atomically\n\n\n\nA Git-only job enables git and disables every other component. It contains commits, branches, tags, trees, and normal Git file content. It does not contain issue discussions, pull-request comments, submodule repository contents, or commits deleted from every remote ref. Without lfs, it contains pointer files but not the referenced large objects.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
     ]
   },
   {
-    "objectID": "sops.html#environment-variables",
-    "href": "sops.html#environment-variables",
-    "title": "SOPS",
-    "section": "Environment variables",
-    "text": "Environment variables\nThese variables avoid repeating the global CLI options:\n\n\n\n\n\n\n\n\nVariable\nPurpose\nSensitive\n\n\n\n\nRESTIC_BACKUPS_CONFIG\nPath to the encrypted application config\nNo\n\n\nRESTIC_BACKUPS_SOPS=1\nTell restic-backups to decrypt through SOPS\nNo\n\n\nSOPS_AGE_KEY_FILE\nPath to a file containing private age identities\nYes: protect the file\n\n\nSOPS_AGE_KEY\nPrivate age identities supplied directly by a secret manager\nYes\n\n\nSOPS_AGE_KEY_CMD\nCommand that prints private age identities\nDepends on the command\n\n\nSOPS_AGE_RECIPIENTS\nPublic recipients used when encrypting new files\nNo\n\n\nSOPS_CONFIG\nNon-default path to .sops.yaml\nNo\n\n\n\nNormally, set the identity file and the two restic-backups variables:\nexport SOPS_AGE_KEY_FILE=\"$HOME/.config/sops/age/keys.txt\"\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.sops.yaml\"\nexport RESTIC_BACKUPS_SOPS=1\n\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nSOPS_AGE_KEY_FILE, SOPS_AGE_KEY, and SOPS_AGE_KEY_CMD are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.",
+    "objectID": "github-repositories.html#next-steps",
+    "href": "github-repositories.html#next-steps",
+    "title": "GitHub Backups",
+    "section": "Next steps",
+    "text": "Next steps\n\nGitHub Authentication covers laptops, containers, SSH, HTTPS, API tokens, and Kubernetes.\nRun GitHub Backups covers execution, dry runs, status, workspaces, and deduplication.\nRestore GitHub Backups recovers one repository as an exact bare mirror or a normal working clone.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
     ]
   },
   {
-    "objectID": "sops.html#edit-and-rotate",
-    "href": "sops.html#edit-and-rotate",
-    "title": "SOPS",
-    "section": "Edit and rotate",
-    "text": "Edit and rotate\nWith mac_only_encrypted: true, ordinary text editors may change plaintext leaf values directly:\n$EDITOR config.sops.yaml\nuv run restic-backups check-config\nDo not replace an ENC[...] value manually. Use SOPS when changing a password, access key, or secret key, and for structural edits that add, remove, reorder, or rename branches containing encrypted values:\nsops edit config.sops.yaml\nFor a single value, sops set avoids opening the complete decrypted document:\nsops set config.sops.yaml \\\n  '[\"storage\"][0][\"description\"]' '\"Off-site object storage\"'\nThe encrypted file already records its public recipients. When recipients in .sops.yaml change, synchronize them with:\nsops updatekeys config.sops.yaml\nAdding or changing encrypted_regex or mac_only_encrypted in .sops.yaml does not alter an existing encrypted document. Decrypt and re-encrypt it once so the new rule is stored in the file. Keep plaintext in the pipe and replace the original only after encryption succeeds:\numask 077\nsops decrypt config.sops.yaml |\n  sops encrypt --filename-override config.sops.yaml \\\n    --input-type yaml --output-type yaml /dev/stdin &gt; config.sops.yaml.new\nmv config.sops.yaml.new config.sops.yaml\nValidate again after every key or rule change:\nuv run restic-backups check-config",
+    "objectID": "github-repositories.html#deliberate-limits",
+    "href": "github-repositories.html#deliberate-limits",
+    "title": "GitHub Backups",
+    "section": "Deliberate limits",
+    "text": "Deliberate limits\nThis workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, automatically discovered submodule repositories, or GitHub Enterprise. Add each independent Git or submodule repository URL that must be retained.",
     "crumbs": [
-      "Setup",
-      "SOPS"
+      "Commands",
+      "GitHub Backups",
+      "GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-operations.html",
+    "href": "github-operations.html",
+    "title": "Run GitHub Backups",
+    "section": "",
+    "text": "Use the arrow-key TUI or explicit commands:\nThe status table shows the latest tagged snapshot for each destination, the local export time, and component states. Snapshot metadata can contact remote storage when it is not already cached.\nThe TUI preselects a sole destination. With several destinations, all start unchecked and must be selected with Space. An explicit-list dry run validates the plan without running Git, contacting GitHub or Restic, or writing the workspace. An owner dry run contacts GitHub read-only to discover the exact repository list, but likewise performs no writes:",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Run GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-operations.html#managed-workspace",
+    "href": "github-operations.html#managed-workspace",
+    "title": "Run GitHub Backups",
+    "section": "Managed workspace",
+    "text": "Managed workspace\nThe reusable local workspace lives beside the selected config:\ndata/github-repositories/&lt;job-id&gt;/\n  backup-manifest.json\n  &lt;owner&gt;/&lt;repository&gt;/\n    repository.git/\n    wiki.git/\n    github-export/\n    release-assets/\nThe manifest records every source, update time, and component status. A failed component is reported as stale when existing local data remains usable or failed when it does not. The workflow attempts the remaining components and destinations, creates the best available snapshot, and exits nonzero.\nBefore updating sources, the workflow checks every selected Restic repository and any required metadata-export authorization. Job-wide failures therefore stop before Git repositories are fetched.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Run GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-operations.html#deduplication",
+    "href": "github-operations.html#deduplication",
+    "title": "Run GitHub Backups",
+    "section": "Deduplication",
+    "text": "Deduplication\nRestic splits data into content-defined chunks and deduplicates identical chunks within each Restic repository. The workflow disables automatic Git maintenance and repacking because repacking can rewrite unchanged objects and reduce deduplication. Separate Restic repositories do not share chunks, so each destination stores its own copy. See Restic’s repository design.\nContinue with Restore GitHub Backups to recover a bare mirror or normal working clone.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Run GitHub Backups"
     ]
   },
   {
@@ -398,6 +449,66 @@
     ]
   },
   {
+    "objectID": "github-authentication.html",
+    "href": "github-authentication.html",
+    "title": "GitHub Authentication",
+    "section": "",
+    "text": "On an interactive laptop, omit authentication. GitHub API commands then use the current gh auth login session, while clone operations use the normal Git credential helper or SSH agent. Configure explicit secret sources only when those credentials are unavailable, such as in a container or Kubernetes CronJob.\nEvery secret source contains exactly one env or file key. It is read again on every run, so rotated secrets are picked up without changing the backup configuration. Secret values are not placed in command arguments, logs, manifests, or the audit log.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "GitHub Authentication"
+    ]
+  },
+  {
+    "objectID": "github-authentication.html#ssh",
+    "href": "github-authentication.html#ssh",
+    "title": "GitHub Authentication",
+    "section": "SSH",
+    "text": "SSH\nFor SSH clone URLs, omit authentication.git to use the existing SSH agent and configuration, or configure both a private key and pinned known_hosts file:\nauthentication:\n  git:\n    ssh:\n      private-key:\n        file: /var/run/secrets/github/ssh-private-key\n      known-hosts:\n        file: /var/run/secrets/github/known-hosts\nConfigured keys are copied to temporary owner-only files, and strict host verification is enabled. Generate the host entry using GitHub’s SSH host key guidance.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "GitHub Authentication"
+    ]
+  },
+  {
+    "objectID": "github-authentication.html#https",
+    "href": "github-authentication.html#https",
+    "title": "GitHub Authentication",
+    "section": "HTTPS",
+    "text": "HTTPS\nUse a token without embedding it in the clone URL:\nauthentication:\n  git:\n    https:\n      token:\n        env: GITHUB_GIT_TOKEN\nThe CLI supplies it through a temporary Git askpass helper. When omitted, Git uses its existing credential configuration; public repositories need no authentication.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "GitHub Authentication"
+    ]
+  },
+  {
+    "objectID": "github-authentication.html#github-api-and-metadata-exports",
+    "href": "github-authentication.html#github-api-and-metadata-exports",
+    "title": "GitHub Authentication",
+    "section": "GitHub API and metadata exports",
+    "text": "GitHub API and metadata exports\nWhen authentication.api.token is omitted, API-backed components use gh auth login. Unattended environments can read a token from an environment variable or mounted file:\nauthentication:\n  api:\n    token:\n      env: GITHUB_MIGRATION_TOKEN\nGitHub’s migration API currently requires a compatible classic personal access token and repository-owner access. Fine-grained tokens and GitHub App tokens are not supported for that API. The default OAuth token created by gh auth login may therefore receive HTTP 403 even with repo and admin:org scopes. To keep using the local credential store, authenticate with a compatible classic PAT through gh auth login --with-token. See GitHub’s organization migration API and user migration API.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "GitHub Authentication"
+    ]
+  },
+  {
+    "objectID": "github-authentication.html#kubernetes",
+    "href": "github-authentication.html#kubernetes",
+    "title": "GitHub Authentication",
+    "section": "Kubernetes",
+    "text": "Kubernetes\nMount files or inject environment variables from a Secret; do not put secret values in YAML:\nenv:\n  - name: GITHUB_MIGRATION_TOKEN\n    valueFrom:\n      secretKeyRef:\n        name: github-backup\n        key: api-token\nvolumeMounts:\n  - name: github-ssh\n    mountPath: /var/run/secrets/github\n    readOnly: true\nThe container needs git, git-lfs when LFS is enabled, gh for API-backed components, and restic.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "GitHub Authentication"
+    ]
+  },
+  {
     "objectID": "generic.html",
     "href": "generic.html",
     "title": "Repositories and Restic",
@@ -508,190 +619,207 @@
     ]
   },
   {
-    "objectID": "github-repositories.html",
-    "href": "github-repositories.html",
-    "title": "GitHub Backups",
+    "objectID": "sops.html",
+    "href": "sops.html",
+    "title": "SOPS",
     "section": "",
-    "text": "GitHub jobs incrementally maintain complete Git mirrors and optionally collect Git LFS objects, wikis, repository metadata, and release assets. Use github-repository for an explicit URL list or github-owner to discover every repository owned by an organization or user. Each job snapshots its combined managed workspace to one or more configured restic repositories.",
+    "text": "SOPS encrypts secrets in the YAML configuration while leaving the file safe to store in Git. restic-backups asks SOPS to decrypt the file in memory and parses the result; it does not create a decrypted copy.",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#back-up-an-explicit-repository-list",
-    "href": "github-repositories.html#back-up-an-explicit-repository-list",
-    "title": "GitHub Backups",
-    "section": "Back up an explicit repository list",
-    "text": "Back up an explicit repository list\nGitHub jobs use the shared jobs section and a GitHub-specific source:\njobs:\n  - job-id: example-github-repository\n    type: github-repository\n    description: Complete GitHub repository backup.\n    restic-repository-ids:\n      - personal-b2\n      - personal-local\n    tag: example-github-repository\n    source:\n      repository-urls:\n        - git@github.com:example/example-repository.git\n        - git@github.com:example/another-repository.git\n      authentication:\n        git:\n          ssh:\n            private-key:\n              file: /var/run/secrets/github/ssh-private-key\n            known-hosts:\n              file: /var/run/secrets/github/known-hosts\n        api:\n          token:\n            env: GITHUB_MIGRATION_TOKEN\n      components:\n        git: true\n        lfs: true\n        wiki: true\n        metadata: true\n        release-assets: true\n      migration-timeout-seconds: 3600\nEvery component flag is required, and at least one must be true. lfs requires git. Every URL uses the same component and authentication settings. The optional restic tag still defaults to job-id.\nOnly github.com clone URLs are accepted:\ngit@github.com:OWNER/REPOSITORY.git\nhttps://github.com/OWNER/REPOSITORY.git\nCredentials, query strings, and fragments embedded in the URL are rejected. The URL list must be non-empty and identify distinct repositories; SSH and HTTPS URLs for the same repository cannot appear together. The previous singular repository-url field is accepted temporarily for migration.",
+    "objectID": "sops.html#install-sops-and-age",
+    "href": "sops.html#install-sops-and-age",
+    "title": "SOPS",
+    "section": "Install SOPS and age",
+    "text": "Install SOPS and age\nmake install-deps installs SOPS. Install age when age-keygen is not already available:\nbrew install age\nGenerate an age identity outside the repository:\nmkdir -p \"$HOME/.config/sops/age\"\nage-keygen -o \"$HOME/.config/sops/age/keys.txt\"\nage-keygen -y \"$HOME/.config/sops/age/keys.txt\"\nThe final command prints the public age1... recipient. It is safe to put that recipient in .sops.yaml. Never commit the private AGE-SECRET-KEY-1... identity or the identity file.",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#discover-an-organization-or-user",
-    "href": "github-repositories.html#discover-an-organization-or-user",
-    "title": "GitHub Backups",
-    "section": "Discover an organization or user",
-    "text": "Discover an organization or user\nUse type: github-owner to discover repositories instead of maintaining the URL list manually:\njobs:\n  - job-id: example-organization\n    type: github-owner\n    restic-repository-ids:\n      - personal-local\n    source:\n      owner-url: https://github.com/example\n      clone-protocol: ssh\n      components:\n        git: true\n        lfs: false\n        wiki: false\n        metadata: false\n        release-assets: false\n      migration-timeout-seconds: 3600\nThe owner may be an organization or a user. Enumeration includes every public, private, archived, and fork repository visible to the active GitHub credentials and owned by that account. clone-protocol defaults to ssh; choose https when using HTTPS Git authentication. With no authentication.api.token, enumeration uses the current credentials from gh auth login. Containers and scheduled jobs can provide the token from an environment variable or mounted file. Cloning continues to use the separately configured Git credentials or SSH agent.\nThe repository list is refreshed on every run. Newly discovered repositories get new owner/repository workspaces. Repositories no longer returned by GitHub are omitted from new snapshots but retained in older immutable snapshots; their unused local workspace is not deleted automatically.\nOwner-job dry runs contact GitHub read-only to show the precise discovered plan. They do not create local files, run Git, or contact Restic.",
+    "objectID": "sops.html#add-.sops.yaml",
+    "href": "sops.html#add-.sops.yaml",
+    "title": "SOPS",
+    "section": "Add .sops.yaml",
+    "text": "Add .sops.yaml\nThe SOPS configuration file must be named .sops.yaml, not .sops.yml. Put it in the repository root so SOPS finds it when commands run anywhere below that directory.\nThis template encrypts only the credential fields and restic repository passwords used by restic-backups:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nStorage and repository IDs, descriptions, endpoints, paths, and other operational settings remain readable. SOPS encrypts matching leaf values anywhere in the YAML tree. mac_only_encrypted: true allows those readable values to be edited directly without invalidating the SOPS message authentication code (MAC).\n\n\n\n\n\n\nWarning\n\n\n\nWith mac_only_encrypted: true, SOPS authenticates encrypted values but no longer detects changes to plaintext IDs, endpoints, paths, descriptions, or job mappings. Review those changes through Git. Omit this setting when SOPS should protect the integrity of every value, accepting that all edits must then go through SOPS.\n\n\nSOPS also encrypts comments, so use the configuration’s description fields for readable notes.\nTo encrypt every value instead, omit encrypted_regex:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    age: age1REPLACE_WITH_YOUR_PUBLIC_RECIPIENT\nThe public recipient can instead come from SOPS_AGE_RECIPIENTS. When that variable is always set for encryption, omit age from the creation rule:\ncreation_rules:\n  - path_regex: config\\.sops\\.yaml$\n    encrypted_regex: '^(access-key-id|secret-access-key|password)$'\n    mac_only_encrypted: true\nSee the official SOPS configuration format for rule matching and other key providers.",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#credentials",
-    "href": "github-repositories.html#credentials",
-    "title": "GitHub Backups",
-    "section": "Credentials",
-    "text": "Credentials\nOn an interactive laptop, the simplest configuration omits authentication. GitHub API commands then use the current gh auth login session, while clone operations use the normal Git credential helper or SSH agent and configuration. Configure the explicit secret sources below only when those credentials are not available, such as in a container or Kubernetes CronJob.\nEvery configured secret source contains exactly one env or file key. The environment variable or file is read again on every run, which works with rotated Kubernetes Secrets and other secret managers. Secret values are never placed in command arguments, logs, manifests, or the audit log.\nFor SSH clone URLs, omit authentication.git to use the existing SSH agent and configuration, or configure both a private key and known_hosts. Configured keys are copied to temporary owner-only files, and strict host verification is always enabled. Generate a pinned host entry according to GitHub’s SSH host key guidance.\nFor HTTPS clone URLs, use a token without putting it in the URL:\nauthentication:\n  git:\n    https:\n      token:\n        env: GITHUB_GIT_TOKEN\nThe CLI supplies it through a temporary Git askpass helper. When this source is omitted, Git uses its existing credential configuration; public repositories need no authentication.\nWhen authentication.api.token is omitted, API-backed components use the current credentials from gh auth login. Containers and scheduled jobs without that login should configure a token from an environment variable or mounted file. GitHub’s migration API currently requires a compatible classic personal access token and repository-owner access; fine-grained tokens and GitHub App tokens are not supported for this API. The default OAuth token created by gh auth login may therefore receive HTTP 403 even when it has repo and admin:org scopes. To keep using the local gh credential store, authenticate it with a compatible classic PAT through gh auth login --with-token. See GitHub’s organization migration API and user migration API.\nFor a Kubernetes CronJob, mount files or inject environment variables from a Secret and point the job at their names—do not put secret values in YAML:\nenv:\n  - name: GITHUB_MIGRATION_TOKEN\n    valueFrom:\n      secretKeyRef:\n        name: github-backup\n        key: api-token\nvolumeMounts:\n  - name: github-ssh\n    mountPath: /var/run/secrets/github\n    readOnly: true\nThe container needs git, git-lfs when LFS is enabled, gh when API-backed components are enabled, and restic. make install-deps installs these tools with Homebrew for local use.",
+    "objectID": "sops.html#create-the-encrypted-config",
+    "href": "sops.html#create-the-encrypted-config",
+    "title": "SOPS",
+    "section": "Create the encrypted config",
+    "text": "Create the encrypted config\nUse config.sops.yaml as the conventional name. The CLI accepts another name, but it must match path_regex and be passed through --config or RESTIC_BACKUPS_CONFIG.\nCopy the template, then edit it through SOPS so secrets are encrypted when the editor closes:\ncp config.template.yaml config.sops.yaml\nsops config.sops.yaml\nConfirm the file is encrypted and validate it without contacting remote storage:\nsops filestatus config.sops.yaml\nuv run restic-backups --config config.sops.yaml --sops check-config\nCommit .sops.yaml and the encrypted config.sops.yaml. Do not commit a plain config.yaml, the age identity, or decrypted command output.",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#components",
-    "href": "github-repositories.html#components",
-    "title": "GitHub Backups",
-    "section": "Components",
-    "text": "Components\n\n\n\n\n\n\n\n\nComponent\nBacked-up data\nUpdate behavior\n\n\n\n\ngit\nEvery object reachable through remote Git refs, including complete branch and tag history\nInitial git clone --mirror; later git remote update --prune\n\n\nlfs\nAll Git LFS objects reachable from the mirror\ngit lfs fetch --all origin\n\n\nwiki\nThe repository wiki as a separate Git mirror\nMissing or empty wikis are recorded as not-present\n\n\nmetadata\nGitHub’s official migration export, including issues, pull requests, comments, attachments, and release metadata\nA new migration archive is requested and downloaded each run\n\n\nrelease-assets\nBinary files attached to releases\nMissing or changed assets download atomically; remotely deleted assets are removed only after a complete successful update\n\n\n\nA Git-only job sets git: true and every other component to false. It needs only Git authentication and never invokes gh for an explicit repository-list job. Git history contains commits, branches, tags, trees, and normal Git file content. It does not contain issue discussions, pull-request comments, submodule repository contents, or commits already deleted from every remote ref. Without lfs, it contains LFS pointer files but not the referenced large objects. An owner job still invokes gh to discover its repository list.",
+    "objectID": "sops.html#environment-variables",
+    "href": "sops.html#environment-variables",
+    "title": "SOPS",
+    "section": "Environment variables",
+    "text": "Environment variables\nThese variables avoid repeating the global CLI options:\n\n\n\n\n\n\n\n\nVariable\nPurpose\nSensitive\n\n\n\n\nRESTIC_BACKUPS_CONFIG\nPath to the encrypted application config\nNo\n\n\nRESTIC_BACKUPS_SOPS=1\nTell restic-backups to decrypt through SOPS\nNo\n\n\nSOPS_AGE_KEY_FILE\nPath to a file containing private age identities\nYes: protect the file\n\n\nSOPS_AGE_KEY\nPrivate age identities supplied directly by a secret manager\nYes\n\n\nSOPS_AGE_KEY_CMD\nCommand that prints private age identities\nDepends on the command\n\n\nSOPS_AGE_RECIPIENTS\nPublic recipients used when encrypting new files\nNo\n\n\nSOPS_CONFIG\nNon-default path to .sops.yaml\nNo\n\n\n\nNormally, set the identity file and the two restic-backups variables:\nexport SOPS_AGE_KEY_FILE=\"$HOME/.config/sops/age/keys.txt\"\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.sops.yaml\"\nexport RESTIC_BACKUPS_SOPS=1\n\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nSOPS_AGE_KEY_FILE, SOPS_AGE_KEY, and SOPS_AGE_KEY_CMD are alternatives; set only the one appropriate for the environment. If the identity is stored in SOPS’s operating-system default age location, none of them is required.",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#run-and-inspect",
-    "href": "github-repositories.html#run-and-inspect",
-    "title": "GitHub Backups",
-    "section": "Run and inspect",
-    "text": "Run and inspect\nUse the described arrow-key TUI or explicit commands:\nuv run restic-backups job list\nuv run restic-backups job run example-github-repository \\\n  --repository personal-b2 --repository personal-local\nuv run restic-backups job status\nuv run restic-backups job status example-github-repository\nuv run restic-backups github-repository data-dir example-github-repository\nuv run restic-backups generic snapshot list example-github-repository \\\n  --repository personal-b2\nuv run restic-backups generic restic run --backup example-github-repository \\\n  --repository personal-b2 ls latest --tag example-github-repository\nWith no job ID, job status shows one row for every job and destination, including the latest snapshot ID and time, the local export time, and component states. Snapshots are matched using each job’s configured tag, which defaults to its job ID. Each destination repository is queried only once, even when many jobs share it. Passing a job ID limits the snapshot table and adds that job’s detailed component errors.\nThe status table reads restic snapshot metadata, not backed-up file contents. It can contact remote storage when the required metadata is not already cached.\nGitHub jobs are also selectable from Snapshots and Advanced restic. Use restic ls to browse files in a snapshot. The different restic list command lists internal repository objects and requires an object type such as packs, snapshots, or keys; it does not list configured backup jobs.\nThe TUI preselects a sole available destination. With several destinations, all start unchecked and must be selected with Space. An explicit-list dry run validates the plan without calling Git, GitHub, or restic and without writing the workspace. An owner dry run first contacts GitHub read-only to discover the exact repository list, but it likewise never runs Git, contacts restic, or writes the workspace:\nuv run restic-backups job run example-github-repository \\\n  --repository personal-b2 --dry-run",
+    "objectID": "sops.html#edit-and-rotate",
+    "href": "sops.html#edit-and-rotate",
+    "title": "SOPS",
+    "section": "Edit and rotate",
+    "text": "Edit and rotate\nWith mac_only_encrypted: true, ordinary text editors may change plaintext leaf values directly:\n$EDITOR config.sops.yaml\nuv run restic-backups check-config\nDo not replace an ENC[...] value manually. Use SOPS when changing a password, access key, or secret key, and for structural edits that add, remove, reorder, or rename branches containing encrypted values:\nsops edit config.sops.yaml\nFor a single value, sops set avoids opening the complete decrypted document:\nsops set config.sops.yaml \\\n  '[\"storage\"][0][\"description\"]' '\"Off-site object storage\"'\nThe encrypted file already records its public recipients. When recipients in .sops.yaml change, synchronize them with:\nsops updatekeys config.sops.yaml\nAdding or changing encrypted_regex or mac_only_encrypted in .sops.yaml does not alter an existing encrypted document. Decrypt and re-encrypt it once so the new rule is stored in the file. Keep plaintext in the pipe and replace the original only after encryption succeeds:\numask 077\nsops decrypt config.sops.yaml |\n  sops encrypt --filename-override config.sops.yaml \\\n    --input-type yaml --output-type yaml /dev/stdin &gt; config.sops.yaml.new\nmv config.sops.yaml.new config.sops.yaml\nValidate again after every key or rule change:\nuv run restic-backups check-config",
     "crumbs": [
-      "Commands",
-      "GitHub Backups"
+      "Setup",
+      "SOPS"
     ]
   },
   {
-    "objectID": "github-repositories.html#managed-workspace-and-snapshots",
-    "href": "github-repositories.html#managed-workspace-and-snapshots",
-    "title": "GitHub Backups",
-    "section": "Managed workspace and snapshots",
-    "text": "Managed workspace and snapshots\nThe reusable local workspace lives beside the selected config:\ndata/github-repositories/&lt;job-id&gt;/\n  backup-manifest.json\n  &lt;owner&gt;/&lt;repository&gt;/\n    repository.git/\n    wiki.git/\n    github-export/\n    release-assets/\nThe manifest records every source, the update time, and a safe status for every repository component: updated, unchanged, stale, not-present, failed, or disabled. If one component fails, the workflow still attempts the others and all selected destinations. Existing local component data is included as stale; the command creates the best available snapshot and exits nonzero when anything failed. Disabled cached components are not included.\nBefore updating source data, the workflow checks that every selected restic repository exists and, when metadata is enabled, that the active GitHub credentials can read the migration endpoint. A job-wide path or authorization error therefore stops before repositories are fetched. Repository-specific component errors encountered after those checks still use the best-available snapshot behavior above.\nRestic splits input into content-defined chunks and deduplicates identical chunks within each restic repository. Stable Git pack files, LFS objects, migration files, and release assets therefore do not need to be uploaded again. The workflow disables automatic Git maintenance and repacking because repacking can rewrite otherwise unchanged Git objects and reduce deduplication. Separate restic repositories do not share chunks, so two destinations each store their own copy. See restic’s repository design.\nRestore a snapshot with the normal restic command, then clone the restored bare repository into a working tree:\nuv run restic-backups generic restic run --backup example-github-repository \\\n  restore latest --target /tmp/github-restore\ngit clone \"$(find /tmp/github-restore -type d \\\n  -path '*/example/example-repository/repository.git' -print -quit)\" \\\n  restored-repository\n\nRecovery expectations\n\n\n\n\n\n\n\n\nComponent\nRecovery path\nLimitation\n\n\n\n\ngit\nPush the restored mirror to an empty repository\nGitHub-managed refs may be rejected; branches and tags can be pushed separately\n\n\nlfs\nRun git lfs push --all from the restored mirror\nAvailable only when LFS was enabled for the backup\n\n\nmetadata\nRetain the extracted GitHub migration export for migration or manual recovery\nNo direct, self-service import back into GitHub.com\n\n\n\nGitHub documents its migration archive as an export for moving repositories from GitHub.com to GitHub Enterprise Server. Imports cannot be started through the public REST API. See GitHub’s organization migration API and GitHub.com export guide.\nrestic-backups stores the extracted migration contents and does not currently provide a metadata import command. Treat metadata snapshots as archival and disaster-recovery material rather than a guaranteed round trip into GitHub.com. Restoring metadata to GitHub.com may require GitHub-supported migration help or custom API recreation, which may not preserve original IDs, timestamps, authorship, or every relationship.",
-    "crumbs": [
-      "Commands",
-      "GitHub Backups"
-    ]
-  },
-  {
-    "objectID": "github-repositories.html#deliberate-limits",
-    "href": "github-repositories.html#deliberate-limits",
-    "title": "GitHub Backups",
-    "section": "Deliberate limits",
-    "text": "Deliberate limits\nThis workflow does not export GitHub Actions artifacts, logs or caches, packages, secret values, forks as independent repositories, automatically discovered submodule repositories, or GitHub Enterprise. Add each independent Git or submodule repository URL that must be retained.",
-    "crumbs": [
-      "Commands",
-      "GitHub Backups"
-    ]
-  },
-  {
-    "objectID": "storage-costs.html",
-    "href": "storage-costs.html",
-    "title": "Storage Cost Comparison",
+    "objectID": "index.html",
+    "href": "index.html",
+    "title": "Restic Backups",
     "section": "",
-    "text": "These estimates compare US list prices and monthly storage charges in US dollars. AWS rates use US East (N. Virginia), and consumer plans use US pricing. The estimates exclude API requests, retrieval, egress, temporary restore copies, tax, and discounts. The 1 TB comparison uses 1,000 GB.",
+    "text": "Restic Backups is a YAML configuration and CLI layer for multiple restic repositories, with optional SOPS decryption. It supports S3-compatible services, mounted local storage, multiple repositories and backup jobs, managed private metadata directories, and a complete macOS Voice Memos workflow. It can also maintain and snapshot complete GitHub repository mirrors and selected GitHub-hosted data, either from an explicit URL list or by discovering every repository owned by an organization or user.",
     "crumbs": [
-      "Setup",
-      "Storage Cost Comparison"
+      "Restic Backups"
     ]
   },
   {
-    "objectID": "storage-costs.html#gb",
-    "href": "storage-costs.html#gb",
-    "title": "Storage Cost Comparison",
-    "section": "100 GB",
-    "text": "100 GB\nPrices as of 1 August 2026.\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$0.40\n$0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$0.36\n$0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$2.30\n$0.023/GB-month\nYes\n\n\nBackblaze B2\n$0.63\n$0.00695/GB-month after the first 10 GB free\nYes\n\n\nGoogle Drive\n$1.99\nGoogle One Basic 100 GB plan\nNo\n\n\nOneDrive\n$1.99\nMicrosoft 365 Basic 100 GB plan\nNo",
+    "objectID": "index.html#start-here",
+    "href": "index.html#start-here",
+    "title": "Restic Backups",
+    "section": "Start here",
+    "text": "Start here\n\nQuick Start creates, validates, and restores a first backup.\nConfiguration describes storage, restic repositories, jobs, and Glacier policy.\nJobs describes the shared model and commands for every job type.\nGeneric Backups covers standard restic operations for any local files or directories.\nGitHub Backups introduces explicit repository lists, organization or user discovery, and optional components.\nGitHub Authentication covers laptops, containers, SSH, HTTPS, API tokens, and Kubernetes.\nRun GitHub Backups covers execution and inspection; Restore GitHub Backups covers bare mirrors and working clones.\nVoice Memos Backups covers backup, transcription, recovery, and diarization on macOS.",
     "crumbs": [
-      "Setup",
-      "Storage Cost Comparison"
+      "Restic Backups"
     ]
   },
   {
-    "objectID": "storage-costs.html#tb",
-    "href": "storage-costs.html#tb",
-    "title": "Storage Cost Comparison",
-    "section": "1 TB",
-    "text": "1 TB\n\n\n\n\n\n\n\n\n\nService\nMonthly cost\nPrice used\nSupported by this CLI\n\n\n\n\nAWS S3 Glacier Instant Retrieval\n$4.00\n1,000 GB at $0.004/GB-month\nYes\n\n\nAWS S3 Glacier Flexible Retrieval\n$3.60\n1,000 GB at $0.0036/GB-month\nYes; restore required\n\n\nAWS S3 Standard\n$23.00\n1,000 GB at $0.023/GB-month\nYes\n\n\nBackblaze B2\n$6.88\n990 billable GB after the first 10 GB free\nYes\n\n\nGoogle Drive\n$9.99\nCheapest plan covering 1 TB is the 2 TB plan\nNo\n\n\nOneDrive\n$9.99\nMicrosoft 365 Personal 1 TB plan\nNo",
+    "objectID": "index.html#architecture",
+    "href": "index.html#architecture",
+    "title": "Restic Backups",
+    "section": "Architecture",
+    "text": "Architecture\nrestic_backups/\n  cli.py                 root command wiring and global options\n  config.py              YAML loading and validation\n  jobs/\n    cli.py               unified job commands and job-first TUI\n    workflow.py          type dispatch and common snapshot execution\n  generic/\n    cli.py               generic restic command definitions\n    local.py             local repository destruction\n    sops.py              SOPS decryption\n    repository.py        repository resolution and managed paths\n    restic.py            restic execution and archive policy\n    s3.py                permanent repository destruction\n  github_repository/\n    cli.py               GitHub repository commands and TUI\n    workflow.py          Git, GitHub export, and snapshot updates\n  voice_memos/\n    cli.py               Voice Memos command definitions\n    pipeline.py          transcription and diarization processing\n    workflow.py          backup, restore, and recording lookup\n    parallel.py          worker process orchestration\n    dashboard.py         live Textual dashboard\nThe root TUI and job command route every configured type through the common job dispatcher. Type-specific modules prepare source data; generic restic modules resolve destinations and execute restic.",
     "crumbs": [
-      "Setup",
-      "Storage Cost Comparison"
+      "Restic Backups"
     ]
   },
   {
-    "objectID": "storage-costs.html#cost-of-listing-files-in-a-snapshot",
-    "href": "storage-costs.html#cost-of-listing-files-in-a-snapshot",
-    "title": "Storage Cost Comparison",
-    "section": "Cost of listing files in a snapshot",
-    "text": "Cost of listing files in a snapshot\nRestic can list a snapshot without downloading the backed-up file contents:\nuv run restic-backups generic restic run --backup &lt;job-id&gt; ls &lt;snapshot-id&gt;\nThe command downloads repository indexes, snapshot records, directory trees, and other required metadata. Commands such as restore and dump download file data. Restic’s local cache can reduce metadata reads on subsequent commands. Set cache-dir on a restic-repositories entry to give each repository a stable, separate cache location; see Configuration.\nPrime that cache with repository metadata before browsing snapshots:\nuv run restic-backups generic repository prime-cache &lt;repository-id&gt;\nThis runs restic check --with-cache; it does not download backed-up file data.\n\n\n\n\n\n\n\n\nProvider\nMetadata-read charges\nTypical cost\n\n\n\n\nBackblaze B2\nGET and LIST transactions are free; egress is free up to 3× average monthly storage\n$0 within the free egress allowance\n\n\nAWS S3 Glacier Instant Retrieval, US East\n$0.03/GB retrieved plus about $0.01 per 1,000 GET requests\nUsually less than $0.01\n\n\n\nGlacier Instant Retrieval examples below show retrieval charges only; request charges are additional:\n\n\n\nMetadata downloaded\nRetrieval charge\n\n\n\n\n10 MB\n~$0.0003\n\n\n100 MB\n~$0.003\n\n\n1 GB\n$0.03\n\n\n\nAWS currently includes the first 100 GB per month of internet data transfer out, aggregated across AWS services and regions. Backblaze charges $0.01/GB only for egress beyond its free allowance. Exact costs depend on the repository’s metadata size, object count, local cache, and other usage during the billing month.",
+    "objectID": "index.html#private-data-boundary",
+    "href": "index.html#private-data-boundary",
+    "title": "Restic Backups",
+    "section": "Private data boundary",
+    "text": "Private data boundary\nManaged artifacts use:\ndata/&lt;storage-id&gt;/&lt;repository-path&gt;/&lt;job-id&gt;/\nThis path is relative to the selected configuration file. It does not constrain backup sources; commands may pass absolute source paths outside the repository. Everything below data/ is ignored.\nGitHub repository jobs use data/github-repositories/&lt;job-id&gt;/ because their managed source workspace is shared by every selected restic destination.\n\n\n\n\n\n\nWarning\n\n\n\nCommit config.sops.yaml only while encrypted. Never commit credentials, recordings, transcripts, summaries, caches, restores, or restic data.",
     "crumbs": [
-      "Setup",
-      "Storage Cost Comparison"
+      "Restic Backups"
     ]
   },
   {
-    "objectID": "storage-costs.html#important-differences",
-    "href": "storage-costs.html#important-differences",
-    "title": "Storage Cost Comparison",
-    "section": "Important differences",
-    "text": "Important differences\nAWS and Backblaze prices are metered object-storage charges. Google Drive and OneDrive prices are fixed consumer subscription tiers that include other services. This project supports S3-compatible and local filesystem storage; Google Drive and OneDrive cannot be selected as storage backends.\nBoth Glacier classes have a 90-day minimum storage duration. Instant Retrieval is immediately readable but has a 128 KB minimum billable object size and separate data-retrieval charges. Flexible Retrieval first requires an archive restore: expedited retrieval typically takes 1–5 minutes, standard takes 3–5 hours, and bulk takes 5–12 hours. It also bills 40 KB of metadata per object, which is not included in the estimates above.\nFor Flexible Retrieval, configure a restore policy and set ALLOW_ARCHIVE_RETRIEVAL=1 when running retrieval-related commands. S3 Standard and B2 do not require an archive restore before normal access. Backblaze includes free egress up to three times average monthly storage; AWS transfer and request charges vary by usage and region.\nPrices vary by country and can change. Check the current official pages before choosing a provider:\n\nAmazon S3 pricing\nAWS archive retrieval options\nBackblaze B2 pricing\nBackblaze B2 transaction pricing\nGoogle One plans\nMicrosoft OneDrive plans",
-    "crumbs": [
-      "Setup",
-      "Storage Cost Comparison"
-    ]
-  },
-  {
-    "objectID": "cli.html",
-    "href": "cli.html",
-    "title": "CLI",
+    "objectID": "quick-start.html",
+    "href": "quick-start.html",
+    "title": "Quick Start",
     "section": "",
-    "text": "Run the installed command through uv:\nIn an interactive terminal, running without a command opens a described arrow-key menu for Jobs, Repositories, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.\nEvery menu level includes Help and Back. Help shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.\nPress Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.\nShow command-line help instead:\nCommands that use a repository require a configuration file. Pass the global options before the command:\nThe equivalent environment variables are RESTIC_BACKUPS_CONFIG and RESTIC_BACKUPS_SOPS=1. See Configuration for setup.\nCommands use standard Python stderr logging with local ISO 8601 timestamps, levels, and logger names. Add --verbose before the command, or set RESTIC_BACKUPS_VERBOSE=1, to include command-level details without printing credentials or repository passwords:\nUser-facing Restic stdout and stderr use the same logger, so repository output also carries timestamps and levels. Machine-readable internal calls remain quiet unless they fail. See Logging configuration for the complete behavior and example output.",
+    "text": "This guide creates one generic S3-compatible backup. A mounted local disk uses the same workflow; see Configuration.",
     "crumbs": [
-      "Setup",
-      "CLI"
+      "Quick Start"
     ]
   },
   {
-    "objectID": "cli.html#prometheus-metrics",
-    "href": "cli.html#prometheus-metrics",
-    "title": "CLI",
-    "section": "Prometheus metrics",
-    "text": "Prometheus metrics\nJobs can push their latest result to a Prometheus Pushgateway. Set its URL before running a job:\nexport RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091\nuv run restic-backups job run photos\nMetrics are disabled when the environment variable is unset. See Prometheus configuration for metric names, labels, Pushgateway behavior, and a Prometheus scrape example.",
+    "objectID": "quick-start.html#install",
+    "href": "quick-start.html#install",
+    "title": "Quick Start",
+    "section": "1. Install",
+    "text": "1. Install\nmake install-deps\nmake install\nmake install-deps installs the required Homebrew tools. make install creates the uv environment.",
     "crumbs": [
-      "Setup",
-      "CLI"
+      "Quick Start"
     ]
   },
   {
-    "objectID": "cli.html#audit-log",
-    "href": "cli.html#audit-log",
-    "title": "CLI",
-    "section": "Audit log",
-    "text": "Audit log\nCommand auditing is enabled by default. restic-backups appends compact JSON objects to audit-log.json in the directory where it was started. Each command has two linked records:\n\na started event containing an id, start-time, hostname, command, and its exact args;\na finished event containing started-id, end-time, and successful. Workflows may also add non-secret component and destination results under details.\n\nThe started-id links completion to the corresponding started event. A started event without a matching finished event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (0600). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. GitHub repository jobs likewise record every raw git, git lfs, gh, and restic command. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with [REDACTED].\nThe log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:\nexport RESTIC_BACKUPS_AUDIT=0\nThe values false, no, and off are also accepted, case-insensitively.",
+    "objectID": "quick-start.html#configure-a-repository",
+    "href": "quick-start.html#configure-a-repository",
+    "title": "Quick Start",
+    "section": "2. Configure a repository",
+    "text": "2. Configure a repository\nCopy the commented template:\ncp config.template.yaml config.yaml\nEdit its first storage, restic repository, and job entries:\n\nreplace every CHANGE_ME used by the available repository;\nconfigure either S3 storage and credentials or an absolute local storage path;\nconfigure the repository bucket and key_prefix for S3, or relative path for local storage;\ngive the backup job a useful job-id such as documents;\nuse type: files and list local files or directories under source.paths;\nomit tag unless it should differ from the job ID;\nlist one or more available repository IDs under restic-repository-ids;\ndelete unused example entries if desired.\n\nKeep the repository password safe: restic cannot decrypt snapshots without it.\nSet the config path once for the shell and validate it:\nexport RESTIC_BACKUPS_CONFIG=\"$PWD/config.yaml\"\nuv run restic-backups check-config\nuv run restic-backups generic repository list\nuv run restic-backups job list\nThe list output separates Repositories from Jobs. Every configured restic repository appears in the repository table, even before a configured backup references it.",
     "crumbs": [
-      "Setup",
-      "CLI"
+      "Quick Start"
     ]
   },
   {
-    "objectID": "cli.html#root-commands",
-    "href": "cli.html#root-commands",
-    "title": "CLI",
-    "section": "Root commands",
-    "text": "Root commands\n\n\n\n\n\n\n\n\nCommand\nPurpose\nRepository access\n\n\n\n\ncheck-config\nLoad and validate configuration\nNo\n\n\njob ...\nList, run, and inspect every configured job type\nDepends on subcommand\n\n\ngeneric ...\nRun generic configured repository commands\nDepends on subcommand\n\n\ngithub-repository ...\nCompatibility and GitHub-specific commands\nDepends on subcommand\n\n\nvoice-memos ...\nCompatibility and Voice Memos-specific tools\nDepends on subcommand\n\n\n\nUse Generic Backups for restic passthrough, repository initialization, restores, and managed data directories. Use GitHub Repositories for Git history and selected GitHub-hosted data. Use Voice Memos Backups for the macOS-specific workflow.\nRun subcommand help without loading a configuration:\nuv run restic-backups job --help\nuv run restic-backups generic --help\nuv run restic-backups github-repository --help\nuv run restic-backups voice-memos --help",
+    "objectID": "quick-start.html#initialize-and-back-up",
+    "href": "quick-start.html#initialize-and-back-up",
+    "title": "Quick Start",
+    "section": "3. Initialize and back up",
+    "text": "3. Initialize and back up\nInitialize a new repository once:\nuv run restic-backups generic repository init personal-b2\nThen create a snapshot from the paths configured for documents:\nuv run restic-backups job run documents\nuv run restic-backups generic snapshot list documents\nRunning generic repository init again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass --all to initialize every available repository. job run preselects a sole available destination; when several are available, use Space to choose one or more. Disabled storage and its repositories remain visible but unselectable. The job’s paths and default or configured tag are used for every selected repository.",
     "crumbs": [
-      "Setup",
-      "CLI"
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "quick-start.html#verify-a-restore",
+    "href": "quick-start.html#verify-a-restore",
+    "title": "Quick Start",
+    "section": "4. Verify a restore",
+    "text": "4. Verify a restore\nmkdir -p /tmp/restic-restore-check\nuv run restic-backups generic restic run --backup documents \\\n  restore latest --target /tmp/restic-restore-check\nInspect the restored files before relying on the backup. Continue with Generic Backups for repository commands or GitHub Backups for explicit repositories or an entire GitHub organization or user, or Voice Memos Backups for the macOS workflow.\n\n\n\n\n\n\nWarning\n\n\n\nDo not commit config.yaml, credentials, repository passwords, or restored data. Use SOPS before committing a config.",
+    "crumbs": [
+      "Quick Start"
+    ]
+  },
+  {
+    "objectID": "github-restore.html",
+    "href": "github-restore.html",
+    "title": "Restore GitHub Backups",
+    "section": "",
+    "text": "The restore workflow selects a GitHub job, one of its Restic destinations, a snapshot, and a repository contained in that snapshot. It restores only that repository, not every repository in an organization job.\nFrom the TUI, choose Jobs, Select job, the GitHub job, then Restore repository. Snapshots and contained repositories are presented as arrow-key selections.\nThe destination must be absent or an empty directory. Restic verifies every restored file before the command succeeds.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Restore GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-restore.html#bare-repository",
+    "href": "github-restore.html#bare-repository",
+    "title": "Restore GitHub Backups",
+    "section": "Bare repository",
+    "text": "Bare repository\nChoose Bare repository to recover the mirror exactly as it was backed up. It contains complete Git objects, branches, tags, other remote refs, and backed up LFS objects, but no checked-out source files:\nuv run restic-backups github-repository restore example-organization \\\n  --repository personal-local \\\n  --snapshot b3ec67e1 \\\n  --github-repository example/example-repository \\\n  --mode bare \\\n  --target /tmp/example-repository.git\nValidate it independently with:\ngit --git-dir=/tmp/example-repository.git fsck --full",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Restore GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-restore.html#working-clone",
+    "href": "github-restore.html#working-clone",
+    "title": "Restore GitHub Backups",
+    "section": "Working clone",
+    "text": "Working clone\nChoose Clone for a normal working tree with visible source files:\nuv run restic-backups github-repository restore example-organization \\\n  --repository personal-local \\\n  --snapshot b3ec67e1 \\\n  --github-repository example/example-repository \\\n  --mode clone \\\n  --target /tmp/example-repository\nThe tool first restores and verifies the bare mirror in a temporary directory, then clones it without contacting GitHub. It restores backed-up LFS objects into the clone and runs git lfs checkout when LFS data is present. The clone’s origin is reset to the original safe GitHub URL stored in the mirror rather than the temporary local path.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Restore GitHub Backups"
+    ]
+  },
+  {
+    "objectID": "github-restore.html#recover-to-github",
+    "href": "github-restore.html#recover-to-github",
+    "title": "Restore GitHub Backups",
+    "section": "Recover to GitHub",
+    "text": "Recover to GitHub\n\n\n\n\n\n\n\n\nComponent\nRecovery path\nLimitation\n\n\n\n\ngit\nPush the restored mirror to an empty repository\nGitHub-managed refs may be rejected; branches and tags can be pushed separately\n\n\nlfs\nRun git lfs push --all from the restored mirror\nAvailable only when LFS was enabled for the backup\n\n\nmetadata\nRetain the GitHub migration export for migration or manual recovery\nNo direct self-service import back into GitHub.com\n\n\n\nGitHub documents migration archives as exports for moving repositories from GitHub.com to GitHub Enterprise Server. Imports cannot be started through the public REST API. See the organization migration API and GitHub.com export guide.\nrestic-backups does not provide a metadata import command. Treat metadata as archival disaster-recovery material; recreating it through APIs may not preserve original IDs, timestamps, authorship, or every relationship.",
+    "crumbs": [
+      "Commands",
+      "GitHub Backups",
+      "Restore GitHub Backups"
     ]
   }
 ]

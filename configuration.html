@@ -219,12 +219,41 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
  <span class="menu-text">Jobs</span></a>
   </div>
 </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">GitHub Backups</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">GitHub Backups</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-authentication.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GitHub Authentication</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Run GitHub Backups</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-restore.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Restore GitHub Backups</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
@@ -463,7 +492,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <span id="cb14-20"><a href="#cb14-20" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">metadata</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb14-21"><a href="#cb14-21" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">release-assets</span><span class="kw">:</span><span class="at"> </span><span class="ch">true</span></span>
 <span id="cb14-22"><a href="#cb14-22" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">migration-timeout-seconds</span><span class="kw">:</span><span class="at"> </span><span class="dv">3600</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>All component flags are required and at least one must be enabled. <code>lfs</code> requires <code>git</code>. On a laptop, omit <code>authentication</code> to use <code>gh auth login</code> and the normal Git/SSH configuration. Configure explicit Git or API credential sources only when those local credentials are unavailable, such as in a container or Kubernetes CronJob. Secret sources contain exactly one <code>env</code> or <code>file</code> key, so secret values remain outside the YAML. <code>repository-urls</code> must be a non-empty list identifying distinct GitHub repositories. The previous singular <code>repository-url</code> is accepted temporarily for migration, but new configurations should use the list. See <a href="./github-repositories.html">GitHub Repositories</a> for SSH and HTTPS Git authentication, migration permissions, commands, workspace layout, and restore steps.</p>
+<p>All component flags are required and at least one must be enabled. <code>lfs</code> requires <code>git</code>. On a laptop, omit <code>authentication</code> to use <code>gh auth login</code> and the normal Git/SSH configuration. Configure explicit Git or API credential sources only when those local credentials are unavailable, such as in a container or Kubernetes CronJob. Secret sources contain exactly one <code>env</code> or <code>file</code> key, so secret values remain outside the YAML. <code>repository-urls</code> must be a non-empty list identifying distinct GitHub repositories. The previous singular <code>repository-url</code> is accepted temporarily for migration, but new configurations should use the list. See <a href="./github-authentication.html">GitHub Authentication</a> for SSH, HTTPS, API tokens, and migration permissions; <a href="./github-operations.html">Run GitHub Backups</a> for commands and workspace layout; and <a href="./github-restore.html">Restore GitHub Backups</a> for recovery.</p>
 <p>To discover every repository owned by one organization or user on each run, use <code>type: github-owner</code> and replace <code>repository-urls</code> with:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb15"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb15-1"><a href="#cb15-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span><span class="kw">:</span></span>
 <span id="cb15-2"><a href="#cb15-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">owner-url</span><span class="kw">:</span><span class="at"> https://github.com/example</span></span>

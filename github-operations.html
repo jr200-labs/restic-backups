@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>CLI – Restic Backups</title>
+<title>Run GitHub Backups – Restic Backups</title>
 <style>
 /* Default styles provided by pandoc.
 ** See https://pandoc.org/MANUAL.html#variables-for-html for config info.
@@ -145,7 +145,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./jobs.html">Commands</a></li><li class="breadcrumb-item"><a href="./github-repositories.html">GitHub Backups</a></li><li class="breadcrumb-item"><a href="./github-operations.html">Run GitHub Backups</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
     </div>
@@ -198,7 +198,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./cli.html" class="sidebar-item-text sidebar-link active">
+  <a href="./cli.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">CLI</span></a>
   </div>
 </li>
@@ -221,13 +221,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item sidebar-item-section">
       <div class="sidebar-item-container"> 
-            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+            <a class="sidebar-item-text sidebar-link text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true">
  <span class="menu-text">GitHub Backups</span></a>
-          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+          <a class="sidebar-item-toggle text-start" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="true" aria-label="Toggle section">
             <i class="bi bi-chevron-right ms-2"></i>
           </a> 
       </div>
-      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 show">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
@@ -242,7 +242,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
-  <a href="./github-operations.html" class="sidebar-item-text sidebar-link">
+  <a href="./github-operations.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Run GitHub Backups</span></a>
   </div>
 </li>
@@ -278,18 +278,17 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#prometheus-metrics" id="toc-prometheus-metrics" class="nav-link active" data-scroll-target="#prometheus-metrics">Prometheus metrics</a></li>
-  <li><a href="#audit-log" id="toc-audit-log" class="nav-link" data-scroll-target="#audit-log">Audit log</a></li>
-  <li><a href="#root-commands" id="toc-root-commands" class="nav-link" data-scroll-target="#root-commands">Root commands</a></li>
+  <li><a href="#managed-workspace" id="toc-managed-workspace" class="nav-link active" data-scroll-target="#managed-workspace">Managed workspace</a></li>
+  <li><a href="#deduplication" id="toc-deduplication" class="nav-link" data-scroll-target="#deduplication">Deduplication</a></li>
   </ul>
 </nav>
     </div>
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./configuration.html">Setup</a></li><li class="breadcrumb-item"><a href="./cli.html">CLI</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="./jobs.html">Commands</a></li><li class="breadcrumb-item"><a href="./github-repositories.html">GitHub Backups</a></li><li class="breadcrumb-item"><a href="./github-operations.html">Run GitHub Backups</a></li></ol></nav>
 <div class="quarto-title">
-<h1 class="title">CLI</h1>
+<h1 class="title">Run GitHub Backups</h1>
 </div>
 
 
@@ -306,88 +305,35 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 </header>
 
 
-<p>Run the installed command through uv:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>In an interactive terminal, running without a command opens a described arrow-key menu for <strong>Jobs</strong>, <strong>Repositories</strong>, and configuration validation. Choose a job before choosing run, status, snapshots, advanced restic, or its type-specific tools. Explicit subcommands remain available for scripts and scheduled jobs.</p>
-<p>Every menu level includes <strong>Help</strong> and <strong>Back</strong>. <strong>Help</strong> shows the commands and flags for the current level, then returns to the same menu; it does not load the configuration or contact remote storage.</p>
-<p>Press Escape to return to the previous menu. Press Ctrl+C at any prompt to exit the TUI cleanly.</p>
-<p>Show command-line help instead:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Commands that use a repository require a configuration file. Pass the global options before the command:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb3"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.yaml generic repository list</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--config</span> config.sops.yaml <span class="at">--sops</span> job list</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The equivalent environment variables are <code>RESTIC_BACKUPS_CONFIG</code> and <code>RESTIC_BACKUPS_SOPS=1</code>. See <a href="./configuration.html">Configuration</a> for setup.</p>
-<p>Commands use standard Python stderr logging with local ISO 8601 timestamps, levels, and logger names. Add <code>--verbose</code> before the command, or set <code>RESTIC_BACKUPS_VERBOSE=1</code>, to include command-level details without printing credentials or repository passwords:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb4"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups <span class="at">--verbose</span> generic repository init</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>User-facing Restic stdout and stderr use the same logger, so repository output also carries timestamps and levels. Machine-readable internal calls remain quiet unless they fail. See <a href="./configuration.html#logging">Logging configuration</a> for the complete behavior and example output.</p>
-<section id="prometheus-metrics" class="level2">
-<h2 class="anchored" data-anchor-id="prometheus-metrics">Prometheus metrics</h2>
-<p>Jobs can push their latest result to a Prometheus Pushgateway. Set its URL before running a job:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL</span><span class="op">=</span>http://pushgateway:9091</span>
-<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run photos</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Metrics are disabled when the environment variable is unset. See <a href="./configuration.html#prometheus">Prometheus configuration</a> for metric names, labels, Pushgateway behavior, and a Prometheus scrape example.</p>
+<p>Use the arrow-key TUI or explicit commands:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job list</span>
+<span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run example-github-repository <span class="dt">\</span></span>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="at">--repository</span> personal-local</span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job status example-github-repository</span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository data-dir example-github-repository</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list example-github-repository <span class="dt">\</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>The status table shows the latest tagged snapshot for each destination, the local export time, and component states. Snapshot metadata can contact remote storage when it is not already cached.</p>
+<p>The TUI preselects a sole destination. With several destinations, all start unchecked and must be selected with Space. An explicit-list dry run validates the plan without running Git, contacting GitHub or Restic, or writing the workspace. An owner dry run contacts GitHub read-only to discover the exact repository list, but likewise performs no writes:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run example-github-repository <span class="dt">\</span></span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="at">--dry-run</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="managed-workspace" class="level2">
+<h2 class="anchored" data-anchor-id="managed-workspace">Managed workspace</h2>
+<p>The reusable local workspace lives beside the selected config:</p>
+<pre class="text"><code>data/github-repositories/&lt;job-id&gt;/
+  backup-manifest.json
+  &lt;owner&gt;/&lt;repository&gt;/
+    repository.git/
+    wiki.git/
+    github-export/
+    release-assets/</code></pre>
+<p>The manifest records every source, update time, and component status. A failed component is reported as <code>stale</code> when existing local data remains usable or <code>failed</code> when it does not. The workflow attempts the remaining components and destinations, creates the best available snapshot, and exits nonzero.</p>
+<p>Before updating sources, the workflow checks every selected Restic repository and any required metadata-export authorization. Job-wide failures therefore stop before Git repositories are fetched.</p>
 </section>
-<section id="audit-log" class="level2">
-<h2 class="anchored" data-anchor-id="audit-log">Audit log</h2>
-<p>Command auditing is enabled by default. <code>restic-backups</code> appends compact JSON objects to <code>audit-log.json</code> in the directory where it was started. Each command has two linked records:</p>
-<ul>
-<li>a <code>started</code> event containing an <code>id</code>, <code>start-time</code>, <code>hostname</code>, <code>command</code>, and its exact <code>args</code>;</li>
-<li>a <code>finished</code> event containing <code>started-id</code>, <code>end-time</code>, and <code>successful</code>. Workflows may also add non-secret component and destination results under <code>details</code>.</li>
-</ul>
-<p>The <code>started-id</code> links completion to the corresponding <code>started</code> event. A <code>started</code> event without a matching <code>finished</code> event indicates an interrupted process. The file is append-only: existing records are never rewritten. It is created with owner-only permissions (<code>0600</code>). Interactive selections are recorded when run, and restic subprocess records contain the exact raw restic arguments, including generated repository options. GitHub repository jobs likewise record every raw <code>git</code>, <code>git lfs</code>, <code>gh</code>, and <code>restic</code> command. Credentials and repository passwords are passed through the environment rather than arguments. Values attached to password-, secret-, token-, credential-, and key-like arguments are replaced with <code>[REDACTED]</code>.</p>
-<p>The log can still reveal repository names and local paths. Keep it private and rotate or archive it according to your own retention policy. To turn auditing off explicitly:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb6"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb6-1"><a href="#cb6-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">RESTIC_BACKUPS_AUDIT</span><span class="op">=</span>0</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>The values <code>false</code>, <code>no</code>, and <code>off</code> are also accepted, case-insensitively.</p>
-</section>
-<section id="root-commands" class="level2">
-<h2 class="anchored" data-anchor-id="root-commands">Root commands</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>Command</th>
-<th>Purpose</th>
-<th>Repository access</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><code>check-config</code></td>
-<td>Load and validate configuration</td>
-<td>No</td>
-</tr>
-<tr class="even">
-<td><code>job ...</code></td>
-<td>List, run, and inspect every configured job type</td>
-<td>Depends on subcommand</td>
-</tr>
-<tr class="odd">
-<td><code>generic ...</code></td>
-<td>Run generic configured repository commands</td>
-<td>Depends on subcommand</td>
-</tr>
-<tr class="even">
-<td><code>github-repository ...</code></td>
-<td>Compatibility and GitHub-specific commands</td>
-<td>Depends on subcommand</td>
-</tr>
-<tr class="odd">
-<td><code>voice-memos ...</code></td>
-<td>Compatibility and Voice Memos-specific tools</td>
-<td>Depends on subcommand</td>
-</tr>
-</tbody>
-</table>
-<p>Use <a href="./generic.html">Generic Backups</a> for restic passthrough, repository initialization, restores, and managed data directories. Use <a href="./github-repositories.html">GitHub Repositories</a> for Git history and selected GitHub-hosted data. Use <a href="./voice-memos.html">Voice Memos Backups</a> for the macOS-specific workflow.</p>
-<p>Run subcommand help without loading a configuration:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job <span class="at">--help</span></span>
-<span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic <span class="at">--help</span></span>
-<span id="cb7-3"><a href="#cb7-3" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups github-repository <span class="at">--help</span></span>
-<span id="cb7-4"><a href="#cb7-4" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos <span class="at">--help</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<section id="deduplication" class="level2">
+<h2 class="anchored" data-anchor-id="deduplication">Deduplication</h2>
+<p>Restic splits data into content-defined chunks and deduplicates identical chunks within each Restic repository. The workflow disables automatic Git maintenance and repacking because repacking can rewrite unchanged objects and reduce deduplication. Separate Restic repositories do not share chunks, so each destination stores its own copy. See Restic’s <a href="https://restic.readthedocs.io/en/stable/100_references.html#repository-design">repository design</a>.</p>
+<p>Continue with <a href="./github-restore.html">Restore GitHub Backups</a> to recover a bare mirror or normal working clone.</p>
 
 
 </section>

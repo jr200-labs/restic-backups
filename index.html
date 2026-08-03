@@ -184,12 +184,41 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Jobs</span></a>
   </div>
 </li>
+          <li class="sidebar-item sidebar-item-section">
+      <div class="sidebar-item-container"> 
+            <a class="sidebar-item-text sidebar-link text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false">
+ <span class="menu-text">GitHub Backups</span></a>
+          <a class="sidebar-item-toggle text-start collapsed" data-bs-toggle="collapse" data-bs-target="#quarto-sidebar-section-3" role="navigation" aria-expanded="false" aria-label="Toggle section">
+            <i class="bi bi-chevron-right ms-2"></i>
+          </a> 
+      </div>
+      <ul id="quarto-sidebar-section-3" class="collapse list-unstyled sidebar-section depth2 ">  
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./github-repositories.html" class="sidebar-item-text sidebar-link">
  <span class="menu-text">GitHub Backups</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-authentication.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">GitHub Authentication</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-operations.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Run GitHub Backups</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./github-restore.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Restore GitHub Backups</span></a>
+  </div>
+</li>
+      </ul>
+  </li>
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./generic.html" class="sidebar-item-text sidebar-link">
@@ -250,7 +279,9 @@ ul.task-list li input[type="checkbox"] {
 <li><a href="./configuration.html">Configuration</a> describes storage, restic repositories, jobs, and Glacier policy.</li>
 <li><a href="./jobs.html">Jobs</a> describes the shared model and commands for every job type.</li>
 <li><a href="./generic.html">Generic Backups</a> covers standard restic operations for any local files or directories.</li>
-<li><a href="./github-repositories.html">GitHub Backups</a> covers explicit repository lists, organization or user discovery, Git history, LFS, wikis, metadata, release assets, and unattended credentials.</li>
+<li><a href="./github-repositories.html">GitHub Backups</a> introduces explicit repository lists, organization or user discovery, and optional components.</li>
+<li><a href="./github-authentication.html">GitHub Authentication</a> covers laptops, containers, SSH, HTTPS, API tokens, and Kubernetes.</li>
+<li><a href="./github-operations.html">Run GitHub Backups</a> covers execution and inspection; <a href="./github-restore.html">Restore GitHub Backups</a> covers bare mirrors and working clones.</li>
 <li><a href="./voice-memos.html">Voice Memos Backups</a> covers backup, transcription, recovery, and diarization on macOS.</li>
 </ul>
 </section>
