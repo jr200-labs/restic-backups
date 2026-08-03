@@ -119,20 +119,20 @@ export HF_TOKEN=hf_...
 uv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard
 ```
 
-To make the credential part of the Voice Memos job definition while keeping
-its value outside YAML, configure an environment variable or mounted file:
+To keep the credential in a SOPS-encrypted job definition, configure it as an
+inline token:
 
 ```yaml
 source:
   authentication:
     hugging-face:
-      token:
-        env: HF_TOKEN
+      token: CHANGE_ME
 ```
 
-Use `file: /var/run/secrets/hugging-face/token` instead in a container or
-Kubernetes workload with a mounted Secret. This credential is used only by
-`diarize` and `diarize-parallel`.
+Use SOPS to set and encrypt that value. `{env: HF_TOKEN}` and
+`{file: /var/run/secrets/hugging-face/token}` remain available for containers
+and Kubernetes workloads. This credential is used only by `diarize` and
+`diarize-parallel`.
 
 Workers write logs beneath a temporary `diarize-chunks-*` directory. Use
 `--detach` to leave them running without the dashboard, then attach with:

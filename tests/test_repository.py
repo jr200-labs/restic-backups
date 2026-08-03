@@ -91,9 +91,7 @@ class ConfigLoadingTest(unittest.TestCase):
                     "type": "voice-memos",
                     "restic-repository-ids": ["repo"],
                     "source": {
-                        "authentication": {
-                            "hugging-face": {"token": {"env": "HF_TOKEN"}}
-                        }
+                        "authentication": {"hugging-face": {"token": "hf-encrypted"}}
                     },
                 },
             ],
@@ -104,7 +102,7 @@ class ConfigLoadingTest(unittest.TestCase):
         self.assertEqual(jobs["documents"]["source"]["paths"], ["~/Documents"])
         self.assertEqual(
             jobs["memos"]["source"]["authentication"]["hugging-face"]["token"],
-            {"env": "HF_TOKEN"},
+            "hf-encrypted",
         )
 
         config_data["jobs"][1]["source"]["authentication"]["hugging-face"]["token"] = {

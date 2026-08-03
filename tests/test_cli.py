@@ -144,14 +144,12 @@ class VoiceMemosCliTest(unittest.TestCase):
                 "type": "voice-memos",
                 "source": {
                     "summaries-dir": "/tmp/configured-summaries",
-                    "authentication": {
-                        "hugging-face": {"token": {"env": "VOICE_HF_TOKEN"}}
-                    },
+                    "authentication": {"hugging-face": {"token": "hf-configured"}},
                 },
             }
         }
         with (
-            patch.dict("os.environ", {"VOICE_HF_TOKEN": "hf-configured"}, clear=True),
+            patch.dict("os.environ", {}, clear=True),
             patch("restic_backups.cli.validated", return_value=({}, {}, {}, jobs)),
         ):
             prepare_voice_memos("diarize")
