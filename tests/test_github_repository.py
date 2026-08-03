@@ -635,3 +635,136 @@ def test_status_shows_latest_snapshot_for_every_destination() -> None:
         call("example-repository", expected, {}, repositories, backups, "first"),
         call("example-repository", expected, {}, repositories, backups, "second"),
     ]
+
+
+def test_snapshot_repositories_finds_bare_git_paths() -> None:
+    snapshot = {
+        "paths": [
+            "/backup/github-repositories/example-owner/example/alpha/repository.git",
+            "/backup/github-repositories/example-owner/example/alpha/github-export",
+            "/backup/github-repositories/example-owner/example/zeta/repository.git",
+        ]
+    }
+    assert workflow.snapshot_repositories("example-owner", snapshot) == {
+        "example/alpha": (
+            "/backup/github-repositories/example-owner/example/alpha/repository.git"
+        ),
+        "example/zeta": (
+            "/backup/github-repositories/example-owner/example/zeta/repository.git"
+        ),
+    }
+
+
+def test_restore_snapshot_picker_is_compact_and_newest_first() -> None:
+    snapshots = [
+        {
+            "id": "a" * 64,
+            "short_id": "aaaaaaaa",
+            "time": "2026-08-02T10:00:00Z",
+            "hostname": "backup-host",
+            "paths": [
+                "/data/example-owner/example/one/repository.git",
+            ],
+        },
+        {
+            "id": "b" * 64,
+            "short_id": "bbbbbbbb",
+            "time": "2026-08-03T10:00:00Z",
+            "hostname": "backup-host",
+            "paths": [
+                "/data/example-owner/example/one/repository.git",
+                "/data/example-owner/example/two/repository.git",
+            ],
+        },
+    ]
+    with (
+        patch(
+            "restic_backups.github_repository.cli.sys.stdin.isatty", return_value=True
+        ),
+        patch("restic_backups.github_repository.cli.select") as select_prompt,
+    ):
+        select_prompt.return_value.unsafe_ask.return_value = "b" * 64
+        selected = github_cli._selected_snapshot("example-owner", None, snapshots)
+
+    assert selected["id"] == "b" * 64
+    choices = select_prompt.call_args.kwargs["choices"]
+    assert choices[0].value == "b" * 64
+    assert "Latest" in choices[0].title
+    assert "2 repositories" in choices[0].title
+    assert "/data/" not in choices[0].title
+
+
+def test_restore_repository_can_create_bare_or_working_clone(tmp_path: Path) -> None:
+    storage: dict[str, dict[str, Any]] = {}
+    repositories: dict[str, dict[str, Any]] = {}
+    jobs: dict[str, dict[str, Any]] = {}
+    with patch(
+        "restic_backups.github_repository.workflow.restic.command", return_value=0
+    ) as restic_command:
+        workflow.restore_repository(
+            "example-owner",
+            "snapshot-id",
+            "/saved/repository.git",
+            tmp_path / "bare",
+            "bare",
+            "first",
+            storage,
+            repositories,
+            jobs,
+        )
+
+    assert restic_command.call_args.args[1] == [
+        "restore",
+        "snapshot-id:/saved/repository.git",
+        "--target",
+        str((tmp_path / "bare").resolve()),
+        "--verify",
+    ]
+
+    def restore_or_clone(args: list[str], *unused: object, **kwargs: object) -> object:
+        if args[-2:] == ["--get", "remote.origin.url"]:
+            return subprocess.CompletedProcess(
+                args, 0, "git@github.com:example/repository.git\n", ""
+            )
+        if args[0] == "git" and args[1] == "clone":
+            target = Path(args[-1])
+            (target / ".git").mkdir(parents=True)
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    def restore_bare(*args: object, **kwargs: object) -> int:
+        restic_args = cast(list[str], args[1])
+        target = Path(restic_args[restic_args.index("--target") + 1])
+        (target / "lfs" / "objects").mkdir(parents=True)
+        return 0
+
+    clone = tmp_path / "clone"
+    with (
+        patch(
+            "restic_backups.github_repository.workflow.restic.command",
+            side_effect=restore_bare,
+        ),
+        patch(
+            "restic_backups.github_repository.workflow._run",
+            side_effect=restore_or_clone,
+        ) as run,
+    ):
+        workflow.restore_repository(
+            "example-owner",
+            "snapshot-id",
+            "/saved/repository.git",
+            clone,
+            "clone",
+            "first",
+            storage,
+            repositories,
+            jobs,
+        )
+
+    assert (clone / ".git" / "lfs" / "objects").is_dir()
+    commands = [item.args[0] for item in run.call_args_list]
+    assert any(command[1:3] == ["clone", "--no-hardlinks"] for command in commands)
+    assert any(
+        command[-3:] == ["set-url", "origin", "git@github.com:example/repository.git"]
+        for command in commands
+    )
+    assert any(command[-2:] == ["lfs", "checkout"] for command in commands)

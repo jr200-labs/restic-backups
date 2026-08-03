@@ -48,10 +48,17 @@ def menu_choice(
 
 
 def checkbox(*args: Any, **kwargs: Any) -> Question:
-    """Create a checkbox with concise, consistent navigation help."""
+    """Create a checkbox with concise help and Escape bound to back."""
     kwargs.setdefault("instruction", "(Use arrow keys to move, <space> to select)")
     kwargs.setdefault("style", TUI_STYLE)
-    return questionary.checkbox(*args, **kwargs)
+    question = questionary.checkbox(*args, **kwargs)
+    bindings = cast(KeyBindings, question.application.key_bindings)
+
+    @bindings.add(Keys.Escape, eager=True)
+    def go_back(event: Any) -> None:
+        event.app.exit(result=None)
+
+    return question
 
 
 def select(*args: Any, **kwargs: Any) -> Question:

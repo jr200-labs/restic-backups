@@ -18,9 +18,13 @@ every repository owned by an organization or user.
 - [Jobs](jobs.qmd) describes the shared model and commands for every job type.
 - [Generic Backups](generic.qmd) covers standard restic operations for any local
   files or directories.
-- [GitHub Backups](github-repositories.qmd) covers explicit repository lists,
-  organization or user discovery, Git history, LFS, wikis, metadata, release
-  assets, and unattended credentials.
+- [GitHub Backups](github-repositories.qmd) introduces explicit repository lists,
+  organization or user discovery, and optional components.
+- [GitHub Authentication](github-authentication.qmd) covers laptops, containers,
+  SSH, HTTPS, API tokens, and Kubernetes.
+- [Run GitHub Backups](github-operations.qmd) covers execution and inspection;
+  [Restore GitHub Backups](github-restore.qmd) covers bare mirrors and working
+  clones.
 - [Voice Memos Backups](voice-memos.qmd) covers backup, transcription, recovery,
   and diarization on macOS.
 

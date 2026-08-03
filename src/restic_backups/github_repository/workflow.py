@@ -668,3 +668,105 @@ def manifest_components(
             for component, result in details.get("components", {}).items()
         ]
     return list(manifest.get("components", {}).items())
+
+
+def snapshot_repositories(job_id: str, snapshot: Mapping[str, Any]) -> dict[str, str]:
+    """Return GitHub repository labels and saved bare-repository paths."""
+    paths = snapshot.get("paths")
+    if not isinstance(paths, list):
+        fail("restic snapshot did not contain a path list")
+    found: dict[str, str] = {}
+    for value in paths:
+        if not isinstance(value, str):
+            fail("restic snapshot contained an invalid path")
+        parts = Path(value).parts
+        if len(parts) >= 4 and parts[-4] == job_id and parts[-1] == "repository.git":
+            found[f"{parts[-3]}/{parts[-2]}"] = value
+    if not found:
+        fail(f"snapshot does not contain Git repositories for job '{job_id}'")
+    return dict(sorted(found.items()))
+
+
+def restore_repository(
+    job_id: str,
+    snapshot_id: str,
+    snapshot_path: str,
+    target: Path,
+    mode: str,
+    repository_id: str,
+    storage: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+    jobs: dict[str, dict[str, Any]],
+) -> None:
+    """Restore one backed-up Git mirror as a bare repository or working clone."""
+    target = target.expanduser().resolve()
+    if target.exists() and (not target.is_dir() or any(target.iterdir())):
+        fail(f"restore target must be absent or an empty directory: {target}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+
+    def restore_bare(destination: Path) -> None:
+        code = restic.command(
+            job_id,
+            [
+                "restore",
+                f"{snapshot_id}:{snapshot_path}",
+                "--target",
+                str(destination),
+                "--verify",
+            ],
+            storage,
+            repositories,
+            jobs,
+            repository_id=repository_id,
+        )
+        if code:
+            fail(f"restic restore failed with exit code {code}")
+
+    if mode == "bare":
+        restore_bare(target)
+        return
+    if mode != "clone":
+        fail("restore mode must be 'bare' or 'clone'")
+
+    with tempfile.TemporaryDirectory(prefix="restic-backups-github-restore-") as tmp:
+        bare = Path(tmp) / "repository.git"
+        restore_bare(bare)
+        env = os.environ.copy()
+        env["GIT_LFS_SKIP_SMUDGE"] = "1"
+        try:
+            origin = _run(
+                ["git", "--git-dir", str(bare), "config", "--get", "remote.origin.url"],
+                env=env,
+                check=False,
+            )
+            _run(
+                ["git", "clone", "--no-hardlinks", str(bare), str(target)],
+                env=env,
+            )
+            if origin.returncode == 0 and origin.stdout.strip():
+                _run(
+                    [
+                        "git",
+                        "-C",
+                        str(target),
+                        "remote",
+                        "set-url",
+                        "origin",
+                        origin.stdout.strip(),
+                    ],
+                    env=env,
+                )
+            else:
+                _run(
+                    ["git", "-C", str(target), "remote", "remove", "origin"],
+                    env=env,
+                )
+            if (bare / "lfs").is_dir():
+                shutil.copytree(
+                    bare / "lfs", target / ".git" / "lfs", dirs_exist_ok=True
+                )
+                _run(["git", "-C", str(target), "lfs", "checkout"], env=env)
+        except (BackupError, OSError):
+            if target.exists():
+                shutil.rmtree(target)
+            raise
