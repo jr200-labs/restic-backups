@@ -29,7 +29,9 @@ def job_id(jobs: dict[str, dict[str, object]]) -> str:
     return matches[0]
 
 
-def run_restic(args: list[str], *, tagged: bool = False) -> int:
+def run_restic(
+    args: list[str], *, tagged: bool = False, repository_id: str | None = None
+) -> int:
     """Run restic against the configured Voice Memos repository."""
     _, storage, repositories, jobs = config.load_validated()
     selected_job = job_id(jobs)
@@ -40,10 +42,22 @@ def run_restic(args: list[str], *, tagged: bool = False) -> int:
             str(jobs[selected_job].get("tag", selected_job)),
             *args[1:],
         ]
-    return restic.command(selected_job, args, storage, repositories, jobs)
+    return restic.command(
+        selected_job,
+        args,
+        storage,
+        repositories,
+        jobs,
+        repository_id=repository_id,
+    )
 
 
-def find_audio(query: str, restore: bool = False, target: Path | None = None) -> Path:
+def find_audio(
+    query: str,
+    restore: bool = False,
+    target: Path | None = None,
+    repository_id: str | None = None,
+) -> Path:
     """Resolve a summary UUID to its recording, optionally restoring it first."""
     matches = sorted(SUMMARIES_DIR.rglob(f"{query.removesuffix('.json')}.json"))
     matches = [path for path in matches if path.name != "index.json"]
@@ -74,7 +88,8 @@ def find_audio(query: str, restore: bool = False, target: Path | None = None) ->
             str(destination),
             "--include",
             str(DEFAULT_RECORDINGS_DIR / source),
-        ]
+        ],
+        repository_id=repository_id,
     )
     if code:
         raise BackupError(f"restic restore failed with exit code {code}")

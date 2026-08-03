@@ -25,10 +25,18 @@ uv run restic-backups voice-memos
 ```
 
 After selecting a command, the menu shows its usage, accepts optional arguments,
-prints the complete copyable command, and offers **Run**, **Print only**, or
-**Cancel**. **Help** shows the commands or flags for the current menu level and
-then returns there; **Back** moves up one level. Configuration is loaded only
-when **Run** is selected. Explicit subcommands remain available for scripts.
+prints the complete copyable command, and shows a final options checkbox. Press
+Enter to run, select **Print only** to stop after printing, or select **Dry run**
+when the command supports it. Escape moves back one level. Explicit subcommands
+remain available for scripts.
+
+When a Voice Memos job has several Restic destinations, the TUI asks which
+repository to inspect or restore before showing the final command. Batch jobs
+must pass it explicitly, for example:
+
+```sh
+uv run restic-backups voice-memos snapshots --repository personal-b2
+```
 
 Set `RESTIC_BACKUPS_CONFIG` first; set `RESTIC_BACKUPS_SOPS=1` too when the
 file is SOPS-encrypted. See [Configuration](configuration.qmd).
