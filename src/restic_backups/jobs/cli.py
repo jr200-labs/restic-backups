@@ -35,9 +35,11 @@ def menu_choice(
     value: str,
     width: int = 20,
     disabled: str | None = None,
+    reserve_disabled_prefix: bool = False,
 ) -> questionary.Choice:
+    prefix = "  " if reserve_disabled_prefix and disabled is None else ""
     return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)],
+        [("fg:ansicyan bold", f"{prefix}{label:<{width}}  "), ("", description)],
         value,
         disabled=disabled,
     )
@@ -71,6 +73,7 @@ def choose_job(
         return job_id
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
+    width = max(20, max(map(len, jobs)))
     selected = select(
         "Job:",
         choices=[
@@ -78,7 +81,7 @@ def choose_job(
                 job_id,
                 f"[{job['type']}]  {str(job.get('description', '')).strip()}",
                 job_id,
-                max(20, max(map(len, jobs))),
+                width,
                 disabled=(
                     None
                     if any(
@@ -87,10 +90,19 @@ def choose_job(
                     )
                     else "no available repositories"
                 ),
+                reserve_disabled_prefix=True,
             )
             for job_id, job in jobs.items()
         ]
-        + [menu_choice("Back", "Return to the Jobs menu", "back")]
+        + [
+            menu_choice(
+                "Back",
+                "Return to the Jobs menu",
+                "back",
+                width,
+                reserve_disabled_prefix=True,
+            )
+        ]
         + [questionary.Separator(" ")],
     ).unsafe_ask()
     if selected in {None, "back"}:
