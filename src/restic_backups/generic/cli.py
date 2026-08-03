@@ -6,6 +6,7 @@ import json
 import os
 import shlex
 import sys
+from collections.abc import Callable
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -18,20 +19,16 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import local, repository, restic, s3, sops
-from .tui import checkbox, select
+from .tui import checkbox, group_disabled_choices, select
 from .tui import menu_choice as tui_menu_choice
 
 app = typer.Typer(
     help="Generic configured restic repository commands.",
-    invoke_without_command=True,
-    no_args_is_help=False,
 )
 repository_app = typer.Typer(help="Manage configured restic repositories.")
-backup_app = typer.Typer(help="Manage configured backup jobs.")
 snapshot_app = typer.Typer(help="List and forget restic snapshots.")
 restic_app = typer.Typer(help="Run advanced restic commands.")
 app.add_typer(repository_app, name="repository")
-app.add_typer(backup_app, name="backup")
 app.add_typer(snapshot_app, name="snapshot")
 app.add_typer(restic_app, name="restic")
 console = Console()
@@ -45,6 +42,39 @@ def menu_choice(
     return tui_menu_choice(label, description, value, width)
 
 
+def repository_choices(
+    repositories: dict[str, dict[str, Any]],
+    label: Callable[[str, dict[str, Any]], str],
+    *,
+    checked: str | None = None,
+    disabled_reason: Callable[
+        [dict[str, Any]], str | None
+    ] = config.repository_disabled_reason,
+) -> list[questionary.Choice | questionary.Separator]:
+    """Build repository choices with unavailable entries grouped consistently."""
+    available: list[questionary.Choice | questionary.Separator] = []
+    disabled: list[tuple[str, str]] = []
+    for repository_id, item in repositories.items():
+        text = label(repository_id, item)
+        reason = disabled_reason(item)
+        if reason:
+            disabled.append((text, reason))
+        else:
+            available.append(
+                questionary.Choice(
+                    text,
+                    repository_id,
+                    checked=repository_id == checked,
+                )
+            )
+    return group_disabled_choices(
+        available,
+        disabled,
+        heading="Disabled repositories",
+        label_width=max(20, max(map(len, repositories))),
+    )
+
+
 def choose_dry_run() -> bool:
     selected = checkbox(
         "Options:",
@@ -56,66 +86,6 @@ def choose_dry_run() -> bool:
     if selected is None:
         raise typer.Abort()
     return "dry-run" in selected
-
-
-@app.callback()
-def menu(context: typer.Context) -> None:
-    """Choose a generic backup operation when run interactively."""
-    if context.invoked_subcommand is not None:
-        return
-    if not sys.stdin.isatty():
-        typer.echo(context.get_help())
-        return
-    try:
-        interactive_menu()
-    except KeyboardInterrupt:
-        return
-
-
-def interactive_menu() -> None:
-    """Navigate generic operations with arrow-key menus."""
-    while True:
-        selected = select(
-            "Section:",
-            choices=[
-                menu_choice(
-                    "Repositories",
-                    "List, initialize, cache, or destroy repositories",
-                    "repository",
-                    17,
-                ),
-                menu_choice(
-                    "Backups", "List or run configured backup jobs", "backup", 17
-                ),
-                menu_choice(
-                    "Snapshots",
-                    "List or forget immutable restore points",
-                    "snapshot",
-                    17,
-                ),
-                menu_choice(
-                    "Advanced restic",
-                    "Run any command supported by installed restic",
-                    "restic",
-                    17,
-                ),
-                menu_choice("Help", "Show help for generic commands", "help", 17),
-                menu_choice("Back", "Return to the previous menu", "back", 17),
-                questionary.Separator(" "),
-            ],
-        ).unsafe_ask()
-        if selected in {None, "back"}:
-            return
-        if selected == "help":
-            print_typer_help(app, "restic-backups generic")
-        elif selected == "repository":
-            repository_menu()
-        elif selected == "backup":
-            backup_menu()
-        elif selected == "snapshot":
-            snapshot_menu()
-        elif selected == "restic":
-            restic_menu()
 
 
 def print_typer_help(application: typer.Typer, name: str) -> None:
@@ -165,7 +135,6 @@ def repository_menu() -> None:
                 print_typer_help(repository_app, "restic-backups generic repository")
             elif selected == "list":
                 repository_list_command()
-                return
             elif selected == "init":
                 init_command(dry_run=choose_dry_run())
                 return
@@ -178,7 +147,7 @@ def repository_menu() -> None:
             elif selected == "destroy":
                 destroy_command(None, choose_dry_run())
                 return
-        except typer.Abort:
+        except (typer.Abort, typer.Exit):
             continue
 
 
@@ -259,84 +228,6 @@ def prune_menu() -> None:
             continue
         prune_command(None, dry_run=dry_run, **options)
         return
-
-
-def backup_menu() -> None:
-    while True:
-        selected = select(
-            "Backup command:",
-            choices=[
-                menu_choice("List backups", "Show configured backup jobs", "list", 18),
-                menu_choice(
-                    "Run backup",
-                    "Create a snapshot from configured paths",
-                    "run",
-                    18,
-                ),
-                menu_choice(
-                    "Show data path",
-                    "Print the managed local metadata directory",
-                    "data-dir",
-                    18,
-                ),
-                menu_choice("Help", "Show backup command flags", "help", 18),
-                menu_choice("Back", "Return to Generic sections", "back", 18),
-                questionary.Separator(" "),
-            ],
-        ).unsafe_ask()
-        if selected in {None, "back"}:
-            return
-        try:
-            if selected == "help":
-                print_typer_help(backup_app, "restic-backups generic backup")
-            elif selected == "list":
-                backup_list_command()
-                return
-            elif selected == "run":
-                backup_command(None, choose_dry_run())
-                return
-            elif selected == "data-dir":
-                data_dir_command(None)
-                return
-        except typer.Abort:
-            continue
-
-
-def snapshot_menu() -> None:
-    while True:
-        selected = select(
-            "Snapshot command:",
-            choices=[
-                menu_choice(
-                    "List snapshots",
-                    "Show restore points for a configured backup",
-                    "list",
-                    18,
-                ),
-                menu_choice(
-                    "Forget snapshot",
-                    "Delete one restore point and prune data",
-                    "forget",
-                    18,
-                ),
-                menu_choice("Help", "Show snapshot command flags", "help", 18),
-                menu_choice("Back", "Return to Generic sections", "back", 18),
-                questionary.Separator(" "),
-            ],
-        ).unsafe_ask()
-        if selected in {None, "back"}:
-            return
-        try:
-            if selected == "help":
-                print_typer_help(snapshot_app, "restic-backups generic snapshot")
-            elif selected == "list":
-                snapshots_command(None)
-                return
-            elif selected == "forget":
-                forget_command(None, choose_dry_run())
-                return
-        except typer.Abort:
-            continue
 
 
 def restic_menu(backup_id: str | None = None) -> None:
@@ -450,34 +341,32 @@ def choose_backup(
     backup_id: str | None,
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
-    *,
-    include_github: bool = True,
 ) -> str:
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
-        if not include_github and backups[backup_id]["type"] in {
-            "github-owner",
-            "github-repository",
-        }:
-            fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
-    choices = [
-        questionary.Choice(
-            f"{item_id}  ({', '.join(config.backup_repository_ids(item, item_id))})",
-            value=item_id,
-        )
-        for item_id, item in backups.items()
-        if include_github or item["type"] not in {"github-owner", "github-repository"}
+    choices: list[questionary.Choice | questionary.Separator] = []
+    disabled: list[tuple[str, str]] = []
+    for item_id, item in backups.items():
+        label = f"{item_id}  ({', '.join(config.job_repository_ids(item, item_id))})"
         if any(
             config.repository_is_enabled(repositories[value])
-            for value in config.backup_repository_ids(item, item_id)
-        )
-    ]
+            for value in config.job_repository_ids(item, item_id)
+        ):
+            choices.append(questionary.Choice(label, value=item_id))
+        else:
+            disabled.append((label, "no available repositories"))
     if not choices:
         fail("no enabled backups are available")
+    choices = group_disabled_choices(
+        choices,
+        disabled,
+        heading="Disabled jobs",
+        label_width=max(20, max(map(len, backups))),
+    )
     choices.append(questionary.Separator(" "))
     selected = select("Backup job:", choices=choices).unsafe_ask()
     if selected is None:
@@ -491,7 +380,7 @@ def choose_repositories(
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> list[str]:
-    configured = config.backup_repository_ids(backups[backup_id], backup_id)
+    configured = config.job_repository_ids(backups[backup_id], backup_id)
     if requested:
         selected = requested
     elif not sys.stdin.isatty():
@@ -504,17 +393,16 @@ def choose_repositories(
         ]
         if not enabled:
             fail(f"backup job '{backup_id}' has no available repositories")
+        configured_repositories = {
+            repository_id: repositories[repository_id] for repository_id in configured
+        }
         selected = checkbox(
             "Repositories:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",
-                    repository_id,
-                    disabled=reason,
-                    checked=len(enabled) == 1 and repository_id == enabled[0],
-                )
-                for repository_id in configured
-            ]
+            choices=repository_choices(
+                configured_repositories,
+                lambda repository_id, _: repository_id,
+                checked=enabled[0] if len(enabled) == 1 else None,
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -541,7 +429,7 @@ def choose_repository(
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
 ) -> str:
-    configured = config.backup_repository_ids(backups[backup_id], backup_id)
+    configured = config.job_repository_ids(backups[backup_id], backup_id)
     if requested is not None:
         return choose_repositories(backup_id, [requested], repositories, backups)[0]
     enabled = [
@@ -555,9 +443,15 @@ def choose_repository(
         return enabled[0]
     if not sys.stdin.isatty():
         fail("--repository is required when stdin is not interactive")
+    configured_repositories = {
+        repository_id: repositories[repository_id] for repository_id in configured
+    }
     selected = select(
         "Repository:",
-        choices=[questionary.Choice(value, value) for value in enabled]
+        choices=repository_choices(
+            configured_repositories,
+            lambda repository_id, _: repository_id,
+        )
         + [questionary.Separator(" ")],
     ).unsafe_ask()
     if selected is None:
@@ -591,42 +485,6 @@ def show_repositories(
     console.print(store_table)
 
 
-def show_backups(
-    repositories: dict[str, dict[str, Any]], backups: dict[str, dict[str, Any]]
-) -> None:
-    backup_table = Table(title="Backups", box=box.ROUNDED)
-    backup_table.add_column("Job ID", style="cyan", no_wrap=True)
-    backup_table.add_column("Type")
-    backup_table.add_column("Description")
-    backup_table.add_column("Repositories")
-    backup_table.add_column("Paths")
-    backup_table.add_column("Tag")
-    backup_table.add_column("State")
-    for backup_id, backup in backups.items():
-        repository_ids = config.backup_repository_ids(backup, backup_id)
-        enabled = sum(
-            config.repository_is_enabled(repositories[value])
-            for value in repository_ids
-        )
-        state = (
-            "enabled"
-            if enabled == len(repository_ids)
-            else "disabled"
-            if enabled == 0
-            else "partially enabled"
-        )
-        backup_table.add_row(
-            Text(backup_id),
-            Text(str(backup["type"])),
-            Text(str(backup.get("description", "—"))),
-            Text("\n".join(repository_ids)),
-            Text("\n".join(backup["source"].get("paths", [])) or "—"),
-            Text(str(backup.get("tag", backup_id))),
-            Text(state, style="green" if enabled == len(repository_ids) else "yellow"),
-        )
-    console.print(backup_table)
-
-
 @repository_app.command("list")
 def repository_list_command() -> None:
     """Show configured restic repositories."""
@@ -635,76 +493,7 @@ def repository_list_command() -> None:
     show_repositories(storage, repositories)
 
 
-@backup_app.command("list")
-def backup_list_command() -> None:
-    """Show configured backup jobs."""
-    audit_command("backup", "list")
-    _, _, repositories, backups = validated()
-    show_backups(repositories, backups)
-
-
-@app.command("list", hidden=True)
-def list_command() -> None:
-    """Show configured repositories and backups."""
-    audit_command("list")
-    _, storage, repositories, backups = validated()
-    show_repositories(storage, repositories)
-    show_backups(repositories, backups)
-
-
-@backup_app.command("run")
-@app.command("backup", hidden=True)
-def backup_command(
-    backup: Annotated[
-        str | None,
-        typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
-    ] = None,
-    dry_run: Annotated[
-        bool,
-        typer.Option("--dry-run", help="Show what would happen without writing."),
-    ] = False,
-    repository_ids: Annotated[
-        list[str] | None,
-        typer.Option(
-            "--repository",
-            "-r",
-            help="Repository ID; repeat to back up to multiple repositories.",
-        ),
-    ] = None,
-) -> None:
-    """Compatibility alias for job run."""
-    from ..jobs.cli import run_command
-
-    run_command(backup, dry_run, repository_ids)
-
-
-@backup_app.command("data-dir")
-@app.command("data-dir", hidden=True)
-def data_dir_command(
-    backup: str | None = typer.Argument(
-        None, help="Job ID; prompts when omitted.", metavar="JOB_ID"
-    ),
-    repository_id: Annotated[
-        str | None,
-        typer.Option("--repository", "-r", help="Repository ID."),
-    ] = None,
-) -> None:
-    """Print the managed local data directory for a backup."""
-    _, storage, repositories, backups = validated()
-    backup_id = choose_backup(backup, repositories, backups, include_github=False)
-    repository_id = choose_repository(backup_id, repository_id, repositories, backups)
-    audit_command("backup", "data-dir", backup_id, "--repository", repository_id)
-    try:
-        restic_repository, backend = repository.resolve(
-            backup_id, storage, repositories, backups, repository_id
-        )
-        typer.echo(repository.data_dir(backup_id, restic_repository, backend))
-    except BackupError as exc:
-        fail(str(exc))
-
-
 @repository_app.command("init")
-@app.command("init", hidden=True)
 def init_command(
     repository_id: Annotated[
         str | None,
@@ -728,18 +517,12 @@ def init_command(
             fail("repository ID or --all is required when stdin is not interactive")
         selected = select(
             "Repository to initialize:",
-            choices=[
-                questionary.Choice("All repositories", ALL_REPOSITORIES),
-                *[
-                    questionary.Choice(
-                        f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                        repository_id,
-                        disabled=reason,
-                    )
-                    for repository_id, item in repositories.items()
-                ],
-                questionary.Separator(" "),
-            ],
+            choices=[questionary.Choice("All repositories", ALL_REPOSITORIES)]
+            + repository_choices(
+                repositories,
+                lambda repository_id, _: repository_id,
+            )
+            + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
@@ -811,7 +594,6 @@ def init_command(
 
 
 @repository_app.command("prime-cache")
-@app.command("prime-cache", hidden=True)
 def prime_cache_command(
     repository_id: Annotated[
         str | None,
@@ -825,14 +607,10 @@ def prime_cache_command(
             fail("repository ID is required when stdin is not interactive")
         selected = select(
             "Repository cache to prime:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                    repository_id,
-                    disabled=reason,
-                )
-                for repository_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda repository_id, _: repository_id,
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -901,14 +679,13 @@ def prune_command(
             fail("repository ID is required when stdin is not interactive")
         selected = select(
             "Repository to prune:",
-            choices=[
-                questionary.Choice(
-                    f"{item_id}  ({repository.location(item, storage[item['storage-id']])}){f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                    item_id,
-                    disabled=reason,
-                )
-                for item_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda item_id, item: (
+                    f"{item_id}  "
+                    f"({repository.location(item, storage[item['storage-id']])})"
+                ),
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -1022,7 +799,6 @@ def choose_snapshot(snapshots: list[dict[str, Any]], prompt: str) -> str:
 
 
 @snapshot_app.command("list")
-@app.command("snapshots", hidden=True)
 def snapshots_command(
     backup: Annotated[
         str | None,
@@ -1070,7 +846,6 @@ def snapshots_command(
 
 
 @snapshot_app.command("forget")
-@app.command("forget", hidden=True)
 def forget_command(
     backup: Annotated[
         str | None,
@@ -1150,7 +925,6 @@ def forget_command(
 
 
 @repository_app.command("destroy")
-@app.command("destroy", hidden=True)
 def destroy_command(
     repository_id: Annotated[
         str | None,
@@ -1168,18 +942,18 @@ def destroy_command(
     if repository_id is None:
         selected = select(
             "Repository to permanently destroy:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}  ({repository.location(item, storage[item['storage-id']])})",
-                    repository_id,
-                    disabled=(
-                        None
-                        if storage[item["storage-id"]].get("enabled", True)
-                        else "storage disabled"
-                    ),
-                )
-                for repository_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda repository_id, item: (
+                    f"{repository_id}  "
+                    f"({repository.location(item, storage[item['storage-id']])})"
+                ),
+                disabled_reason=lambda item: (
+                    None
+                    if storage[item["storage-id"]].get("enabled", True)
+                    else "storage disabled"
+                ),
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -1233,11 +1007,6 @@ def destroy_command(
 
 @restic_app.command(
     "run",
-    context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
-)
-@app.command(
-    "run",
-    hidden=True,
     context_settings={"allow_extra_args": True, "ignore_unknown_options": True},
 )
 def run_command(

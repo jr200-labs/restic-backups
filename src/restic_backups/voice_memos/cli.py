@@ -17,6 +17,16 @@ from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
 from . import parallel, pipeline, workflow
 
+READ_ONLY_COMMANDS = {
+    "check",
+    "diarize-status",
+    "files",
+    "peek",
+    "snapshots",
+    "stats",
+    "status",
+}
+
 
 def menu_choice(
     label: str, description: str, value: str, width: int = 21
@@ -72,6 +82,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
         parent = click.Context(cli, info_name="restic-backups voice-memos")
         context = click.Context(command, info_name=str(selected), parent=parent)
         click.echo(command.get_usage(context).strip())
+        completed = False
         while True:
             command_action = select(
                 f"voice-memos {selected}:",
@@ -150,26 +161,19 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 cli.main(
                     args=[str(selected), *args],
                     prog_name="restic-backups voice-memos",
-                    standalone_mode=True,
+                    standalone_mode=False,
                 )
+                if selected in READ_ONLY_COMMANDS:
+                    completed = True
+                    break
                 return
+            if completed:
+                break
 
 
 @click.group()
 def cli() -> None:
-    """Back up, transcribe, summarise, and diarize macOS Voice Memos."""
-
-
-@cli.command()
-@click.option(
-    "--recordings-dir",
-    type=click.Path(path_type=Path),
-    default=pipeline.DEFAULT_RECORDINGS_DIR,
-    show_default=True,
-)
-def backup(recordings_dir: Path) -> None:
-    """Back up recordings and summaries in one restic snapshot."""
-    operation(lambda: workflow.backup(recordings_dir))
+    """Inspect, restore, transcribe, and diarize macOS Voice Memos."""
 
 
 @cli.command()
@@ -316,18 +320,6 @@ def diarize_parallel(
         from .dashboard import main
 
         main(str(log_dir))
-
-
-@cli.command("diarize-list", hidden=True)
-@click.option(
-    "--order",
-    type=click.Choice(["short-first", "long-first", "natural"]),
-    default="short-first",
-)
-@click.option("--min-duration", type=float, default=0.0)
-def diarize_list(order: str, min_duration: float) -> None:
-    """Print UUIDs eligible for diarization."""
-    pipeline.diarize_list(order, min_duration)
 
 
 @cli.command("diarize-status")

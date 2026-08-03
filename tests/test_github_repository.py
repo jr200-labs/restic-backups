@@ -8,15 +8,13 @@ import subprocess
 import tarfile
 from pathlib import Path
 from typing import Any, BinaryIO, cast
-from unittest.mock import call, patch
+from unittest.mock import patch
 
 import pytest
-from rich.console import Console
 
 from restic_backups import audit, config
 from restic_backups.errors import BackupError
-from restic_backups.github_repository import cli as github_cli
-from restic_backups.github_repository import workflow
+from restic_backups.github_repository import restore, workflow
 
 
 def github_job(**components: bool) -> dict[str, object]:
@@ -75,14 +73,6 @@ def complete_config(job: dict[str, object]) -> dict[str, object]:
 
 def test_github_config_validates_components_urls_and_credentials() -> None:
     config.validate(complete_config(github_job()))
-
-    legacy = github_job()
-    source = cast(dict[str, Any], legacy["source"])
-    source["repository-url"] = source.pop("repository-urls")[0]
-    _, _, jobs = config.validate(complete_config(legacy))
-    assert jobs["example-repository"]["source"]["repository-urls"] == [
-        "git@github.com:example/example-repository.git"
-    ]
 
     invalid = github_job(lfs=True, git=False)
     with pytest.raises(config.ConfigError, match="lfs requires git"):
@@ -465,22 +455,6 @@ def test_multiple_repositories_use_independent_workspace_directories(
     assert str(root / "second/shared-name/repository.git") in args
 
 
-def test_legacy_workspace_is_moved_to_repository_directory(tmp_path: Path) -> None:
-    root = tmp_path / "job"
-    (root / "repository.git").mkdir(parents=True)
-    (root / "backup-manifest.json").write_text(
-        json.dumps({"source": "git@github.com:example/repository.git"})
-    )
-
-    workflow._migrate_legacy_layout(
-        root,
-        [("git@github.com:example/repository.git", "example", "repository")],
-    )
-
-    assert (root / "example/repository/repository.git").is_dir()
-    assert not (root / "repository.git").exists()
-
-
 def test_secret_values_never_enter_audit_log(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -562,81 +536,6 @@ def test_metadata_preflight_failure_stops_before_source_updates() -> None:
     mirror.assert_not_called()
 
 
-def test_status_shows_latest_snapshot_for_every_destination() -> None:
-    job = github_job()
-    another = github_job()
-    another["job-id"] = "another-repository"
-    repositories = {"first": {"enabled": True}, "second": {"enabled": True}}
-    backups = {"example-repository": job, "another-repository": another}
-    output = io.StringIO()
-    manifest = {
-        "updated-at": "2026-08-02T12:00:00Z",
-        "components": {"git": {"status": "updated"}},
-    }
-    with (
-        patch(
-            "restic_backups.github_repository.cli.validated",
-            return_value=({}, {}, repositories, backups),
-        ),
-        patch(
-            "restic_backups.github_repository.cli.workflow.read_manifest",
-            return_value=manifest,
-        ),
-        patch(
-            "restic_backups.github_repository.cli.restic.command_output",
-            side_effect=[
-                json.dumps(
-                    [
-                        {
-                            "id": "a" * 64,
-                            "short_id": "aaaaaaaa",
-                            "time": "2026-08-02T12:01:00Z",
-                            "tags": ["example-repository"],
-                        },
-                        {
-                            "id": "c" * 64,
-                            "short_id": "cccccccc",
-                            "time": "2026-08-02T12:03:00Z",
-                            "tags": ["another-repository"],
-                        },
-                    ]
-                ),
-                json.dumps(
-                    [
-                        {
-                            "id": "b" * 64,
-                            "short_id": "bbbbbbbb",
-                            "time": "2026-08-02T12:02:00Z",
-                            "tags": ["example-repository"],
-                        },
-                        {
-                            "id": "d" * 64,
-                            "short_id": "dddddddd",
-                            "time": "2026-08-02T12:04:00Z",
-                            "tags": ["another-repository"],
-                        },
-                    ]
-                ),
-            ],
-        ) as command_output,
-        patch.object(github_cli, "console", Console(file=output, width=240)),
-    ):
-        github_cli.status_command(None)
-
-    rendered = output.getvalue()
-    assert "example-repository" in rendered
-    assert "first" in rendered and "aaaaaaaa" in rendered
-    assert "second" in rendered and "bbbbbbbb" in rendered
-    assert "another-repository" in rendered
-    assert "cccccccc" in rendered and "dddddddd" in rendered
-    assert "git: updated" in rendered
-    expected = ["snapshots", "--json"]
-    assert command_output.call_args_list == [
-        call("example-repository", expected, {}, repositories, backups, "first"),
-        call("example-repository", expected, {}, repositories, backups, "second"),
-    ]
-
-
 def test_snapshot_repositories_finds_bare_git_paths() -> None:
     snapshot = {
         "paths": [
@@ -679,12 +578,13 @@ def test_restore_snapshot_picker_is_compact_and_newest_first() -> None:
     ]
     with (
         patch(
-            "restic_backups.github_repository.cli.sys.stdin.isatty", return_value=True
+            "restic_backups.github_repository.restore.sys.stdin.isatty",
+            return_value=True,
         ),
-        patch("restic_backups.github_repository.cli.select") as select_prompt,
+        patch("restic_backups.github_repository.restore.select") as select_prompt,
     ):
         select_prompt.return_value.unsafe_ask.return_value = "b" * 64
-        selected = github_cli._selected_snapshot("example-owner", None, snapshots)
+        selected = restore._selected_snapshot("example-owner", None, snapshots)
 
     assert selected["id"] == "b" * 64
     choices = select_prompt.call_args.kwargs["choices"]

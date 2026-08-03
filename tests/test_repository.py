@@ -39,7 +39,7 @@ class ConfigLoadingTest(unittest.TestCase):
         )
         self.assertIn("--dry-run", run.call_args.args[1])
 
-    def test_jobs_are_typed_and_legacy_backups_are_normalized(self) -> None:
+    def test_jobs_are_typed(self) -> None:
         config_data: dict[str, Any] = {
             "storage": [{"id": "disk", "type": "local", "path": "/Volumes/disk"}],
             "restic-repositories": [
@@ -70,22 +70,6 @@ class ConfigLoadingTest(unittest.TestCase):
         _, _, jobs = config.validate(config_data)
         self.assertEqual(set(jobs), {"documents", "memos"})
         self.assertEqual(jobs["documents"]["source"]["paths"], ["~/Documents"])
-
-        config_data["backups"] = []
-        with self.assertRaisesRegex(config.ConfigError, "both jobs and backups"):
-            config.validate(config_data)
-
-        del config_data["jobs"]
-        config_data["backups"] = [
-            {
-                "job-id": "legacy",
-                "restic-repository-ids": ["repo"],
-                "paths": ["/data"],
-            }
-        ]
-        _, _, jobs = config.validate(config_data)
-        self.assertEqual(jobs["legacy"]["type"], "files")
-        self.assertEqual(jobs["legacy"]["source"], {"paths": ["/data"]})
 
     def test_disabled_storage_disables_its_repositories(self) -> None:
         config_data = {
@@ -225,7 +209,14 @@ Usage:
                     "cache-dir": "/tmp/restic-cache",
                 }
             ],
-            "backups": [{"job-id": "voice-memos", "restic-repository-id": "store"}],
+            "jobs": [
+                {
+                    "job-id": "voice-memos",
+                    "type": "voice-memos",
+                    "restic-repository-ids": ["store"],
+                    "source": {},
+                }
+            ],
         }
         storage, repositories, backups = config.validate(config_data)
         result: subprocess.CompletedProcess[str] = subprocess.CompletedProcess([], 0)
@@ -319,7 +310,14 @@ Usage:
                     "password": "CHANGE_ME",
                 }
             ],
-            "backups": [{"job-id": "files", "restic-repository-id": "missing"}],
+            "jobs": [
+                {
+                    "job-id": "files",
+                    "type": "files",
+                    "restic-repository-ids": ["missing"],
+                    "source": {"paths": ["/data"]},
+                }
+            ],
         }
         with self.assertRaisesRegex(config.ConfigError, "safe relative path"):
             config.validate(config_data)
@@ -340,18 +338,19 @@ Usage:
                 }
                 for repository_id in ("first", "second")
             ],
-            "backups": [
+            "jobs": [
                 {
                     "job-id": "files",
+                    "type": "files",
                     "restic-repository-ids": ["first", "second"],
-                    "paths": ["/data"],
+                    "source": {"paths": ["/data"]},
                 }
             ],
         }
 
-        _, _, backups = config.validate(config_data)
+        _, _, jobs = config.validate(config_data)
         self.assertEqual(
-            config.backup_repository_ids(backups["files"], "files"),
+            config.job_repository_ids(jobs["files"], "files"),
             ["first", "second"],
         )
 
@@ -367,7 +366,14 @@ Usage:
                     "password": "CHANGE_ME",
                 }
             ],
-            "backups": [{"job-id": "files", "restic-repository-id": "unfinished"}],
+            "jobs": [
+                {
+                    "job-id": "files",
+                    "type": "files",
+                    "restic-repository-ids": ["unfinished"],
+                    "source": {"paths": ["/data"]},
+                }
+            ],
         }
         with self.assertRaisesRegex(config.ConfigError, "contains placeholders"):
             config.validate(config_data)

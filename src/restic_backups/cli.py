@@ -21,7 +21,6 @@ from .generic import repository
 from .generic import sops as sops_module
 from .generic.tui import menu_choice as tui_menu_choice
 from .generic.tui import select
-from .github_repository import cli as github_repository_cli
 from .jobs import cli as jobs_cli
 
 app = typer.Typer(
@@ -38,12 +37,6 @@ app.add_typer(
 app.add_typer(
     jobs_cli.app,
     name="job",
-    invoke_without_command=True,
-    no_args_is_help=False,
-)
-app.add_typer(
-    github_repository_cli.app,
-    name="github-repository",
     invoke_without_command=True,
     no_args_is_help=False,
 )
@@ -143,8 +136,10 @@ def interactive_menu() -> None:
         elif selected == "repositories":
             generic_cli.repository_menu()
         elif selected == "check-config":
-            check_config_command()
-            return
+            try:
+                check_config_command()
+            except typer.Exit:
+                continue
 
 
 def fail(message: str) -> NoReturn:
@@ -183,7 +178,7 @@ def check_config_command() -> None:
     },
 )
 def voice_memos_command(context: typer.Context) -> None:
-    """Back up, transcribe, summarise, and diarize macOS Voice Memos."""
+    """Inspect, restore, transcribe, and diarize macOS Voice Memos."""
     from .voice_memos.cli import cli
     from .voice_memos.cli import interactive_menu as voice_memos_menu
 

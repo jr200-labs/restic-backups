@@ -19,7 +19,6 @@ Set `RESTIC_BACKUPS_CONFIG` first, or pass `--config` before `generic`. See the
 | Repository | `generic repository destroy [REPOSITORY] [--dry-run]` | Permanently erase one repository | Yes |
 | Job | `job list` | Show every configured job type | No |
 | Job | `job run [JOB_ID] --repository ID... [--dry-run]` | Create snapshots in selected repositories | Yes |
-| Backup | `generic backup data-dir [JOB_ID] [--repository ID]` | Print the managed private-data directory | No |
 | Snapshot | `generic snapshot list [JOB_ID] [--repository ID]` | List snapshots for a configured backup | Yes |
 | Snapshot | `generic snapshot forget [JOB_ID] [--repository ID] [--dry-run]` | Forget one tagged snapshot and prune | Yes |
 | Restic | `generic restic run --backup JOB_ID --repository ID ...` | Pass trailing arguments directly to restic | Depends on restic command |
@@ -30,13 +29,10 @@ available repositories. A repository on disabled storage remains visible but
 cannot be selected. Non-interactive callers must provide the job ID and
 repository ID explicitly.
 
-Running `restic-backups generic` without a subcommand in an interactive terminal
-opens the legacy section menu for repositories, jobs, snapshots, and advanced restic
-commands. Every section and command has a short description and is selectable
-with the arrow keys. Explicit subcommands remain available for scripts and
-scheduled jobs. **Advanced restic** reads the installed restic version's command
-list and descriptions. After selection it shows the command's restic usage,
-prompts for arguments, and prints the complete copyable
+The top-level TUI provides described menus for repositories, jobs, snapshots,
+and advanced restic commands. **Advanced restic** reads the installed restic
+version's command list and descriptions. After selection it shows the command's
+restic usage, prompts for arguments, and prints the complete copyable
 `uv run restic-backups` command. Choose **Run**, **Print only**, or **Cancel**.
 Choose **Help** at any level to see help for the current section or selected
 restic command and return to the same menu. Showing help does not load the
@@ -217,18 +213,6 @@ exports the selected repository details, password, and any S3 credentials only
 to the child process and does not print them. For the `backup` command, it also
 adds the configured restic tag automatically; additional `--tag` arguments
 remain supported.
-
-## Managed data directory
-
-```sh
-uv run restic-backups generic backup data-dir documents
-```
-
-The result follows
-`data/<storage-id>/<repository-path>/<job-id>/` beside the selected config file.
-For S3, the repository path is `<bucket>/<key-prefix>`; for local storage it is
-the repository's relative `path`. This directory is for private generated
-metadata; generic backup sources do not need to live there.
 
 ## Cold S3 storage
 

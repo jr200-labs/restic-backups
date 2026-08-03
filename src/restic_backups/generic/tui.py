@@ -21,29 +21,40 @@ TUI_STYLE = Style(
 CONTROL_VALUES = {"back", "cancel", "exit", "help"}
 
 
+def group_disabled_choices(
+    available: list[questionary.Choice | questionary.Separator],
+    disabled: list[tuple[str, str]],
+    *,
+    heading: str,
+    label_width: int,
+) -> list[questionary.Choice | questionary.Separator]:
+    """Put unavailable choices in one clearly delimited grey section."""
+    if not disabled:
+        return available
+    disabled_width = max(len(label) for label, _ in disabled)
+    rendered = [f"{label:<{disabled_width}}  ({reason})" for label, reason in disabled]
+    rule_width = max(32, label_width + 18, *(len(label) + 2 for label in rendered))
+    return [
+        *available,
+        questionary.Separator(f" {heading} ".center(rule_width, "─")),
+        *(questionary.Separator(f"  {label}") for label in rendered),
+        questionary.Separator("─" * rule_width),
+    ]
+
+
 def menu_choice(
     label: str,
     description: str,
     value: str,
     width: int,
-    *,
-    disabled: str | None = None,
 ) -> questionary.Choice:
-    label_style = (
-        "class:disabled"
-        if disabled
-        else "class:control"
-        if value in CONTROL_VALUES
-        else "fg:ansicyan bold"
-    )
-    description_style = "class:disabled" if disabled else ""
+    label_style = "class:control" if value in CONTROL_VALUES else "fg:ansicyan bold"
     return questionary.Choice(
         [
             (label_style, f"{label:<{width}}  "),
-            (description_style, description),
+            ("", description),
         ],
         value,
-        disabled=disabled,
     )
 
 

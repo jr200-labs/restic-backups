@@ -13,7 +13,6 @@ from ..generic import restic
 from .pipeline import DEFAULT_RECORDINGS_DIR, SUMMARIES_DIR
 
 JOB_ENV = "RESTIC_BACKUPS_JOB"
-HOST = "mac-icloud"
 
 
 def job_id(jobs: dict[str, dict[str, object]]) -> str:
@@ -42,22 +41,6 @@ def run_restic(args: list[str], *, tagged: bool = False) -> int:
             *args[1:],
         ]
     return restic.command(selected_job, args, storage, repositories, jobs)
-
-
-def backup(recordings_dir: Path = DEFAULT_RECORDINGS_DIR) -> int:
-    """Back up recordings and generated summaries in one snapshot."""
-    SUMMARIES_DIR.mkdir(parents=True, exist_ok=True)
-    return run_restic(
-        [
-            "backup",
-            str(recordings_dir.expanduser()),
-            str(SUMMARIES_DIR),
-            "--tag",
-            "summaries",
-            "--host",
-            HOST,
-        ]
-    )
 
 
 def find_audio(query: str, restore: bool = False, target: Path | None = None) -> Path:

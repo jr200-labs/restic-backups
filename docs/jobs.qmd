@@ -14,12 +14,18 @@ a snapshot.
 | `job list` | Show every configured job and its type |
 | `job run [JOB_ID] --repository ID... [--dry-run]` | Prepare and snapshot one job |
 | `job status [JOB_ID]` | Show the latest tagged snapshot at every destination |
+| `job restore [JOB_ID] ...` | Restore one repository from a GitHub job snapshot |
+| `job data-dir [JOB_ID]` | Show a GitHub job's managed workspace |
 
 Run `uv run restic-backups` for the job-first arrow-key TUI. Choose **Jobs**,
 then select a job to run it, inspect status or snapshots, invoke advanced restic
 commands, or open its type-specific tools. A sole available destination starts
 checked; when several are available, they all start unchecked and must be
 selected with Space.
+
+Jobs with no available destination are grouped under a grey **Disabled**
+heading at the bottom of the job picker. List, status, snapshot, data-path, and
+other read-only displays return to the current TUI menu after showing results.
 
 For scripts, provide every destination explicitly:
 
