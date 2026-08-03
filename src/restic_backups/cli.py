@@ -196,7 +196,7 @@ def voice_memos_command(context: typer.Context) -> None:
             )
         return
     if "--help" not in context.args:
-        prepare_voice_memos()
+        prepare_voice_memos(str(context.args[0]))
 
     cli.main(
         args=list(context.args),
@@ -205,9 +205,7 @@ def voice_memos_command(context: typer.Context) -> None:
     )
 
 
-def prepare_voice_memos() -> None:
-    if "SUMMARIES_DIR" in os.environ:
-        return
+def prepare_voice_memos(command: str | None = None) -> None:
     from .voice_memos import pipeline as voice_pipeline
     from .voice_memos import workflow as voice_workflow
 
@@ -215,6 +213,14 @@ def prepare_voice_memos() -> None:
     try:
         job_id = voice_workflow.job_id(jobs)
         source = jobs[job_id]["source"]
+        if command in {"diarize", "diarize-parallel"}:
+            hugging_face = source.get("authentication", {}).get("hugging-face")
+            if hugging_face is not None:
+                os.environ["HF_TOKEN"] = config_module.credential_value(
+                    hugging_face["token"], "Hugging Face token"
+                ).strip()
+        if "SUMMARIES_DIR" in os.environ:
+            return
         if "summaries-dir" in source:
             path = Path(source["summaries-dir"]).expanduser()
             os.environ["SUMMARIES_DIR"] = str(path)

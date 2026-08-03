@@ -119,13 +119,19 @@ jobs:
   - job-id: memos
     type: voice-memos
     restic-repository-ids: [personal-b2]
-    source: {}
+    source:
+      authentication:
+        hugging-face:
+          token:
+            env: HF_TOKEN
 ```
 
-An empty source uses the standard macOS recordings location and the managed
-summaries directory. Optional `recordings-dir` and `summaries-dir` fields
-override them. Transcription and diarization remain type-specific tools on this
-job; creating its backup snapshot still uses `job run`.
+Omit `authentication` when diarization is unused or `HF_TOKEN` is already in
+the process environment. A token source accepts one `env` or `file` key and is
+resolved only for diarization. Optional `recordings-dir` and `summaries-dir`
+fields override the standard macOS recordings location and managed summaries
+directory. Transcription and diarization remain type-specific tools on this job;
+creating its backup snapshot still uses `job run`.
 
 ## Restic tags and snapshots
 

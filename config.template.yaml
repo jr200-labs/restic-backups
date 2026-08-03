@@ -90,8 +90,15 @@ jobs:
       description: Back up and process macOS Voice Memos.
       restic-repository-ids:
           - personal-b2
-      # Empty uses the standard macOS recording location and managed summaries.
-      source: {}
+      source:
+          # Optional: omit to keep using HF_TOKEN from the process environment.
+          # A file source also works for containers and Kubernetes Secrets.
+          authentication:
+              hugging-face:
+                  token:
+                      env: HF_TOKEN
+          # recordings-dir and summaries-dir are optional; the defaults use the
+          # standard macOS recording location and managed summaries.
 
     - job-id: example-github-repository
       type: github-repository

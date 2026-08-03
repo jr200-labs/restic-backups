@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import os
 import re
+from collections.abc import Mapping
 from pathlib import Path
 from typing import Any, NoReturn
 from urllib.parse import urlparse
@@ -87,6 +88,22 @@ def credential_source(value: Any, owner: str) -> None:
     if not isinstance(value, dict) or set(value) not in ({"env"}, {"file"}):
         raise ConfigError(f"{owner} must contain exactly one of env or file")
     required_text(value, next(iter(value)), owner)
+
+
+def credential_value(source: Mapping[str, str], name: str) -> str:
+    """Resolve a validated environment- or file-backed credential."""
+    if "env" in source:
+        value = os.environ.get(source["env"])
+        if value is None:
+            fail(f"{name} environment variable '{source['env']}' is not set")
+    else:
+        try:
+            value = Path(source["file"]).expanduser().read_text()
+        except OSError as exc:
+            fail(f"could not read {name} file: {exc}")
+    if not value.strip():
+        fail(f"{name} is empty")
+    return value
 
 
 def github_repository_name(url: str, owner: str) -> tuple[str, str, str]:
@@ -382,6 +399,21 @@ def validate(
             for field in ("recordings-dir", "summaries-dir"):
                 if field in source:
                     required_text(source, field, f"{job_id}.source")
+            authentication = source.get("authentication", {})
+            if not isinstance(authentication, dict) or set(authentication) - {
+                "hugging-face"
+            }:
+                raise ConfigError(f"{job_id}.source.authentication is invalid")
+            hugging_face = authentication.get("hugging-face")
+            if hugging_face is not None:
+                if not isinstance(hugging_face, dict) or set(hugging_face) != {"token"}:
+                    raise ConfigError(
+                        f"{job_id}.source.authentication.hugging-face must define token"
+                    )
+                credential_source(
+                    hugging_face["token"],
+                    f"{job_id}.source Hugging Face token",
+                )
         for repository_id in repository_ids:
             if repository_id not in repositories:
                 raise ConfigError(

@@ -1,9 +1,11 @@
 """Small command-surface regression check."""
 
 import json
+import os
 import tempfile
 import unittest
 from pathlib import Path
+from typing import Any
 from unittest.mock import Mock, call, patch
 
 import questionary
@@ -135,6 +137,35 @@ class VoiceMemosCliTest(unittest.TestCase):
             prepare_voice_memos()
             self.assertEqual(pipeline.SUMMARIES_DIR, path)
             self.assertEqual(workflow.SUMMARIES_DIR, path)
+
+    def test_voice_memos_resolves_configured_hugging_face_token(self) -> None:
+        jobs: dict[str, Any] = {
+            "memos": {
+                "type": "voice-memos",
+                "source": {
+                    "summaries-dir": "/tmp/configured-summaries",
+                    "authentication": {
+                        "hugging-face": {"token": {"env": "VOICE_HF_TOKEN"}}
+                    },
+                },
+            }
+        }
+        with (
+            patch.dict("os.environ", {"VOICE_HF_TOKEN": "hf-configured"}, clear=True),
+            patch("restic_backups.cli.validated", return_value=({}, {}, {}, jobs)),
+        ):
+            prepare_voice_memos("diarize")
+            self.assertEqual(os.environ["HF_TOKEN"], "hf-configured")
+
+        jobs["memos"]["source"]["authentication"]["hugging-face"]["token"] = {
+            "env": "MISSING_HF_TOKEN"
+        }
+        with (
+            patch.dict("os.environ", {}, clear=True),
+            patch("restic_backups.cli.validated", return_value=({}, {}, {}, jobs)),
+        ):
+            prepare_voice_memos("snapshots")
+            self.assertNotIn("HF_TOKEN", os.environ)
 
     def test_dry_run_is_a_spacebar_checkbox(self) -> None:
         with patch("restic_backups.generic.cli.checkbox") as prompt:

@@ -90,7 +90,11 @@ class ConfigLoadingTest(unittest.TestCase):
                     "job-id": "memos",
                     "type": "voice-memos",
                     "restic-repository-ids": ["repo"],
-                    "source": {},
+                    "source": {
+                        "authentication": {
+                            "hugging-face": {"token": {"env": "HF_TOKEN"}}
+                        }
+                    },
                 },
             ],
         }
@@ -98,6 +102,16 @@ class ConfigLoadingTest(unittest.TestCase):
         _, _, jobs = config.validate(config_data)
         self.assertEqual(set(jobs), {"documents", "memos"})
         self.assertEqual(jobs["documents"]["source"]["paths"], ["~/Documents"])
+        self.assertEqual(
+            jobs["memos"]["source"]["authentication"]["hugging-face"]["token"],
+            {"env": "HF_TOKEN"},
+        )
+
+        config_data["jobs"][1]["source"]["authentication"]["hugging-face"]["token"] = {
+            "value": "not-supported"
+        }
+        with self.assertRaisesRegex(config.ConfigError, "exactly one of env or file"):
+            config.validate(config_data)
 
     def test_disabled_storage_disables_its_repositories(self) -> None:
         config_data = {

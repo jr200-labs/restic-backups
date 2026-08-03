@@ -46,7 +46,8 @@ file is SOPS-encrypted. See [Configuration](configuration.qmd).
 - Give the terminal Full Disk Access.
 - Open Voice Memos and wait for iCloud synchronization.
 - Run LM Studio at `http://localhost:1234/v1` when producing summaries.
-- Set `HF_TOKEN` for speaker diarization.
+- Configure a Hugging Face token source for speaker diarization, or set
+  `HF_TOKEN` directly.
 
 The default recording source is:
 
@@ -117,6 +118,21 @@ The available engines are `whisper-mlx` and `whisper-mlx-turbo`.
 export HF_TOKEN=hf_...
 uv run restic-backups voice-memos diarize-parallel --workers 3 --dashboard
 ```
+
+To make the credential part of the Voice Memos job definition while keeping
+its value outside YAML, configure an environment variable or mounted file:
+
+```yaml
+source:
+  authentication:
+    hugging-face:
+      token:
+        env: HF_TOKEN
+```
+
+Use `file: /var/run/secrets/hugging-face/token` instead in a container or
+Kubernetes workload with a mounted Secret. This credential is used only by
+`diarize` and `diarize-parallel`.
 
 Workers write logs beneath a temporary `diarize-chunks-*` directory. Use
 `--detach` to leave them running without the dashboard, then attach with:

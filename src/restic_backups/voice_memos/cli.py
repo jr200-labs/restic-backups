@@ -66,7 +66,7 @@ def choose_repository(requested: str | None = None) -> str:
         raise click.ClickException(str(exc)) from exc
 
 
-def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
+def interactive_menu(before_run: Callable[[str], None] | None = None) -> None:
     """Navigate Voice Memos commands with an arrow-key menu."""
     while True:
         selected = select(
@@ -186,7 +186,7 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 return
             audit_command(str(selected), *args)
             if before_run is not None:
-                before_run()
+                before_run(str(selected))
             try:
                 cli.main(
                     args=[str(selected), *args],
