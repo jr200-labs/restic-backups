@@ -49,7 +49,8 @@ uv run restic-backups --verbose generic repository init
 
 User-facing Restic stdout and stderr use the same logger, so repository output
 also carries timestamps and levels. Machine-readable internal calls remain
-quiet unless they fail.
+quiet unless they fail. See [Logging configuration](configuration.qmd#logging)
+for the complete behavior and example output.
 
 ## Prometheus metrics
 
@@ -61,18 +62,9 @@ export RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL=http://pushgateway:9091
 uv run restic-backups job run photos
 ```
 
-The pushed gauges report the last run timestamp, duration, overall success, and
-success per destination repository. They are grouped by hostname and job ID and
-labelled with the job type and whether the run was a dry run. Metrics are
-disabled when the environment variable is unset. A failed push is logged as a
-warning and does not change the backup result.
-
-| Metric | Meaning |
-|---|---|
-| `restic_backups_job_last_run_timestamp_seconds` | Completion time |
-| `restic_backups_job_last_run_duration_seconds` | Run duration |
-| `restic_backups_job_last_run_success` | Overall result (`1` or `0`) |
-| `restic_backups_job_repository_success` | Result for each destination (`1` or `0`) |
+Metrics are disabled when the environment variable is unset. See
+[Prometheus configuration](configuration.qmd#prometheus) for metric names,
+labels, Pushgateway behavior, and a Prometheus scrape example.
 
 ## Audit log
 
