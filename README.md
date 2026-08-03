@@ -66,8 +66,8 @@ For SOPS, add `--sops`. The equivalent environment variables are
 
 The configuration separates:
 
-- `storage`: S3-compatible services and mounted local filesystems, with S3
-  credentials kept on the relevant storage entry;
+- `storage`: enabled or disabled S3-compatible services and mounted local
+  filesystems, with S3 credentials kept on the relevant storage entry;
 - `restic-repositories`: encrypted repositories within storage, including the
   bucket/key prefix or local path, restic password, cache, and archive policy;
 - `jobs`: typed work linked to one or more restic repositories. `files`,
@@ -83,9 +83,10 @@ the exact plan, but never runs Git or writes to restic.
 
 Multiple restic repositories may use one storage backend, one job may
 write to several repositories, and several jobs may share one repository. The
-job TUI preselects a sole enabled destination; multiple destinations start
-unchecked. Disabled repositories may contain `CHANGE_ME`; all placeholders must
-be replaced before enabling one.
+job TUI preselects a sole available destination; multiple destinations start
+unchecked. Disabling storage leaves its repositories and jobs visible but
+unselectable. Disabled storage and repositories may contain `CHANGE_ME`; all
+placeholders must be replaced before enabling them.
 
 ## Data and source paths
 

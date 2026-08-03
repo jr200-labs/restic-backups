@@ -466,7 +466,7 @@ def choose_backup(
         for item_id, item in backups.items()
         if include_github or item["type"] not in {"github-owner", "github-repository"}
         if any(
-            repositories[value]["enabled"]
+            config.repository_is_enabled(repositories[value])
             for value in config.backup_repository_ids(item, item_id)
         )
     ]
@@ -491,18 +491,20 @@ def choose_repositories(
     elif not sys.stdin.isatty():
         fail("at least one --repository is required when stdin is not interactive")
     else:
-        enabled = [value for value in configured if repositories[value]["enabled"]]
+        enabled = [
+            value
+            for value in configured
+            if config.repository_is_enabled(repositories[value])
+        ]
         if not enabled:
-            fail(f"backup job '{backup_id}' has no enabled repositories")
+            fail(f"backup job '{backup_id}' has no available repositories")
         selected = questionary.checkbox(
             "Repositories (Space to toggle, Enter to continue):",
             choices=[
                 questionary.Choice(
-                    f"{repository_id}{'' if repositories[repository_id]['enabled'] else ' (disabled)'}",
+                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",
                     repository_id,
-                    disabled=(
-                        None if repositories[repository_id]["enabled"] else "disabled"
-                    ),
+                    disabled=reason,
                     checked=len(enabled) == 1 and repository_id == enabled[0],
                 )
                 for repository_id in configured
@@ -522,6 +524,8 @@ def choose_repositories(
             )
         if not repositories[repository_id]["enabled"]:
             fail(f"restic repository '{repository_id}' is disabled")
+        if not repositories[repository_id].get("_storage-enabled", True):
+            fail(f"storage '{repositories[repository_id]['storage-id']}' is disabled")
     return selected
 
 
@@ -534,9 +538,13 @@ def choose_repository(
     configured = config.backup_repository_ids(backups[backup_id], backup_id)
     if requested is not None:
         return choose_repositories(backup_id, [requested], repositories, backups)[0]
-    enabled = [value for value in configured if repositories[value]["enabled"]]
+    enabled = [
+        value
+        for value in configured
+        if config.repository_is_enabled(repositories[value])
+    ]
     if not enabled:
-        fail(f"backup job '{backup_id}' has no enabled repositories")
+        fail(f"backup job '{backup_id}' has no available repositories")
     if len(enabled) == 1:
         return enabled[0]
     if not sys.stdin.isatty():
@@ -564,14 +572,15 @@ def show_repositories(
     store_table.add_column("State")
     for repository_id, restic_repository in repositories.items():
         backend = storage[restic_repository["storage-id"]]
-        state = "enabled" if restic_repository["enabled"] else "disabled"
+        reason = config.repository_disabled_reason(restic_repository)
+        state = "enabled" if reason is None else reason
         store_table.add_row(
             Text(repository_id),
             Text(str(restic_repository.get("description", "—"))),
             Text(str(backend["id"])),
             Text(str(backend["type"])),
             Text(repository.location(restic_repository, backend)),
-            Text(state, style="green" if restic_repository["enabled"] else "yellow"),
+            Text(state, style="green" if reason is None else "yellow"),
         )
     console.print(store_table)
 
@@ -589,7 +598,10 @@ def show_backups(
     backup_table.add_column("State")
     for backup_id, backup in backups.items():
         repository_ids = config.backup_repository_ids(backup, backup_id)
-        enabled = sum(repositories[value]["enabled"] for value in repository_ids)
+        enabled = sum(
+            config.repository_is_enabled(repositories[value])
+            for value in repository_ids
+        )
         state = (
             "enabled"
             if enabled == len(repository_ids)
@@ -694,14 +706,14 @@ def init_command(
     ] = None,
     all_repositories: Annotated[
         bool,
-        typer.Option("--all", help="Initialize every enabled repository."),
+        typer.Option("--all", help="Initialize every available repository."),
     ] = False,
     dry_run: Annotated[
         bool,
         typer.Option("--dry-run", help="Check without initializing repositories."),
     ] = False,
 ) -> None:
-    """Initialize one repository, or every enabled repository with --all."""
+    """Initialize one repository, or every available repository with --all."""
     _, storage, repositories, _ = validated()
     if repository_id is not None and all_repositories:
         fail("repository ID and --all cannot be used together")
@@ -714,8 +726,9 @@ def init_command(
                 questionary.Choice("All repositories", ALL_REPOSITORIES),
                 *[
                     questionary.Choice(
-                        f"{repository_id}{'' if item['enabled'] else ' (disabled)'}",
+                        f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
                         repository_id,
+                        disabled=reason,
                     )
                     for repository_id, item in repositories.items()
                 ],
@@ -747,9 +760,10 @@ def init_command(
         )
 
     for repository_id, restic_repository in selected_repositories:
-        if not restic_repository["enabled"]:
+        reason = config.repository_disabled_reason(restic_repository)
+        if reason is not None:
             error_console.print(
-                Text(f"{repository_id}: disabled; skipping", style="yellow")
+                Text(f"{repository_id}: {reason}; skipping", style="yellow")
             )
             continue
         backend = storage[restic_repository["storage-id"]]
@@ -806,9 +820,12 @@ def prime_cache_command(
         selected = select(
             "Repository cache to prime:",
             choices=[
-                questionary.Choice(repository_id, repository_id)
+                questionary.Choice(
+                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
+                    repository_id,
+                    disabled=reason,
+                )
                 for repository_id, item in repositories.items()
-                if item["enabled"]
             ]
             + [questionary.Separator(" ")],
         ).unsafe_ask()
@@ -820,6 +837,8 @@ def prime_cache_command(
         fail(f"repository '{repository_id}' not found in {config.config_path()}")
     if not restic_repository["enabled"]:
         fail(f"restic repository '{repository_id}' is disabled")
+    if not restic_repository.get("_storage-enabled", True):
+        fail(f"storage '{restic_repository['storage-id']}' is disabled")
 
     audit_command("repository", "prime-cache", repository_id)
     error_console.print(Text(f"{repository_id}: priming local cache", style="cyan"))
@@ -878,11 +897,11 @@ def prune_command(
             "Repository to prune:",
             choices=[
                 questionary.Choice(
-                    f"{item_id}  ({repository.location(item, storage[item['storage-id']])})",
+                    f"{item_id}  ({repository.location(item, storage[item['storage-id']])}){f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
                     item_id,
+                    disabled=reason,
                 )
                 for item_id, item in repositories.items()
-                if item["enabled"]
             ]
             + [questionary.Separator(" ")],
         ).unsafe_ask()
@@ -895,6 +914,8 @@ def prune_command(
         fail(f"repository '{repository_id}' not found in {config.config_path()}")
     if not restic_repository["enabled"]:
         fail(f"restic repository '{repository_id}' is disabled")
+    if not restic_repository.get("_storage-enabled", True):
+        fail(f"storage '{restic_repository['storage-id']}' is disabled")
     sizes = (max_unused, max_repack_size, repack_smaller_than)
     if any(value is not None and not value.strip() for value in sizes):
         fail("prune size and limit values cannot be empty")
@@ -1145,6 +1166,11 @@ def destroy_command(
                 questionary.Choice(
                     f"{repository_id}  ({repository.location(item, storage[item['storage-id']])})",
                     repository_id,
+                    disabled=(
+                        None
+                        if storage[item["storage-id"]].get("enabled", True)
+                        else "storage disabled"
+                    ),
                 )
                 for repository_id, item in repositories.items()
             ]
@@ -1157,6 +1183,8 @@ def destroy_command(
     if restic_repository is None:
         fail(f"repository '{repository_id}' not found in {config.config_path()}")
     backend = storage[restic_repository["storage-id"]]
+    if not backend.get("enabled", True):
+        fail(f"storage '{backend['id']}' is disabled")
     target = repository.location(restic_repository, backend)
     if dry_run:
         audit_command("repository", "destroy", repository_id, "--dry-run")

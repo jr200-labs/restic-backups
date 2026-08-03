@@ -35,7 +35,10 @@ def resolve(
     restic_repository = repositories[repository_id]
     if not restic_repository["enabled"]:
         fail(f"restic repository '{restic_repository['id']}' is disabled")
-    return restic_repository, storage[restic_repository["storage-id"]]
+    backend = storage[restic_repository["storage-id"]]
+    if not backend.get("enabled", True):
+        fail(f"storage '{backend['id']}' is disabled")
+    return restic_repository, backend
 
 
 def relative_path(restic_repository: dict[str, Any], storage: dict[str, Any]) -> Path:

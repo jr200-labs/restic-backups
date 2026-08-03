@@ -87,6 +87,44 @@ class ConfigLoadingTest(unittest.TestCase):
         self.assertEqual(jobs["legacy"]["type"], "files")
         self.assertEqual(jobs["legacy"]["source"], {"paths": ["/data"]})
 
+    def test_disabled_storage_disables_its_repositories(self) -> None:
+        config_data = {
+            "storage": [
+                {
+                    "id": "disk",
+                    "enabled": False,
+                    "type": "local",
+                    "path": "/Volumes/disk",
+                }
+            ],
+            "restic-repositories": [
+                {
+                    "id": "repo",
+                    "storage-id": "disk",
+                    "enabled": True,
+                    "path": "restic/repo",
+                    "password": "CHANGE_ME",
+                }
+            ],
+            "jobs": [
+                {
+                    "job-id": "documents",
+                    "type": "files",
+                    "restic-repository-ids": ["repo"],
+                    "source": {"paths": ["~/Documents"]},
+                }
+            ],
+        }
+
+        storage, repositories, _ = config.validate(config_data)
+
+        self.assertFalse(storage["disk"]["enabled"])
+        self.assertFalse(config.repository_is_enabled(repositories["repo"]))
+        self.assertEqual(
+            config.repository_disabled_reason(repositories["repo"]),
+            "storage disabled",
+        )
+
     def test_available_commands_come_from_restic_help(self) -> None:
         result = subprocess.CompletedProcess(
             [],

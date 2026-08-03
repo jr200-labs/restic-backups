@@ -237,7 +237,7 @@ def prepare_voice_memos() -> None:
         repository_id = next(
             value
             for value in config_module.job_repository_ids(jobs[job_id], job_id)
-            if repositories[value]["enabled"]
+            if config_module.repository_is_enabled(repositories[value])
         )
         restic_repository, backend = repository.resolve(
             job_id, storage, repositories, jobs, repository_id

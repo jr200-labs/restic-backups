@@ -234,7 +234,7 @@ def status_command(
         )
         for repository_id in config.backup_repository_ids(item, job_id):
             snapshot_id = snapshot_time = "—"
-            if not repositories[repository_id]["enabled"]:
+            if not config.repository_is_enabled(repositories[repository_id]):
                 snapshot_id = "disabled"
             else:
                 try:

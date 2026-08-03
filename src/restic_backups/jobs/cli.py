@@ -206,12 +206,18 @@ def list_command() -> None:
     table.add_column("Tag")
     for job_id, job in jobs.items():
         repository_ids = config.job_repository_ids(job, job_id)
-        enabled = sum(repositories[value]["enabled"] for value in repository_ids)
+        enabled = sum(
+            config.repository_is_enabled(repositories[value])
+            for value in repository_ids
+        )
         table.add_row(
             job_id,
             job["type"],
             str(job.get("description", "—")),
-            "\n".join(repository_ids),
+            "\n".join(
+                f"{value}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[value])) else ''}"
+                for value in repository_ids
+            ),
             source_summary(job),
             str(job.get("tag", job_id)),
             style=None if enabled == len(repository_ids) else "yellow",
@@ -309,7 +315,7 @@ def status_command(job: str | None = typer.Argument(None)) -> None:
             )
         for repository_id in config.job_repository_ids(item, job_id):
             snapshot_id = snapshot_time = "—"
-            if not repositories[repository_id]["enabled"]:
+            if not config.repository_is_enabled(repositories[repository_id]):
                 snapshot_id = "disabled"
             else:
                 try:

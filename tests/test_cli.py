@@ -97,6 +97,25 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(selected, ["only"])
         self.assertTrue(checkbox.call_args.kwargs["choices"][0].checked)
 
+    def test_storage_disabled_repository_is_visible_but_unselectable(self) -> None:
+        repositories = {
+            "available": {"enabled": True},
+            "offline": {"enabled": True, "_storage-enabled": False},
+        }
+        jobs = {"documents": {"restic-repository-ids": ["available", "offline"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["available"]
+            selected = choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(selected, ["available"])
+        choices = checkbox.call_args.kwargs["choices"][:-1]
+        self.assertTrue(choices[0].checked)
+        self.assertEqual(choices[1].disabled, "storage disabled")
+        self.assertIn("storage disabled", choice_title(choices[1]))
+
     def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
         repositories = {"disabled": {"enabled": False}}
         jobs = {"documents": {"restic-repository-ids": ["disabled"]}}
@@ -990,10 +1009,16 @@ backups:
             "enabled": True,
             "storage-id": "storage",
         }
+        offline_repository = {
+            "id": "offline",
+            "enabled": True,
+            "_storage-enabled": False,
+            "storage-id": "storage",
+        }
         validated.return_value = (
             {},
             {"storage": storage},
-            {"store": restic_repository},
+            {"store": restic_repository, "offline": offline_repository},
             {},
         )
         select.return_value.unsafe_ask.return_value = "store"
@@ -1002,6 +1027,7 @@ backups:
 
         choices = select.call_args.kwargs["choices"]
         self.assertEqual(choice_title(choices[0]), "All repositories")
+        self.assertEqual(choices[2].disabled, "storage disabled")
         command.assert_called_once_with(
             restic_repository, storage, ["cat", "config"], quiet=True
         )

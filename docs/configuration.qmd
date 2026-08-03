@@ -49,6 +49,7 @@ An S3 storage entry owns its service credentials:
 storage:
   - id: backblaze-b2
     description: Backblaze B2 S3-compatible storage.
+    enabled: true
     type: s3
     endpoint: https://s3.us-west-004.backblazeb2.com
     region: us-west-004
@@ -60,12 +61,20 @@ storage:
 Backblaze application key IDs and application keys use the same fields as AWS
 access keys. Several restic repositories may use one storage entry.
 
+`enabled` defaults to `true`. Set it to `false` to keep a storage entry and all
+of its repositories visible while making those repositories unavailable for
+selection. This is useful for an unmounted disk or a temporarily unused cloud
+account. A repository is selectable only when both its own `enabled` field and
+its storage entry are enabled. Disabled storage may retain credential
+placeholders because it is not contacted.
+
 A local storage entry gives an absolute filesystem root:
 
 ```yaml
 storage:
   - id: sandisk-2tb
     description: Mounted external backup disk.
+    enabled: true
     type: local
     path: /Volumes/SanDisk-2TB
 ```
@@ -117,11 +126,12 @@ must already exist. Every restic repository needs its own encryption password,
 including repositories on local disks. Losing it makes the snapshots
 irrecoverable.
 
-Disabled repositories are ignored by commands and may retain `CHANGE_ME`
-placeholders. `check-config` checks every enabled repository and reports any
-remaining placeholders. Operational commands check only the selected repository
-immediately before using it, so an unfinished repository does not prevent a
-different configured repository from being listed, initialized, or accessed.
+Disabled repositories, and repositories whose storage is disabled, are ignored
+by commands and may retain `CHANGE_ME` placeholders. `check-config` checks every
+available repository and reports any remaining placeholders. Operational
+commands check only the selected repository immediately before using it, so an
+unfinished repository or storage entry does not prevent a different configured
+repository from being listed, initialized, or accessed.
 
 `cache-dir` optionally selects restic's local cache for this repository. `~` is
 expanded, and a relative path is resolved beside the selected config file. If
@@ -129,8 +139,8 @@ omitted, restic uses its operating-system default. A repository-specific value t
 precedence over `RESTIC_CACHE_DIR` from the process environment.
 
 Every repository appears in the `generic repository list` table.
-`generic repository init` can initialize a selected enabled repository even
-when no backup references it; use `--all` to initialize every enabled
+`generic repository init` can initialize a selected available repository even
+when no backup references it; use `--all` to initialize every available
 repository. A backup entry is required before using that repository with
 `job run` or
 `generic restic run`.
@@ -163,8 +173,10 @@ For a `files` job, `source.paths` is the non-empty list passed to
 `restic backup`; `~` is expanded to the current user's home directory. Relative
 paths remain relative to the directory where the command is run.
 
-When a job has one enabled repository, it starts selected in the TUI. When it
+When a job has one available repository, it starts selected in the TUI. When it
 has several, all start deselected and one or more must be selected with Space.
+Repositories on disabled storage remain visible with a `storage disabled`
+label but cannot be selected.
 Non-interactive commands must repeat `--repository` for every
 destination. Each repository remains independent and receives its own restic
 snapshot.

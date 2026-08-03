@@ -17,7 +17,7 @@ a snapshot.
 
 Run `uv run restic-backups` for the job-first arrow-key TUI. Choose **Jobs**,
 then select a job to run it, inspect status or snapshots, invoke advanced restic
-commands, or open its type-specific tools. A sole enabled destination starts
+commands, or open its type-specific tools. A sole available destination starts
 checked; when several are available, they all start unchecked and must be
 selected with Space.
 
