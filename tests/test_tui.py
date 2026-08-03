@@ -48,7 +48,7 @@ def test_disabled_choices_are_grey() -> None:
 def test_disabled_choices_are_grouped_and_delimited() -> None:
     choices = group_disabled_choices(
         [questionary.Choice("available", "available")],
-        ["offline (storage disabled)"],
+        ["a-long-repository-name (storage disabled)"],
         heading="Disabled repositories",
         label_width=20,
     )
@@ -56,9 +56,10 @@ def test_disabled_choices_are_grouped_and_delimited() -> None:
     assert choices[0].value == "available"
     assert isinstance(choices[1].title, str)
     assert "Disabled repositories" in choices[1].title
-    assert choices[2].title == "  offline (storage disabled)"
+    assert choices[2].title == "  a-long-repository-name (storage disabled)"
     assert isinstance(choices[3].title, str)
     assert set(choices[3].title) == {"─"}
+    assert len(choices[1].title) == len(choices[2].title) == len(choices[3].title)
 
 
 def test_navigation_controls_and_pointer_are_white() -> None:
