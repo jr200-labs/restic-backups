@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import json
 import sys
+from enum import Enum
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -13,10 +15,15 @@ from rich.console import Console
 from rich.table import Table
 from rich.text import Text
 
-from .. import config
+from .. import audit, config
 from ..errors import BackupError
 from ..generic import restic
-from ..generic.cli import choose_dry_run, print_typer_help
+from ..generic.cli import (
+    choose_dry_run,
+    choose_repository,
+    load_snapshots,
+    print_typer_help,
+)
 from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
 from . import workflow
@@ -28,6 +35,11 @@ app = typer.Typer(
 )
 console = Console()
 error_console = Console(stderr=True)
+
+
+class RestoreMode(str, Enum):
+    bare = "bare"
+    clone = "clone"
 
 
 def menu_choice(label: str, description: str, value: str) -> questionary.Choice:
@@ -115,6 +127,11 @@ def interactive_menu() -> None:
                 menu_choice(
                     "Show data path", "Print the managed local workspace", "data-dir"
                 ),
+                menu_choice(
+                    "Restore repository",
+                    "Recover one Git repository from a snapshot",
+                    "restore",
+                ),
                 menu_choice("Help", "Show commands and flags", "help"),
                 menu_choice("Back", "Return to the top-level workflows", "back"),
                 questionary.Separator(" "),
@@ -134,6 +151,9 @@ def interactive_menu() -> None:
                 return
             if selected == "data-dir":
                 data_dir_command(None)
+                return
+            if selected == "restore":
+                restore_command(None, None, None, None, None, None)
                 return
             print_typer_help(app, "restic-backups github-repository")
         except typer.Abort:
@@ -310,3 +330,159 @@ def data_dir_command(
         typer.echo(workflow.data_dir(job_id))
     except BackupError as exc:
         fail(str(exc))
+
+
+def _selected_snapshot(
+    job_id: str, requested: str | None, snapshots: list[dict[str, Any]]
+) -> dict[str, Any]:
+    if requested is None:
+        if not sys.stdin.isatty():
+            fail("--snapshot is required when stdin is not interactive")
+        ordered = sorted(
+            snapshots, key=lambda item: str(item.get("time", "")), reverse=True
+        )
+        choices = []
+        for index, snapshot in enumerate(ordered):
+            snapshot_id = snapshot["id"]
+            timestamp = str(snapshot.get("time", "unknown")).replace("T", " ")[:19]
+            short_id = str(snapshot.get("short_id", snapshot_id[:8]))
+            hostname = str(snapshot.get("hostname", "unknown host"))
+            count = len(workflow.snapshot_repositories(job_id, snapshot))
+            marker = "Latest" if index == 0 else ""
+            choices.append(
+                questionary.Choice(
+                    f"{marker:<8}{timestamp}  {short_id}  {hostname}  "
+                    f"{count} {'repository' if count == 1 else 'repositories'}",
+                    snapshot_id,
+                )
+            )
+        choices.append(questionary.Separator(" "))
+        selected = select("Snapshot to restore:", choices=choices).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        requested = str(selected)
+    matches = [item for item in snapshots if item["id"].startswith(requested)]
+    if len(matches) != 1:
+        fail(f"snapshot '{requested}' was not found or is ambiguous")
+    return matches[0]
+
+
+def _selected_github_repository(
+    requested: str | None, available: dict[str, str]
+) -> tuple[str, str]:
+    if requested is not None:
+        if requested not in available:
+            fail(f"GitHub repository '{requested}' is not present in the snapshot")
+        return requested, available[requested]
+    if not sys.stdin.isatty():
+        fail("--github-repository is required when stdin is not interactive")
+    selected = select(
+        "GitHub repository:",
+        choices=[questionary.Choice(label, label) for label in available]
+        + [questionary.Separator(" ")],
+    ).unsafe_ask()
+    if selected is None:
+        raise typer.Abort()
+    label = str(selected)
+    return label, available[label]
+
+
+@app.command("restore")
+def restore_command(
+    job: Annotated[
+        str | None,
+        typer.Argument(help="GitHub job ID; prompts when omitted.", metavar="JOB_ID"),
+    ] = None,
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Restic repository ID."),
+    ] = None,
+    snapshot_id: Annotated[
+        str | None,
+        typer.Option("--snapshot", help="Full or unambiguous snapshot ID prefix."),
+    ] = None,
+    github_repository: Annotated[
+        str | None,
+        typer.Option(
+            "--github-repository", help="Repository to restore as OWNER/REPOSITORY."
+        ),
+    ] = None,
+    mode: Annotated[
+        RestoreMode | None,
+        typer.Option("--mode", help="Restore a bare mirror or normal working clone."),
+    ] = None,
+    target: Annotated[
+        Path | None,
+        typer.Option("--target", "-t", help="Absent or empty destination directory."),
+    ] = None,
+) -> None:
+    """Restore one GitHub repository from a selected snapshot."""
+    _, storage, repositories, jobs = validated()
+    job_id = choose_job(job, jobs)
+    repository_id = choose_repository(job_id, repository_id, repositories, jobs)
+    _, snapshots = load_snapshots(job_id, repository_id, storage, repositories, jobs)
+    if not snapshots:
+        fail(f"no snapshots are available for '{job_id}'")
+    snapshot = _selected_snapshot(job_id, snapshot_id, snapshots)
+    label, snapshot_path = _selected_github_repository(
+        github_repository, workflow.snapshot_repositories(job_id, snapshot)
+    )
+    if mode is None:
+        if not sys.stdin.isatty():
+            fail("--mode is required when stdin is not interactive")
+        selected = select(
+            "Restore format:",
+            choices=[
+                menu_choice("Bare repository", "Preserve the Git mirror", "bare"),
+                menu_choice("Clone", "Create a normal working checkout", "clone"),
+                questionary.Separator(" "),
+            ],
+        ).unsafe_ask()
+        if selected is None:
+            raise typer.Abort()
+        mode = RestoreMode(str(selected))
+    if target is None:
+        if not sys.stdin.isatty():
+            fail("--target is required when stdin is not interactive")
+        selected_target = questionary.path("Restore target:").unsafe_ask()
+        if not selected_target:
+            raise typer.Abort()
+        target = Path(str(selected_target))
+
+    event_id = audit.record(
+        "restic-backups",
+        [
+            "github-repository",
+            "restore",
+            job_id,
+            "--repository",
+            repository_id,
+            "--snapshot",
+            snapshot["id"],
+            "--github-repository",
+            label,
+            "--mode",
+            mode.value,
+            "--target",
+            str(target),
+        ],
+    )
+    try:
+        workflow.restore_repository(
+            job_id,
+            snapshot["id"],
+            snapshot_path,
+            target,
+            mode.value,
+            repository_id,
+            storage,
+            repositories,
+            jobs,
+        )
+    except (BackupError, OSError) as exc:
+        audit.finish(event_id, False)
+        fail(str(exc))
+    audit.finish(event_id, True)
+    error_console.print(
+        Text(f"Restored {label} as {mode.value} to {target}", style="bold green")
+    )

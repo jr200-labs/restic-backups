@@ -311,9 +311,10 @@ container or Kubernetes CronJob. Secret sources contain exactly one `env` or
 a non-empty list identifying distinct GitHub repositories. The previous
 singular `repository-url` is accepted temporarily for migration, but new
 configurations should use the list. See
-[GitHub Repositories](github-repositories.qmd) for SSH and HTTPS
-Git authentication, migration permissions, commands, workspace layout, and
-restore steps.
+[GitHub Authentication](github-authentication.qmd) for SSH, HTTPS, API tokens,
+and migration permissions; [Run GitHub Backups](github-operations.qmd) for
+commands and workspace layout; and [Restore GitHub Backups](github-restore.qmd)
+for recovery.
 
 To discover every repository owned by one organization or user on each run,
 use `type: github-owner` and replace `repository-urls` with:

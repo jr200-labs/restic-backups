@@ -1,0 +1,65 @@
+---
+title: Run GitHub Backups
+---
+
+Use the arrow-key TUI or explicit commands:
+
+```sh
+uv run restic-backups job list
+uv run restic-backups job run example-github-repository \
+  --repository personal-b2 --repository personal-local
+uv run restic-backups job status example-github-repository
+uv run restic-backups github-repository data-dir example-github-repository
+uv run restic-backups generic snapshot list example-github-repository \
+  --repository personal-b2
+```
+
+The status table shows the latest tagged snapshot for each destination, the
+local export time, and component states. Snapshot metadata can contact remote
+storage when it is not already cached.
+
+The TUI preselects a sole destination. With several destinations, all start
+unchecked and must be selected with Space. An explicit-list dry run validates
+the plan without running Git, contacting GitHub or Restic, or writing the
+workspace. An owner dry run contacts GitHub read-only to discover the exact
+repository list, but likewise performs no writes:
+
+```sh
+uv run restic-backups job run example-github-repository \
+  --repository personal-b2 --dry-run
+```
+
+## Managed workspace
+
+The reusable local workspace lives beside the selected config:
+
+```text
+data/github-repositories/<job-id>/
+  backup-manifest.json
+  <owner>/<repository>/
+    repository.git/
+    wiki.git/
+    github-export/
+    release-assets/
+```
+
+The manifest records every source, update time, and component status. A failed
+component is reported as `stale` when existing local data remains usable or
+`failed` when it does not. The workflow attempts the remaining components and
+destinations, creates the best available snapshot, and exits nonzero.
+
+Before updating sources, the workflow checks every selected Restic repository
+and any required metadata-export authorization. Job-wide failures therefore
+stop before Git repositories are fetched.
+
+## Deduplication
+
+Restic splits data into content-defined chunks and deduplicates identical
+chunks within each Restic repository. The workflow disables automatic Git
+maintenance and repacking because repacking can rewrite unchanged objects and
+reduce deduplication. Separate Restic repositories do not share chunks, so each
+destination stores its own copy. See Restic's
+[repository design](https://restic.readthedocs.io/en/stable/100_references.html#repository-design).
+
+Continue with [Restore GitHub Backups](github-restore.qmd) to recover a bare
+mirror or normal working clone.

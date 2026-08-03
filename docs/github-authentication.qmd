@@ -1,0 +1,92 @@
+---
+title: GitHub Authentication
+---
+
+On an interactive laptop, omit `authentication`. GitHub API commands then use
+the current `gh auth login` session, while clone operations use the normal Git
+credential helper or SSH agent. Configure explicit secret sources only when
+those credentials are unavailable, such as in a container or Kubernetes
+CronJob.
+
+Every secret source contains exactly one `env` or `file` key. It is read again
+on every run, so rotated secrets are picked up without changing the backup
+configuration. Secret values are not placed in command arguments, logs,
+manifests, or the audit log.
+
+## SSH
+
+For SSH clone URLs, omit `authentication.git` to use the existing SSH agent and
+configuration, or configure both a private key and pinned `known_hosts` file:
+
+```yaml
+authentication:
+  git:
+    ssh:
+      private-key:
+        file: /var/run/secrets/github/ssh-private-key
+      known-hosts:
+        file: /var/run/secrets/github/known-hosts
+```
+
+Configured keys are copied to temporary owner-only files, and strict host
+verification is enabled. Generate the host entry using GitHub's
+[SSH host key guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/githubs-ssh-key-fingerprints).
+
+## HTTPS
+
+Use a token without embedding it in the clone URL:
+
+```yaml
+authentication:
+  git:
+    https:
+      token:
+        env: GITHUB_GIT_TOKEN
+```
+
+The CLI supplies it through a temporary Git askpass helper. When omitted, Git
+uses its existing credential configuration; public repositories need no
+authentication.
+
+## GitHub API and metadata exports
+
+When `authentication.api.token` is omitted, API-backed components use
+`gh auth login`. Unattended environments can read a token from an environment
+variable or mounted file:
+
+```yaml
+authentication:
+  api:
+    token:
+      env: GITHUB_MIGRATION_TOKEN
+```
+
+GitHub's migration API currently requires a compatible classic personal access
+token and repository-owner access. Fine-grained tokens and GitHub App tokens
+are not supported for that API. The default OAuth token created by
+`gh auth login` may therefore receive HTTP 403 even with `repo` and `admin:org`
+scopes. To keep using the local credential store, authenticate with a compatible
+classic PAT through `gh auth login --with-token`. See GitHub's
+[organization migration API](https://docs.github.com/en/rest/migrations/orgs)
+and [user migration API](https://docs.github.com/en/rest/migrations/users).
+
+## Kubernetes
+
+Mount files or inject environment variables from a Secret; do not put secret
+values in YAML:
+
+```yaml
+env:
+  - name: GITHUB_MIGRATION_TOKEN
+    valueFrom:
+      secretKeyRef:
+        name: github-backup
+        key: api-token
+volumeMounts:
+  - name: github-ssh
+    mountPath: /var/run/secrets/github
+    readOnly: true
+```
+
+The container needs `git`, `git-lfs` when LFS is enabled, `gh` for API-backed
+components, and `restic`.

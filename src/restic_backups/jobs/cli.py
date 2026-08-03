@@ -160,10 +160,19 @@ def job_menu(job_id: str) -> None:
             menu_choice("Advanced restic", "Run a native Restic command", "restic"),
         ]
         if job["type"] in {"github-owner", "github-repository"}:
-            choices.append(
-                menu_choice(
-                    "Data directory", "Show the managed GitHub workspace", "data-dir"
-                )
+            choices.extend(
+                [
+                    menu_choice(
+                        "Restore repository",
+                        "Recover a bare repository or working clone",
+                        "github-restore",
+                    ),
+                    menu_choice(
+                        "Data directory",
+                        "Show the managed GitHub workspace",
+                        "data-dir",
+                    ),
+                ]
             )
         if job["type"] == "voice-memos":
             choices.append(
@@ -195,6 +204,10 @@ def job_menu(job_id: str) -> None:
             generic_cli.restic_menu(job_id)
         elif selected == "data-dir":
             typer.echo(github_workflow.data_dir(job_id))
+        elif selected == "github-restore":
+            from ..github_repository.cli import restore_command
+
+            restore_command(job_id, None, None, None, None, None)
         elif selected == "voice":
             from ..voice_memos import workflow as voice_workflow
             from ..voice_memos.cli import interactive_menu as voice_menu

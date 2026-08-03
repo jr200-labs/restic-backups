@@ -1,0 +1,72 @@
+---
+title: Restore GitHub Backups
+---
+
+The restore workflow selects a GitHub job, one of its Restic destinations, a
+snapshot, and a repository contained in that snapshot. It restores only that
+repository, not every repository in an organization job.
+
+From the TUI, choose **Jobs**, **Select job**, the GitHub job, then
+**Restore repository**. Snapshots and contained repositories are presented as
+arrow-key selections.
+
+The destination must be absent or an empty directory. Restic verifies every
+restored file before the command succeeds.
+
+## Bare repository
+
+Choose **Bare repository** to recover the mirror exactly as it was backed up.
+It contains complete Git objects, branches, tags, other remote refs, and backed
+up LFS objects, but no checked-out source files:
+
+```sh
+uv run restic-backups github-repository restore example-organization \
+  --repository personal-local \
+  --snapshot b3ec67e1 \
+  --github-repository example/example-repository \
+  --mode bare \
+  --target /tmp/example-repository.git
+```
+
+Validate it independently with:
+
+```sh
+git --git-dir=/tmp/example-repository.git fsck --full
+```
+
+## Working clone
+
+Choose **Clone** for a normal working tree with visible source files:
+
+```sh
+uv run restic-backups github-repository restore example-organization \
+  --repository personal-local \
+  --snapshot b3ec67e1 \
+  --github-repository example/example-repository \
+  --mode clone \
+  --target /tmp/example-repository
+```
+
+The tool first restores and verifies the bare mirror in a temporary directory,
+then clones it without contacting GitHub. It restores backed-up LFS objects into
+the clone and runs `git lfs checkout` when LFS data is present. The clone's
+`origin` is reset to the original safe GitHub URL stored in the mirror rather
+than the temporary local path.
+
+## Recover to GitHub
+
+| Component | Recovery path | Limitation |
+|---|---|---|
+| `git` | Push the restored mirror to an empty repository | GitHub-managed refs may be rejected; branches and tags can be pushed separately |
+| `lfs` | Run `git lfs push --all` from the restored mirror | Available only when LFS was enabled for the backup |
+| `metadata` | Retain the GitHub migration export for migration or manual recovery | No direct self-service import back into GitHub.com |
+
+GitHub documents migration archives as exports for moving repositories from
+GitHub.com to GitHub Enterprise Server. Imports cannot be started through the
+public REST API. See the
+[organization migration API](https://docs.github.com/en/rest/migrations/orgs)
+and [GitHub.com export guide](https://docs.github.com/en/migrations/using-ghe-migrator/exporting-migration-data-from-githubcom).
+
+`restic-backups` does not provide a metadata import command. Treat metadata as
+archival disaster-recovery material; recreating it through APIs may not
+preserve original IDs, timestamps, authorship, or every relationship.
