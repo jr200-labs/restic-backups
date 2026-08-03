@@ -86,7 +86,7 @@ class S3DeletionTest(unittest.TestCase):
             text.return_value.unsafe_ask.return_value = "wrong"
 
             with self.assertRaises(typer.Exit):
-                cli.destroy_command("repository")
+                cli.destroy_command("repository", dry_run=False)
 
         delete.assert_not_called()
 
