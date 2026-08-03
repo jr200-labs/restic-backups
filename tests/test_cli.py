@@ -17,6 +17,7 @@ from restic_backups.cli import interactive_menu as root_menu
 from restic_backups.generic.cli import (
     choose_dry_run,
     choose_repositories,
+    copy_command,
     destroy_command,
     forget_command,
     init_command,
@@ -454,7 +455,95 @@ class VoiceMemosCliTest(unittest.TestCase):
                 choice.value
                 for choice in select.call_args_list[0].kwargs["choices"][:-1]
             ],
-            ["list", "prime-cache", "prune", "init", "destroy", "help", "back"],
+            [
+                "list",
+                "prime-cache",
+                "copy",
+                "prune",
+                "init",
+                "destroy",
+                "help",
+                "back",
+            ],
+        )
+
+    def test_copy_dry_run_does_not_write(self) -> None:
+        repositories = {
+            repository_id: {
+                "id": repository_id,
+                "enabled": True,
+                "storage-id": "disk",
+            }
+            for repository_id in ("source", "destination")
+        }
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, {"disk": {}}, repositories, {}),
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.copy_repository", return_value=0
+            ) as copy,
+        ):
+            copy_command("source", "destination", ["abc123"], dry_run=True)
+
+        copy.assert_called_once_with(
+            repositories["source"],
+            {},
+            repositories["destination"],
+            {},
+            ["abc123"],
+            dry_run=True,
+        )
+
+    def test_initialize_menu_offers_source_repository_mode(self) -> None:
+        with (
+            patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.init_from_menu") as init_from,
+        ):
+            select.return_value.unsafe_ask.side_effect = ["init", "from-existing"]
+
+            repository_menu()
+
+        init_from.assert_called_once_with()
+        choices = select.call_args_list[1].kwargs["choices"]
+        self.assertEqual(
+            [choice.value for choice in choices[:-1]],
+            ["empty", "from-existing", "help", "back"],
+        )
+
+    def test_initialize_from_source_can_copy_selected_snapshots(self) -> None:
+        repositories = {
+            repository_id: {
+                "id": repository_id,
+                "enabled": True,
+                "storage-id": "disk",
+            }
+            for repository_id in ("source", "destination")
+        }
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, {"disk": {}}, repositories, {}),
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.copy_repository", return_value=0
+            ) as copy,
+        ):
+            init_command(
+                "destination",
+                from_repository="source",
+                copy_snapshots=["abc123", "def456"],
+                dry_run=True,
+            )
+
+        copy.assert_called_once_with(
+            repositories["source"],
+            {},
+            repositories["destination"],
+            {},
+            ["abc123", "def456"],
+            dry_run=True,
         )
 
     def test_restic_help_does_not_load_configuration(self) -> None:
@@ -1193,9 +1282,9 @@ jobs:
         confirm.assert_not_called()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
-    @patch("restic_backups.generic.cli.choose_dry_run", return_value=False)
+    @patch("restic_backups.generic.cli.choose_dry_run", return_value=True)
     @patch("restic_backups.generic.cli.select")
-    @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
+    @patch("restic_backups.generic.cli.restic.repository_command", return_value=10)
     @patch("restic_backups.generic.cli.validated")
     def test_init_prompt_lists_all_first(
         self, validated, command, select, choose_dry_run, _
@@ -1223,14 +1312,61 @@ jobs:
         init_command()
 
         choices = select.call_args.kwargs["choices"]
-        self.assertEqual(choice_title(choices[0]), "All repositories")
+        self.assertEqual(choice_title(choices[0]), "All uninitialized repositories")
         self.assertIn("─ Disabled repositories ─", choice_title(choices[2]))
         self.assertIn("offline", choice_title(choices[3]))
         self.assertIn("(storage disabled)", choice_title(choices[3]))
         self.assertIn("generic repository init store", choose_dry_run.call_args.args[0])
-        command.assert_called_once_with(
-            restic_repository, storage, ["cat", "config"], quiet=True
+        self.assertEqual(
+            command.call_args_list,
+            [
+                call(restic_repository, storage, ["cat", "config"], quiet=True),
+                call(restic_repository, storage, ["cat", "config"], quiet=True),
+            ],
         )
+
+    def test_init_groups_initialized_above_disabled_repositories(self) -> None:
+        storage = {"id": "storage", "type": "s3"}
+        repositories = {
+            "fresh": {"id": "fresh", "enabled": True, "storage-id": "storage"},
+            "existing": {
+                "id": "existing",
+                "enabled": True,
+                "storage-id": "storage",
+            },
+            "disabled": {
+                "id": "disabled",
+                "enabled": False,
+                "storage-id": "storage",
+            },
+        }
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, {"storage": storage}, repositories, {}),
+            ),
+            patch(
+                "restic_backups.generic.cli.restic.repository_command",
+                side_effect=[10, 0, 10],
+            ),
+            patch("restic_backups.generic.cli.choose_dry_run", return_value=True),
+            patch("restic_backups.generic.cli.select") as select,
+        ):
+            select.return_value.unsafe_ask.return_value = "fresh"
+            init_command()
+
+        titles = [choice_title(choice) for choice in select.call_args.kwargs["choices"]]
+        self.assertLess(
+            titles.index(
+                next(title for title in titles if "Initialized repositories" in title)
+            ),
+            titles.index(
+                next(title for title in titles if "Disabled repositories" in title)
+            ),
+        )
+        self.assertIn("existing", "\n".join(titles))
+        self.assertIn("already initialized", "\n".join(titles))
 
 
 if __name__ == "__main__":
