@@ -20,8 +20,8 @@ from .. import audit, config, metrics
 from ..errors import BackupError
 from ..generic import cli as generic_cli
 from ..generic import restic
+from ..generic.tui import group_disabled_choices, select
 from ..generic.tui import menu_choice as tui_menu_choice
-from ..generic.tui import select
 from ..github_repository import restore as github_restore
 from ..github_repository import workflow as github_workflow
 from . import workflow
@@ -39,15 +39,8 @@ def menu_choice(
     description: str,
     value: str,
     width: int = 20,
-    disabled: str | None = None,
 ) -> questionary.Choice:
-    return tui_menu_choice(
-        label,
-        description,
-        value,
-        width,
-        disabled=disabled,
-    )
+    return tui_menu_choice(label, description, value, width)
 
 
 def fail(message: str) -> NoReturn:
@@ -80,7 +73,7 @@ def choose_job(
         fail("job ID is required when stdin is not interactive")
     width = max(20, max(map(len, jobs)))
     choices: list[questionary.Choice | questionary.Separator] = []
-    disabled_choices: list[questionary.Separator] = []
+    disabled_choices: list[str] = []
     for item_id, job in jobs.items():
         description = f"[{job['type']}]  {str(job.get('description', '')).strip()}"
         available = any(
@@ -91,19 +84,14 @@ def choose_job(
             choices.append(menu_choice(item_id, description, item_id, width))
         else:
             disabled_choices.append(
-                questionary.Separator(
-                    f"  {item_id:<{width}}  {description}  (no available repositories)"
-                )
+                f"{item_id:<{width}}  {description}  (no available repositories)"
             )
-    if disabled_choices:
-        rule_width = max(32, width + 18)
-        choices.extend(
-            [
-                questionary.Separator(" Disabled jobs ".center(rule_width, "─")),
-                *disabled_choices,
-                questionary.Separator("─" * rule_width),
-            ]
-        )
+    choices = group_disabled_choices(
+        choices,
+        disabled_choices,
+        heading="Disabled jobs",
+        label_width=width,
+    )
     choices.extend(
         [
             menu_choice("Back", "Return to the Jobs menu", "back", width),

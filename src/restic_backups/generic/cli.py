@@ -6,6 +6,7 @@ import json
 import os
 import shlex
 import sys
+from collections.abc import Callable
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -18,7 +19,7 @@ from rich.text import Text
 from .. import audit, config
 from ..errors import BackupError
 from . import local, repository, restic, s3, sops
-from .tui import checkbox, select
+from .tui import checkbox, group_disabled_choices, select
 from .tui import menu_choice as tui_menu_choice
 
 app = typer.Typer(
@@ -39,6 +40,39 @@ def menu_choice(
     label: str, description: str, value: str, width: int = 23
 ) -> questionary.Choice:
     return tui_menu_choice(label, description, value, width)
+
+
+def repository_choices(
+    repositories: dict[str, dict[str, Any]],
+    label: Callable[[str, dict[str, Any]], str],
+    *,
+    checked: str | None = None,
+    disabled_reason: Callable[
+        [dict[str, Any]], str | None
+    ] = config.repository_disabled_reason,
+) -> list[questionary.Choice | questionary.Separator]:
+    """Build repository choices with unavailable entries grouped consistently."""
+    available: list[questionary.Choice | questionary.Separator] = []
+    disabled: list[str] = []
+    for repository_id, item in repositories.items():
+        text = label(repository_id, item)
+        reason = disabled_reason(item)
+        if reason:
+            disabled.append(f"{text} ({reason})")
+        else:
+            available.append(
+                questionary.Choice(
+                    text,
+                    repository_id,
+                    checked=repository_id == checked,
+                )
+            )
+    return group_disabled_choices(
+        available,
+        disabled,
+        heading="Disabled repositories",
+        label_width=max(20, max(map(len, repositories))),
+    )
 
 
 def choose_dry_run() -> bool:
@@ -307,34 +341,32 @@ def choose_backup(
     backup_id: str | None,
     repositories: dict[str, dict[str, Any]],
     backups: dict[str, dict[str, Any]],
-    *,
-    include_github: bool = True,
 ) -> str:
     if backup_id is not None:
         if backup_id not in backups:
             fail(f"backup job '{backup_id}' not found in {config.config_path()}")
-        if not include_github and backups[backup_id]["type"] in {
-            "github-owner",
-            "github-repository",
-        }:
-            fail(f"backup job '{backup_id}' must use the github-repository workflow")
         return backup_id
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
-    choices = [
-        questionary.Choice(
-            f"{item_id}  ({', '.join(config.job_repository_ids(item, item_id))})",
-            value=item_id,
-        )
-        for item_id, item in backups.items()
-        if include_github or item["type"] not in {"github-owner", "github-repository"}
+    choices: list[questionary.Choice | questionary.Separator] = []
+    disabled: list[str] = []
+    for item_id, item in backups.items():
+        label = f"{item_id}  ({', '.join(config.job_repository_ids(item, item_id))})"
         if any(
             config.repository_is_enabled(repositories[value])
             for value in config.job_repository_ids(item, item_id)
-        )
-    ]
+        ):
+            choices.append(questionary.Choice(label, value=item_id))
+        else:
+            disabled.append(f"{label}  (no available repositories)")
     if not choices:
         fail("no enabled backups are available")
+    choices = group_disabled_choices(
+        choices,
+        disabled,
+        heading="Disabled jobs",
+        label_width=max(20, max(map(len, backups))),
+    )
     choices.append(questionary.Separator(" "))
     selected = select("Backup job:", choices=choices).unsafe_ask()
     if selected is None:
@@ -361,17 +393,16 @@ def choose_repositories(
         ]
         if not enabled:
             fail(f"backup job '{backup_id}' has no available repositories")
+        configured_repositories = {
+            repository_id: repositories[repository_id] for repository_id in configured
+        }
         selected = checkbox(
             "Repositories:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(repositories[repository_id])) else ''}",
-                    repository_id,
-                    disabled=reason,
-                    checked=len(enabled) == 1 and repository_id == enabled[0],
-                )
-                for repository_id in configured
-            ]
+            choices=repository_choices(
+                configured_repositories,
+                lambda repository_id, _: repository_id,
+                checked=enabled[0] if len(enabled) == 1 else None,
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -412,9 +443,15 @@ def choose_repository(
         return enabled[0]
     if not sys.stdin.isatty():
         fail("--repository is required when stdin is not interactive")
+    configured_repositories = {
+        repository_id: repositories[repository_id] for repository_id in configured
+    }
     selected = select(
         "Repository:",
-        choices=[questionary.Choice(value, value) for value in enabled]
+        choices=repository_choices(
+            configured_repositories,
+            lambda repository_id, _: repository_id,
+        )
         + [questionary.Separator(" ")],
     ).unsafe_ask()
     if selected is None:
@@ -480,18 +517,12 @@ def init_command(
             fail("repository ID or --all is required when stdin is not interactive")
         selected = select(
             "Repository to initialize:",
-            choices=[
-                questionary.Choice("All repositories", ALL_REPOSITORIES),
-                *[
-                    questionary.Choice(
-                        f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                        repository_id,
-                        disabled=reason,
-                    )
-                    for repository_id, item in repositories.items()
-                ],
-                questionary.Separator(" "),
-            ],
+            choices=[questionary.Choice("All repositories", ALL_REPOSITORIES)]
+            + repository_choices(
+                repositories,
+                lambda repository_id, _: repository_id,
+            )
+            + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
             raise typer.Abort()
@@ -576,14 +607,10 @@ def prime_cache_command(
             fail("repository ID is required when stdin is not interactive")
         selected = select(
             "Repository cache to prime:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}{f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                    repository_id,
-                    disabled=reason,
-                )
-                for repository_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda repository_id, _: repository_id,
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -652,14 +679,13 @@ def prune_command(
             fail("repository ID is required when stdin is not interactive")
         selected = select(
             "Repository to prune:",
-            choices=[
-                questionary.Choice(
-                    f"{item_id}  ({repository.location(item, storage[item['storage-id']])}){f' ({reason})' if (reason := config.repository_disabled_reason(item)) else ''}",
-                    item_id,
-                    disabled=reason,
-                )
-                for item_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda item_id, item: (
+                    f"{item_id}  "
+                    f"({repository.location(item, storage[item['storage-id']])})"
+                ),
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:
@@ -916,18 +942,18 @@ def destroy_command(
     if repository_id is None:
         selected = select(
             "Repository to permanently destroy:",
-            choices=[
-                questionary.Choice(
-                    f"{repository_id}  ({repository.location(item, storage[item['storage-id']])})",
-                    repository_id,
-                    disabled=(
-                        None
-                        if storage[item["storage-id"]].get("enabled", True)
-                        else "storage disabled"
-                    ),
-                )
-                for repository_id, item in repositories.items()
-            ]
+            choices=repository_choices(
+                repositories,
+                lambda repository_id, item: (
+                    f"{repository_id}  "
+                    f"({repository.location(item, storage[item['storage-id']])})"
+                ),
+                disabled_reason=lambda item: (
+                    None
+                    if storage[item["storage-id"]].get("enabled", True)
+                    else "storage disabled"
+                ),
+            )
             + [questionary.Separator(" ")],
         ).unsafe_ask()
         if selected is None:

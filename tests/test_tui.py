@@ -5,7 +5,13 @@ import questionary
 from prompt_toolkit.keys import Keys
 
 from restic_backups import cli
-from restic_backups.generic.tui import TUI_STYLE, checkbox, menu_choice, select
+from restic_backups.generic.tui import (
+    TUI_STYLE,
+    checkbox,
+    group_disabled_choices,
+    menu_choice,
+    select,
+)
 
 
 def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
@@ -37,6 +43,22 @@ def test_disabled_choices_are_grey() -> None:
     attrs = TUI_STYLE.get_attrs_for_style_str("class:disabled")
 
     assert attrs.color == "ansibrightblack"
+
+
+def test_disabled_choices_are_grouped_and_delimited() -> None:
+    choices = group_disabled_choices(
+        [questionary.Choice("available", "available")],
+        ["offline (storage disabled)"],
+        heading="Disabled repositories",
+        label_width=20,
+    )
+
+    assert choices[0].value == "available"
+    assert isinstance(choices[1].title, str)
+    assert "Disabled repositories" in choices[1].title
+    assert choices[2].title == "  offline (storage disabled)"
+    assert isinstance(choices[3].title, str)
+    assert set(choices[3].title) == {"─"}
 
 
 def test_navigation_controls_and_pointer_are_white() -> None:
