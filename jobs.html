@@ -336,9 +336,18 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <td><code>job status [JOB_ID]</code></td>
 <td>Show the latest tagged snapshot at every destination</td>
 </tr>
+<tr class="even">
+<td><code>job restore [JOB_ID] ...</code></td>
+<td>Restore one repository from a GitHub job snapshot</td>
+</tr>
+<tr class="odd">
+<td><code>job data-dir [JOB_ID]</code></td>
+<td>Show a GitHub job’s managed workspace</td>
+</tr>
 </tbody>
 </table>
 <p>Run <code>uv run restic-backups</code> for the job-first arrow-key TUI. Choose <strong>Jobs</strong>, then select a job to run it, inspect status or snapshots, invoke advanced restic commands, or open its type-specific tools. A sole available destination starts checked; when several are available, they all start unchecked and must be selected with Space.</p>
+<p>Jobs with no available destination are grouped under a grey <strong>Disabled</strong> heading at the bottom of the job picker. List, status, snapshot, data-path, and other read-only displays return to the current TUI menu after showing results.</p>
 <p>For scripts, provide every destination explicitly:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb1"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run documents <span class="dt">\</span></span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a>  <span class="at">--repository</span> personal-b2 <span class="dt">\</span></span>
