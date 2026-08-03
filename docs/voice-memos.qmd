@@ -64,7 +64,6 @@ deleting recordings from any device; iCloud synchronization is not a backup.
 
 | Command | Purpose |
 |---|---|
-| `backup` | Compatibility alias for backing up recordings and summaries |
 | `snapshots` | List repository snapshots |
 | `check` | Verify repository structure and metadata |
 | `stats` | Show latest tagged snapshot size and file count |

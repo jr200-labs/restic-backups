@@ -24,7 +24,6 @@ from restic_backups.generic.cli import (
     restic_menu,
     run_args,
 )
-from restic_backups.generic.cli import menu as generic_menu
 from restic_backups.jobs import cli as jobs_cli
 from restic_backups.jobs.cli import choose_job
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
@@ -41,8 +40,12 @@ def choice_title(choice: questionary.Choice) -> str:
 class VoiceMemosCliTest(unittest.TestCase):
     def test_job_menus_follow_workflow_order_and_snapshots_return(self) -> None:
         prompt = Mock()
-        with patch("restic_backups.jobs.cli.select", return_value=prompt) as select:
-            prompt.unsafe_ask.return_value = "back"
+        prompt.unsafe_ask.side_effect = ["list", "status", "back"]
+        with (
+            patch("restic_backups.jobs.cli.select", return_value=prompt) as select,
+            patch("restic_backups.jobs.cli.list_command") as list_jobs,
+            patch("restic_backups.jobs.cli.status_command") as status,
+        ):
             jobs_cli.interactive_menu()
         top_values = [
             choice.value
@@ -50,13 +53,18 @@ class VoiceMemosCliTest(unittest.TestCase):
             if isinstance(choice, questionary.Choice)
         ]
         self.assertEqual(top_values[:3], ["select", "list", "status"])
+        list_jobs.assert_called_once_with()
+        status.assert_called_once_with(None)
+        self.assertEqual(select.call_count, 3)
 
-        prompt.unsafe_ask.side_effect = ["snapshots", "back"]
+        prompt.unsafe_ask.side_effect = ["status", "snapshots", "data-dir", "back"]
         jobs = {"github": {"type": "github-owner"}}
         with (
             patch("restic_backups.jobs.cli.select", return_value=prompt) as select,
             patch("restic_backups.jobs.cli.validated", return_value=({}, {}, {}, jobs)),
+            patch("restic_backups.jobs.cli.status_command") as status,
             patch("restic_backups.jobs.cli.generic_cli.snapshots_command") as snapshots,
+            patch("restic_backups.jobs.cli.data_dir_command") as data_dir,
         ):
             jobs_cli.job_menu("github")
 
@@ -68,8 +76,10 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(
             first_values[:4], ["run", "github-restore", "status", "snapshots"]
         )
+        status.assert_called_once_with("github")
         snapshots.assert_called_once_with("github")
-        self.assertEqual(select.call_count, 2)
+        data_dir.assert_called_once_with("github")
+        self.assertEqual(select.call_count, 4)
 
     def test_voice_memos_uses_configured_summary_directory(self) -> None:
         from restic_backups.voice_memos import pipeline, workflow
@@ -206,18 +216,17 @@ class VoiceMemosCliTest(unittest.TestCase):
         root_help = unstyle(root.output)
         self.assertIn("job", root_help)
         self.assertIn("generic", root_help)
-        self.assertIn("github-repository", root_help)
+        self.assertNotIn("github-repository  ", root_help)
         self.assertIn("voice-memos", root_help)
         self.assertIn("--verbose", root_help)
 
         generic = runner.invoke(app, ["generic", "--help"])
         self.assertEqual(generic.exit_code, 0, generic.output)
         generic_help = unstyle(generic.output)
-        for command in ("repository", "backup", "snapshot", "restic"):
+        for command in ("repository", "snapshot", "restic"):
             self.assertIn(command, generic_help)
         for group, commands in {
             "repository": ("list", "init", "prime-cache", "prune", "destroy"),
-            "backup": ("list", "run", "data-dir"),
             "snapshot": ("list", "forget"),
             "restic": ("run",),
         }.items():
@@ -270,7 +279,7 @@ class VoiceMemosCliTest(unittest.TestCase):
     def test_help_exposes_workflows(self) -> None:
         result = ClickCliRunner().invoke(voice_memos_cli, ["--help"])
         self.assertEqual(result.exit_code, 0, result.output)
-        for command in ("backup", "transcribe", "diarize-parallel", "restore"):
+        for command in ("transcribe", "diarize-parallel", "restore"):
             self.assertIn(command, result.output)
 
     def test_voice_memos_help_does_not_require_config(self) -> None:
@@ -278,7 +287,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         for args in (["--help"], []):
             result = runner.invoke(app, ["voice-memos", *args])
             self.assertEqual(result.exit_code, 0, result.output)
-            self.assertIn("backup", result.output)
+            self.assertIn("transcribe", result.output)
 
         root = runner.invoke(app, [])
         self.assertEqual(root.exit_code, 0, root.output)
@@ -302,20 +311,6 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(choices[-1].title, " ")
         jobs_menu.assert_called_once_with()
 
-    @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
-    @patch("restic_backups.generic.cli.select")
-    @patch("restic_backups.generic.cli.repository_list_command")
-    def test_generic_menu_selects_a_command(self, list_command, select, _) -> None:
-        select.return_value.unsafe_ask.side_effect = ["repository", "list", "back"]
-
-        generic_menu(Mock(invoked_subcommand=None))
-
-        list_command.assert_called_once_with()
-        section_choices = select.call_args_list[0].kwargs["choices"]
-        command_choices = select.call_args_list[1].kwargs["choices"]
-        self.assertIn("List, initialize", choice_title(section_choices[0]))
-        self.assertIn("storage destinations", choice_title(command_choices[0]))
-
     def test_voice_memos_menu_describes_and_prints_command(self) -> None:
         with (
             patch.dict(
@@ -330,22 +325,42 @@ class VoiceMemosCliTest(unittest.TestCase):
             patch("restic_backups.voice_memos.cli.click.echo") as echo,
             patch.object(voice_memos_cli, "main") as main,
         ):
-            select.return_value.unsafe_ask.side_effect = ["backup", "run", "print"]
+            select.return_value.unsafe_ask.side_effect = ["status", "run", "print"]
             arguments.return_value.unsafe_ask.return_value = ""
 
             voice_memos_menu()
 
         choices = select.call_args_list[0].kwargs["choices"]
-        backup_choice = next(choice for choice in choices if choice.value == "backup")
-        self.assertIn("Back up recordings", choice_title(backup_choice))
+        status_choice = next(choice for choice in choices if choice.value == "status")
+        self.assertIn("Show total", choice_title(status_choice))
         output = "\n".join(str(item.args[0]) for item in echo.call_args_list)
         self.assertIn("Usage:", output)
         self.assertIn(
             f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
-            "--sops voice-memos backup",
+            "--sops voice-memos status",
             output,
         )
         main.assert_not_called()
+
+    def test_voice_memos_status_returns_to_voice_menu(self) -> None:
+        with (
+            patch("restic_backups.voice_memos.cli.select") as select,
+            patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
+            patch("restic_backups.voice_memos.cli.audit_command"),
+            patch.object(voice_memos_cli, "main") as main,
+        ):
+            select.return_value.unsafe_ask.side_effect = [
+                "status",
+                "run",
+                "run",
+                "back",
+            ]
+            arguments.return_value.unsafe_ask.return_value = ""
+
+            voice_memos_menu()
+
+        main.assert_called_once()
+        self.assertEqual(select.call_count, 4)
 
     @patch("restic_backups.cli.generic_cli.print_typer_help")
     @patch("restic_backups.cli.select")
@@ -355,6 +370,26 @@ class VoiceMemosCliTest(unittest.TestCase):
         root_menu()
 
         print_help.assert_called_once_with(app, "restic-backups")
+
+    @patch("restic_backups.cli.check_config_command")
+    @patch("restic_backups.cli.select")
+    def test_root_check_config_returns_to_root_menu(self, select, check_config) -> None:
+        select.return_value.unsafe_ask.side_effect = ["check-config", "exit"]
+
+        root_menu()
+
+        check_config.assert_called_once_with()
+
+    @patch("restic_backups.generic.cli.select")
+    @patch("restic_backups.generic.cli.repository_list_command")
+    def test_repository_list_returns_to_repository_menu(
+        self, list_command, select
+    ) -> None:
+        select.return_value.unsafe_ask.side_effect = ["list", "back"]
+
+        repository_menu()
+
+        list_command.assert_called_once_with()
 
     def test_restic_help_does_not_load_configuration(self) -> None:
         with (
@@ -392,7 +427,7 @@ class VoiceMemosCliTest(unittest.TestCase):
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
         ):
             select.return_value.unsafe_ask.side_effect = [
-                "backup",
+                "transcribe",
                 "help",
                 "back",
                 "back",
@@ -420,9 +455,11 @@ restic-repositories:
     bucket: CHANGE_ME
     key_prefix: CHANGE_ME
     password: CHANGE_ME
-backups:
+jobs:
   - job-id: voice-memos
-    restic-repository-id: store
+    type: voice-memos
+    restic-repository-ids: [store]
+    source: {}
 """
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yaml"
@@ -460,9 +497,12 @@ restic-repositories:
     enabled: true
     path: personal
     password: CHANGE_ME
-backups:
+jobs:
   - job-id: documents
-    restic-repository-id: aws-ready
+    type: files
+    restic-repository-ids: [aws-ready]
+    source:
+      paths: [/tmp/documents]
 """
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "config.yaml"
@@ -496,7 +536,7 @@ backups:
     def test_forget_prunes_selected_tagged_snapshot(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
         repositories = {"store": {"enabled": True}}
-        backups = {"backup": {"restic-repository-id": "store", "tag": "documents"}}
+        backups = {"backup": {"restic-repository-ids": ["store"], "tag": "documents"}}
         snapshot_id = "a" * 64
         with (
             patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
@@ -580,7 +620,7 @@ backups:
     def test_snapshots_lists_configured_tag_as_table(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
         repositories = {"store": {"enabled": True}}
-        backups = {"documents": {"restic-repository-id": "store", "tag": "files"}}
+        backups = {"documents": {"restic-repository-ids": ["store"], "tag": "files"}}
         with (
             patch(
                 "restic_backups.generic.cli.validated",
@@ -640,8 +680,7 @@ backups:
             result = CliRunner().invoke(
                 app,
                 [
-                    "generic",
-                    "backup",
+                    "job",
                     "run",
                     "documents",
                     "--repository",
@@ -653,8 +692,7 @@ backups:
             dry_run = CliRunner().invoke(
                 app,
                 [
-                    "generic",
-                    "backup",
+                    "job",
                     "run",
                     "documents",
                     "--repository",
@@ -801,7 +839,7 @@ backups:
     def test_advanced_restic_can_print_without_running(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
         repositories = {"store": {"enabled": True}}
-        backups = {"documents": {"restic-repository-id": "store"}}
+        backups = {"documents": {"restic-repository-ids": ["store"]}}
         with (
             patch(
                 "restic_backups.generic.cli.validated",
@@ -832,7 +870,7 @@ backups:
     def test_advanced_restic_ls_prompts_for_a_snapshot(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
         repositories = {"store": {"enabled": True}}
-        jobs = {"documents": {"restic-repository-id": "store"}}
+        jobs = {"documents": {"restic-repository-ids": ["store"]}}
         snapshot_id = "a" * 64
         with (
             patch(
@@ -873,7 +911,7 @@ backups:
         backups = {
             "github-repository": {
                 "type": "github-repository",
-                "restic-repository-id": "store",
+                "restic-repository-ids": ["store"],
                 "source": {},
             }
         }
@@ -969,7 +1007,7 @@ backups:
             "first": {
                 "type": "files",
                 "source": {},
-                "restic-repository-id": "existing",
+                "restic-repository-ids": ["existing"],
             }
         }
         validated.return_value = ({}, storage, repositories, backups)
@@ -980,16 +1018,6 @@ backups:
         self.assertEqual(repository_list.exit_code, 0, repository_list.output)
         for text in ("Repositories", "existing", "new"):
             self.assertIn(text, repository_list.output)
-
-        configured_backups = runner.invoke(app, ["generic", "backup", "list"])
-        self.assertEqual(configured_backups.exit_code, 0, configured_backups.output)
-        for text in ("Backups", "first"):
-            self.assertIn(text, configured_backups.output)
-
-        legacy_list = runner.invoke(app, ["generic", "list"])
-        self.assertEqual(legacy_list.exit_code, 0, legacy_list.output)
-        for text in ("Repositories", "Backups"):
-            self.assertIn(text, legacy_list.output)
 
         result = runner.invoke(app, ["generic", "repository", "init", "--all"])
 

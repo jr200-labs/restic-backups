@@ -206,7 +206,7 @@ precedence over `RESTIC_CACHE_DIR` from the process environment.
 Every repository appears in the `generic repository list` table.
 `generic repository init` can initialize a selected available repository even
 when no backup references it; use `--all` to initialize every available
-repository. A backup entry is required before using that repository with
+repository. A job entry is required before using that repository with
 `job run` or
 `generic restic run`.
 
@@ -269,10 +269,6 @@ The supported types are `files`, `github-repository`, `github-owner`, and
 status table, snapshot tools, and audit result. The `source` mapping is the only
 type-specific part. See [Jobs](jobs.qmd) for all forms.
 
-For compatibility, one release accepts the previous `backups` section and
-normalizes its `paths` or `github` fields. Do not define both sections. New and
-updated configurations should use `jobs`, explicit `type`, and `source`.
-
 ### GitHub jobs
 
 A GitHub repository job uses a GitHub source mapping:
@@ -308,9 +304,7 @@ the normal Git/SSH configuration. Configure explicit Git or API credential
 sources only when those local credentials are unavailable, such as in a
 container or Kubernetes CronJob. Secret sources contain exactly one `env` or
 `file` key, so secret values remain outside the YAML. `repository-urls` must be
-a non-empty list identifying distinct GitHub repositories. The previous
-singular `repository-url` is accepted temporarily for migration, but new
-configurations should use the list. See
+a non-empty list identifying distinct GitHub repositories. See
 [GitHub Authentication](github-authentication.qmd) for SSH, HTTPS, API tokens,
 and migration permissions; [Run GitHub Backups](github-operations.qmd) for
 commands and workspace layout; and [Restore GitHub Backups](github-restore.qmd)

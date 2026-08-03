@@ -5,7 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any, NoReturn
 
-from ..config import backup_repository_ids, config_path
+from ..config import config_path, job_repository_ids
 from ..errors import BackupError
 
 
@@ -23,7 +23,7 @@ def resolve(
     backup = backups.get(backup_id)
     if backup is None:
         fail(f"backup job '{backup_id}' not found in {config_path()}")
-    repository_ids = backup_repository_ids(backup, backup_id)
+    repository_ids = job_repository_ids(backup, backup_id)
     if repository_id is None:
         if len(repository_ids) != 1:
             fail(f"backup job '{backup_id}' requires a repository selection")

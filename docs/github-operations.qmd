@@ -9,7 +9,7 @@ uv run restic-backups job list
 uv run restic-backups job run example-github-repository \
   --repository personal-b2 --repository personal-local
 uv run restic-backups job status example-github-repository
-uv run restic-backups github-repository data-dir example-github-repository
+uv run restic-backups job data-dir example-github-repository
 uv run restic-backups generic snapshot list example-github-repository \
   --repository personal-b2
 ```

@@ -59,13 +59,6 @@ def required_text(item: dict[str, Any], field: str, owner: str) -> str:
 
 def job_repository_ids(job: dict[str, Any], job_id: str) -> list[str]:
     values = job.get("restic-repository-ids")
-    legacy = job.get("restic-repository-id")
-    if values is not None and legacy is not None:
-        raise ConfigError(
-            f"{job_id} cannot define both restic-repository-id and restic-repository-ids"
-        )
-    if values is None:
-        values = [required_text(job, "restic-repository-id", job_id)]
     if (
         not isinstance(values, list)
         or not values
@@ -76,9 +69,6 @@ def job_repository_ids(job: dict[str, Any], job_id: str) -> list[str]:
             f"{job_id}.restic-repository-ids must be a non-empty list of unique IDs"
         )
     return values
-
-
-backup_repository_ids = job_repository_ids
 
 
 def repository_is_enabled(repository: dict[str, Any]) -> bool:
@@ -146,13 +136,6 @@ def github_owner_name(url: str, owner: str) -> str:
 
 def validate_github(github: dict[str, Any], job_id: str) -> None:
     urls = github.get("repository-urls")
-    legacy_url = github.get("repository-url")
-    if urls is not None and legacy_url is not None:
-        raise ConfigError(
-            f"{job_id}.source cannot define both repository-url and repository-urls"
-        )
-    if urls is None:
-        urls = [required_text(github, "repository-url", f"{job_id}.source")]
     if (
         not isinstance(urls, list)
         or not urls
@@ -247,28 +230,13 @@ def validate_github_owner(github: dict[str, Any], job_id: str) -> None:
 
 
 def indexed_jobs(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
-    if "jobs" in config and "backups" in config:
-        raise ConfigError("configuration cannot define both jobs and backups")
-    legacy = "jobs" not in config
-    section = "backups" if legacy else "jobs"
-    result = indexed(config, section, "job-id")
     normalized: dict[str, dict[str, Any]] = {}
-    for job_id, original in result.items():
+    for job_id, original in indexed(config, "jobs", "job-id").items():
         job = dict(original)
-        if legacy:
-            if "github" in job:
-                job_type, source = "github-repository", job["github"]
-            elif "paths" in job:
-                job_type, source = "files", {"paths": job["paths"]}
-            elif job_id == "voice-memos":
-                job_type, source = "voice-memos", {}
-            else:
-                job_type, source = "files", {}
-        else:
-            job_type = required_text(job, "type", job_id)
-            source = job.get("source")
-            if not isinstance(source, dict):
-                raise ConfigError(f"{job_id}.source must be a mapping")
+        job_type = required_text(job, "type", job_id)
+        source = job.get("source")
+        if not isinstance(source, dict):
+            raise ConfigError(f"{job_id}.source must be a mapping")
         if job_type not in {
             "files",
             "github-owner",
@@ -278,7 +246,6 @@ def indexed_jobs(config: dict[str, Any]) -> dict[str, dict[str, Any]]:
             raise ConfigError(f"{job_id}.type is not a supported job type")
         job["type"] = job_type
         job["source"] = source
-        job["_legacy"] = legacy
         normalized[job_id] = job
     return normalized
 
@@ -401,14 +368,10 @@ def validate(
             required_text(job, "tag", job_id)
         source = job["source"]
         paths = source.get("paths") if job["type"] == "files" else None
-        if (
-            job["type"] == "files"
-            and (paths is not None or not job["_legacy"])
-            and (
-                not isinstance(paths, list)
-                or not paths
-                or any(not isinstance(path, str) or not path for path in paths)
-            )
+        if job["type"] == "files" and (
+            not isinstance(paths, list)
+            or not paths
+            or any(not isinstance(path, str) or not path for path in paths)
         ):
             raise ConfigError(f"{job_id}.source.paths must be a non-empty list")
         if job["type"] == "github-repository":

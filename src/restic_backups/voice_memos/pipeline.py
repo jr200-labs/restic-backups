@@ -1465,12 +1465,6 @@ def eligible_diarization_uuids(order: str, min_duration: float) -> list[str]:
     return [uuid for uuid, _ in rows]
 
 
-def diarize_list(order: str, min_duration: float) -> None:
-    """Print eligible UUIDs, one per line."""
-    for uuid in eligible_diarization_uuids(order, min_duration):
-        click.echo(uuid)
-
-
 def diarize_status() -> None:
     """Count: have-transcript, have-diarization, eligible-not-yet."""
     have_seg, have_diar, eligible = 0, 0, 0

@@ -107,8 +107,7 @@ The values `false`, `no`, and `off` are also accepted, case-insensitively.
 | `check-config` | Load and validate configuration | No |
 | `job ...` | List, run, and inspect every configured job type | Depends on subcommand |
 | `generic ...` | Run generic configured repository commands | Depends on subcommand |
-| `github-repository ...` | Compatibility and GitHub-specific commands | Depends on subcommand |
-| `voice-memos ...` | Compatibility and Voice Memos-specific tools | Depends on subcommand |
+| `voice-memos ...` | Transcription, inspection, and Voice Memos-specific tools | Depends on subcommand |
 
 Use [Generic Backups](generic.qmd) for restic passthrough, repository
 initialization, restores, and managed data directories. Use
@@ -121,6 +120,5 @@ Run subcommand help without loading a configuration:
 ```sh
 uv run restic-backups job --help
 uv run restic-backups generic --help
-uv run restic-backups github-repository --help
 uv run restic-backups voice-memos --help
 ```

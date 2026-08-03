@@ -389,38 +389,6 @@ def _component_path(root: Path, component: str) -> Path:
     }[component]
 
 
-def _migrate_legacy_layout(
-    root: Path, repositories: list[tuple[str, str, str]]
-) -> None:
-    legacy = [
-        root / name
-        for name in ("repository.git", "wiki.git", "github-export", "release-assets")
-        if (root / name).exists()
-    ]
-    if not legacy:
-        return
-    previous_source: str | None = None
-    try:
-        manifest = json.loads((root / "backup-manifest.json").read_text())
-        if isinstance(manifest.get("source"), str):
-            previous_source = manifest["source"]
-    except (FileNotFoundError, json.JSONDecodeError):
-        pass
-    matches = [item for item in repositories if item[0] == previous_source]
-    if not matches and len(repositories) == 1:
-        matches = repositories
-    if not matches:
-        logger.warning("legacy GitHub workspace could not be assigned to a source")
-        return
-    _, owner, name = matches[0]
-    destination = root / owner / name
-    destination.mkdir(parents=True, exist_ok=True)
-    for path in legacy:
-        target = destination / path.name
-        if not target.exists():
-            path.replace(target)
-
-
 def _update_repository(
     job_id: str,
     github: Mapping[str, Any],
@@ -551,7 +519,6 @@ def backup(
 
     root = data_dir(job_id)
     root.mkdir(parents=True, exist_ok=True)
-    _migrate_legacy_layout(root, parsed)
     statuses: dict[str, str] = {}
     manifest_repositories: dict[str, Any] = {}
     paths: list[str] = []
@@ -659,15 +626,12 @@ def read_manifest(job_id: str) -> dict[str, Any] | None:
 def manifest_components(
     manifest: Mapping[str, Any],
 ) -> list[tuple[str, Mapping[str, Any]]]:
-    """Return labeled component results from current and legacy manifests."""
-    repositories = manifest.get("repositories")
-    if isinstance(repositories, dict):
-        return [
-            (f"{repository}:{component}", result)
-            for repository, details in repositories.items()
-            for component, result in details.get("components", {}).items()
-        ]
-    return list(manifest.get("components", {}).items())
+    """Return labeled component results."""
+    return [
+        (f"{repository}:{component}", result)
+        for repository, details in manifest.get("repositories", {}).items()
+        for component, result in details.get("components", {}).items()
+    ]
 
 
 def snapshot_repositories(job_id: str, snapshot: Mapping[str, Any]) -> dict[str, str]:

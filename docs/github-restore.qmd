@@ -20,7 +20,7 @@ It contains complete Git objects, branches, tags, other remote refs, and backed
 up LFS objects, but no checked-out source files:
 
 ```sh
-uv run restic-backups github-repository restore example-organization \
+uv run restic-backups job restore example-organization \
   --repository personal-local \
   --snapshot b3ec67e1 \
   --github-repository example/example-repository \
@@ -39,7 +39,7 @@ git --git-dir=/tmp/example-repository.git fsck --full
 Choose **Clone** for a normal working tree with visible source files:
 
 ```sh
-uv run restic-backups github-repository restore example-organization \
+uv run restic-backups job restore example-organization \
   --repository personal-local \
   --snapshot b3ec67e1 \
   --github-repository example/example-repository \

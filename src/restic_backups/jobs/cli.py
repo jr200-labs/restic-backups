@@ -7,6 +7,7 @@ import logging
 import os
 import sys
 import time
+from pathlib import Path
 from typing import Annotated, Any, NoReturn
 
 import questionary
@@ -21,6 +22,7 @@ from ..generic import cli as generic_cli
 from ..generic import restic
 from ..generic.tui import menu_choice as tui_menu_choice
 from ..generic.tui import select
+from ..github_repository import restore as github_restore
 from ..github_repository import workflow as github_workflow
 from . import workflow
 
@@ -139,9 +141,15 @@ def interactive_menu() -> None:
         if selected in {None, "back"}:
             return
         if selected == "list":
-            list_command()
+            try:
+                list_command()
+            except typer.Exit:
+                continue
         elif selected == "status":
-            status_command(None)
+            try:
+                status_command(None)
+            except typer.Exit:
+                continue
         elif selected == "help":
             generic_cli.print_typer_help(app, "restic-backups job")
         else:
@@ -210,20 +218,24 @@ def job_menu(job_id: str) -> None:
             except typer.Abort:
                 continue
         elif selected == "status":
-            status_command(job_id)
+            try:
+                status_command(job_id)
+            except typer.Exit:
+                continue
         elif selected == "snapshots":
             try:
                 generic_cli.snapshots_command(job_id)
-            except typer.Abort:
+            except (typer.Abort, typer.Exit):
                 continue
             continue
         elif selected == "restic":
             generic_cli.restic_menu(job_id)
         elif selected == "data-dir":
-            typer.echo(github_workflow.data_dir(job_id))
+            try:
+                data_dir_command(job_id)
+            except typer.Exit:
+                continue
         elif selected == "github-restore":
-            from ..github_repository.cli import restore_command
-
             restore_command(job_id, None, None, None, None, None)
         elif selected == "voice":
             from ..voice_memos import workflow as voice_workflow
@@ -355,6 +367,71 @@ def run_command(
         )
     if not successful:
         raise typer.Exit(1)
+
+
+@app.command("restore")
+def restore_command(
+    job: Annotated[
+        str | None,
+        typer.Argument(help="GitHub job ID; prompts when omitted.", metavar="JOB_ID"),
+    ] = None,
+    repository_id: Annotated[
+        str | None,
+        typer.Option("--repository", "-r", help="Restic repository ID."),
+    ] = None,
+    snapshot_id: Annotated[
+        str | None,
+        typer.Option("--snapshot", help="Full or unambiguous snapshot ID prefix."),
+    ] = None,
+    github_repository: Annotated[
+        str | None,
+        typer.Option("--github-repository", help="Repository as OWNER/REPOSITORY."),
+    ] = None,
+    mode: Annotated[
+        github_restore.RestoreMode | None,
+        typer.Option("--mode", help="Restore a bare mirror or working clone."),
+    ] = None,
+    target: Annotated[
+        Path | None,
+        typer.Option("--target", "-t", help="Absent or empty destination directory."),
+    ] = None,
+) -> None:
+    """Restore one repository from a GitHub job snapshot."""
+    _, storage, repositories, jobs = validated()
+    github_jobs = {
+        job_id: item
+        for job_id, item in jobs.items()
+        if item["type"] in {"github-owner", "github-repository"}
+    }
+    job_id = choose_job(job, github_jobs, repositories)
+    github_restore.run(
+        job_id,
+        repository_id,
+        snapshot_id,
+        github_repository,
+        mode,
+        target,
+        storage,
+        repositories,
+        jobs,
+    )
+
+
+@app.command("data-dir")
+def data_dir_command(
+    job: Annotated[
+        str | None, typer.Argument(help="GitHub job ID; prompts when omitted.")
+    ] = None,
+) -> None:
+    """Show the managed local workspace for a GitHub job."""
+    _, _, repositories, jobs = validated()
+    github_jobs = {
+        job_id: item
+        for job_id, item in jobs.items()
+        if item["type"] in {"github-owner", "github-repository"}
+    }
+    job_id = choose_job(job, github_jobs, repositories)
+    typer.echo(github_workflow.data_dir(job_id))
 
 
 @app.command("status")
