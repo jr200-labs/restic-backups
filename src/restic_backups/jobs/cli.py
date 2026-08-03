@@ -195,7 +195,10 @@ def job_menu(job_id: str) -> None:
         if selected in {None, "back"}:
             return
         if selected == "run":
-            run_command(job_id, generic_cli.choose_dry_run(), None)
+            try:
+                run_command(job_id, generic_cli.choose_dry_run(), None)
+            except typer.Abort:
+                continue
         elif selected == "status":
             status_command(job_id)
         elif selected == "snapshots":

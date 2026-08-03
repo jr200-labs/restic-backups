@@ -67,6 +67,12 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(prompt.call_args.args[0], "Options:")
         self.assertEqual(prompt.call_args.kwargs["choices"][0].value, "dry-run")
 
+    def test_escape_from_dry_run_goes_back(self) -> None:
+        with patch("restic_backups.generic.cli.checkbox") as prompt:
+            prompt.return_value.unsafe_ask.return_value = None
+            with self.assertRaises(typer.Abort):
+                choose_dry_run()
+
     def test_backup_repositories_are_explicit_unchecked_choices(self) -> None:
         repositories = {
             "first": {"enabled": True},

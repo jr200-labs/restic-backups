@@ -53,7 +53,9 @@ def choose_dry_run() -> bool:
             questionary.Separator(" "),
         ],
     ).unsafe_ask()
-    return selected is not None and "dry-run" in selected
+    if selected is None:
+        raise typer.Abort()
+    return "dry-run" in selected
 
 
 @app.callback()
@@ -251,7 +253,11 @@ def prune_menu() -> None:
                 else "max_repack_size"
             )
             options[key] = size.strip()
-        prune_command(None, dry_run=choose_dry_run(), **options)
+        try:
+            dry_run = choose_dry_run()
+        except typer.Abort:
+            continue
+        prune_command(None, dry_run=dry_run, **options)
         return
 
 
@@ -402,12 +408,13 @@ def restic_menu(backup_id: str | None = None) -> None:
                 except BackupError as exc:
                     fail(str(exc))
                 continue
-            if (
-                "--dry-run" not in args
-                and restic.supports_dry_run(command)
-                and choose_dry_run()
-            ):
-                args.insert(0, "--dry-run")
+            if "--dry-run" not in args and restic.supports_dry_run(command):
+                try:
+                    dry_run = choose_dry_run()
+                except typer.Abort:
+                    continue
+                if dry_run:
+                    args.insert(0, "--dry-run")
             try:
                 run_args(backup_id, [command, *args], interactive=True)
                 return

@@ -52,9 +52,17 @@ def test_navigation_controls_and_pointer_are_white() -> None:
 
 
 def test_checkbox_uses_concise_navigation_help() -> None:
-    with patch("restic_backups.generic.tui.questionary.checkbox") as prompt:
-        checkbox("Options:", choices=["Dry run"])
+    with patch(
+        "restic_backups.generic.tui.questionary.checkbox", wraps=questionary.checkbox
+    ) as prompt:
+        question = checkbox("Options:", choices=["Dry run"])
 
     assert prompt.call_args.kwargs["instruction"] == (
         "(Use arrow keys to move, <space> to select)"
     )
+    event = Mock()
+    key_bindings = question.application.key_bindings
+    assert key_bindings is not None
+    bindings = key_bindings.get_bindings_for_keys((Keys.Escape,))
+    bindings[-1].handler(event)
+    event.app.exit.assert_called_once_with(result=None)
