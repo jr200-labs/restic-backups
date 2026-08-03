@@ -53,6 +53,13 @@ class VoiceMemosCliTest(unittest.TestCase):
             if isinstance(choice, questionary.Choice)
         ]
         self.assertEqual(top_values[:3], ["select", "list", "status"])
+        self.assertEqual(
+            [
+                choice_title(choice).split()[0]
+                for choice in select.call_args.kwargs["choices"][:-1]
+            ],
+            ["Run", "List", "Status", "Help", "Back"],
+        )
         list_jobs.assert_called_once_with()
         status.assert_called_once_with(None)
         self.assertEqual(select.call_count, 3)
@@ -75,6 +82,13 @@ class VoiceMemosCliTest(unittest.TestCase):
         ]
         self.assertEqual(
             first_values[:4], ["run", "github-restore", "status", "snapshots"]
+        )
+        self.assertEqual(
+            [
+                choice_title(choice).split()[0]
+                for choice in select.call_args_list[0].kwargs["choices"][:-1]
+            ],
+            ["Run", "Restore", "Status", "Snapshots", "Restic", "Data", "Help", "Back"],
         )
         status.assert_called_once_with("github")
         snapshots.assert_called_once_with("github")
