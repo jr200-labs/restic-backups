@@ -53,12 +53,12 @@ def repository_choices(
 ) -> list[questionary.Choice | questionary.Separator]:
     """Build repository choices with unavailable entries grouped consistently."""
     available: list[questionary.Choice | questionary.Separator] = []
-    disabled: list[str] = []
+    disabled: list[tuple[str, str]] = []
     for repository_id, item in repositories.items():
         text = label(repository_id, item)
         reason = disabled_reason(item)
         if reason:
-            disabled.append(f"{text} ({reason})")
+            disabled.append((text, reason))
         else:
             available.append(
                 questionary.Choice(
@@ -349,7 +349,7 @@ def choose_backup(
     if not sys.stdin.isatty():
         fail("job ID is required when stdin is not interactive")
     choices: list[questionary.Choice | questionary.Separator] = []
-    disabled: list[str] = []
+    disabled: list[tuple[str, str]] = []
     for item_id, item in backups.items():
         label = f"{item_id}  ({', '.join(config.job_repository_ids(item, item_id))})"
         if any(
@@ -358,7 +358,7 @@ def choose_backup(
         ):
             choices.append(questionary.Choice(label, value=item_id))
         else:
-            disabled.append(f"{label}  (no available repositories)")
+            disabled.append((label, "no available repositories"))
     if not choices:
         fail("no enabled backups are available")
     choices = group_disabled_choices(

@@ -164,7 +164,8 @@ class VoiceMemosCliTest(unittest.TestCase):
         choices = checkbox.call_args.kwargs["choices"][:-1]
         self.assertTrue(choices[0].checked)
         self.assertIn("─ Disabled repositories ─", choice_title(choices[1]))
-        self.assertIn("offline (storage disabled)", choice_title(choices[2]))
+        self.assertIn("offline", choice_title(choices[2]))
+        self.assertIn("(storage disabled)", choice_title(choices[2]))
         self.assertEqual(set(choice_title(choices[3])), {"─"})
 
     def test_job_without_available_repositories_is_visible_but_disabled(self) -> None:
@@ -1129,7 +1130,8 @@ jobs:
         choices = select.call_args.kwargs["choices"]
         self.assertEqual(choice_title(choices[0]), "All repositories")
         self.assertIn("─ Disabled repositories ─", choice_title(choices[2]))
-        self.assertIn("offline (storage disabled)", choice_title(choices[3]))
+        self.assertIn("offline", choice_title(choices[3]))
+        self.assertIn("(storage disabled)", choice_title(choices[3]))
         command.assert_called_once_with(
             restic_repository, storage, ["cat", "config"], quiet=True
         )

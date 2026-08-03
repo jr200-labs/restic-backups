@@ -23,7 +23,7 @@ CONTROL_VALUES = {"back", "cancel", "exit", "help"}
 
 def group_disabled_choices(
     available: list[questionary.Choice | questionary.Separator],
-    disabled: list[str],
+    disabled: list[tuple[str, str]],
     *,
     heading: str,
     label_width: int,
@@ -31,11 +31,13 @@ def group_disabled_choices(
     """Put unavailable choices in one clearly delimited grey section."""
     if not disabled:
         return available
-    rule_width = max(32, label_width + 18, *(len(label) + 2 for label in disabled))
+    disabled_width = max(len(label) for label, _ in disabled)
+    rendered = [f"{label:<{disabled_width}}  ({reason})" for label, reason in disabled]
+    rule_width = max(32, label_width + 18, *(len(label) + 2 for label in rendered))
     return [
         *available,
         questionary.Separator(f" {heading} ".center(rule_width, "─")),
-        *(questionary.Separator(f"  {label}") for label in disabled),
+        *(questionary.Separator(f"  {label}") for label in rendered),
         questionary.Separator("─" * rule_width),
     ]
 
