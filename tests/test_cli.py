@@ -109,6 +109,7 @@ class VoiceMemosCliTest(unittest.TestCase):
 
         self.assertEqual(prompt.call_args.args[0], "Options:")
         self.assertEqual(prompt.call_args.kwargs["choices"][0].value, "dry-run")
+        self.assertNotIn("required", prompt.call_args.kwargs)
 
     def test_escape_from_dry_run_goes_back(self) -> None:
         with patch("restic_backups.generic.cli.checkbox") as prompt:
@@ -161,6 +162,7 @@ class VoiceMemosCliTest(unittest.TestCase):
             selected = choose_repositories("documents", None, repositories, jobs)
 
         self.assertEqual(selected, ["available"])
+        self.assertTrue(checkbox.call_args.kwargs["required"])
         choices = checkbox.call_args.kwargs["choices"][:-1]
         self.assertTrue(choices[0].checked)
         self.assertIn("─ Disabled repositories ─", choice_title(choices[1]))

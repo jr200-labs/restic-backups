@@ -58,10 +58,17 @@ def menu_choice(
     )
 
 
-def checkbox(*args: Any, **kwargs: Any) -> Question:
+def checkbox(*args: Any, required: bool = False, **kwargs: Any) -> Question:
     """Create a checkbox with concise help and Escape bound to back."""
     kwargs.setdefault("instruction", "(Use arrow keys to move, <space> to select)")
     kwargs.setdefault("style", TUI_STYLE)
+    if required:
+        kwargs.setdefault(
+            "validate",
+            lambda selected: (
+                bool(selected) or "Select at least one option to continue."
+            ),
+        )
     question = questionary.checkbox(*args, **kwargs)
     bindings = cast(KeyBindings, question.application.key_bindings)
 

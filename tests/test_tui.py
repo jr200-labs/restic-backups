@@ -90,9 +90,21 @@ def test_checkbox_uses_concise_navigation_help() -> None:
     assert prompt.call_args.kwargs["instruction"] == (
         "(Use arrow keys to move, <space> to select)"
     )
+    assert "validate" not in prompt.call_args.kwargs
     event = Mock()
     key_bindings = question.application.key_bindings
     assert key_bindings is not None
     bindings = key_bindings.get_bindings_for_keys((Keys.Escape,))
     bindings[-1].handler(event)
     event.app.exit.assert_called_once_with(result=None)
+
+
+def test_required_checkbox_rejects_an_empty_selection() -> None:
+    with patch(
+        "restic_backups.generic.tui.questionary.checkbox", wraps=questionary.checkbox
+    ) as prompt:
+        checkbox("Repositories:", choices=["one"], required=True)
+
+    validate = prompt.call_args.kwargs["validate"]
+    assert validate([]) == "Select at least one option to continue."
+    assert validate(["one"]) is True

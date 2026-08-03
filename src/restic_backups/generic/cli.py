@@ -398,6 +398,7 @@ def choose_repositories(
         }
         selected = checkbox(
             "Repositories:",
+            required=True,
             choices=repository_choices(
                 configured_repositories,
                 lambda repository_id, _: repository_id,
