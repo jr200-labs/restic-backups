@@ -12,6 +12,7 @@ import questionary
 
 from .. import audit, config
 from ..errors import BackupError
+from ..generic import cli as generic_cli
 from ..generic import sops
 from ..generic.tui import checkbox, select
 from ..generic.tui import menu_choice as tui_menu_choice
@@ -26,6 +27,7 @@ READ_ONLY_COMMANDS = {
     "stats",
     "status",
 }
+RESTIC_COMMANDS = {"check", "files", "restore", "snapshots", "stats"}
 
 
 def menu_choice(
@@ -46,6 +48,18 @@ def operation(action: Callable[[], int | None]) -> None:
 def audit_command(*args: str) -> None:
     try:
         audit.record("restic-backups", ["voice-memos", *args])
+    except BackupError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+
+def choose_repository(requested: str | None = None) -> str:
+    """Select one configured repository for a Voice Memos Restic command."""
+    try:
+        _, _, repositories, jobs = config.load_validated()
+        selected_job = workflow.job_id(jobs)
+        return generic_cli.choose_repository(
+            selected_job, requested, repositories, jobs
+        )
     except BackupError as exc:
         raise click.ClickException(str(exc)) from exc
 
@@ -82,7 +96,6 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
         parent = click.Context(cli, info_name="restic-backups voice-memos")
         context = click.Context(command, info_name=str(selected), parent=parent)
         click.echo(command.get_usage(context).strip())
-        completed = False
         while True:
             command_action = select(
                 f"voice-memos {selected}:",
@@ -117,6 +130,20 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             if args in (["--help"], ["-h"]):
                 click.echo(command.get_help(context))
                 continue
+
+            needs_repository = selected in RESTIC_COMMANDS or (
+                selected == "get" and "--restore" in args
+            )
+            has_repository = any(
+                arg in {"--repository", "-r"} or arg.startswith("--repository=")
+                for arg in args
+            )
+            if needs_repository and not has_repository:
+                try:
+                    args.extend(["--repository", choose_repository()])
+                except click.ClickException as exc:
+                    exc.show()
+                    continue
 
             copyable = [
                 "uv",
@@ -158,17 +185,18 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             audit_command(str(selected), *args)
             if before_run is not None:
                 before_run()
-            cli.main(
-                args=[str(selected), *args],
-                prog_name="restic-backups voice-memos",
-                standalone_mode=False,
-            )
+            try:
+                cli.main(
+                    args=[str(selected), *args],
+                    prog_name="restic-backups voice-memos",
+                    standalone_mode=False,
+                )
+            except click.ClickException as exc:
+                exc.show()
+                continue
             if selected in READ_ONLY_COMMANDS:
-                completed = True
                 break
             return
-            if completed:
-                break
 
 
 @click.group()
@@ -177,37 +205,56 @@ def cli() -> None:
 
 
 @cli.command()
-def snapshots() -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def snapshots(repository_id: str | None) -> None:
     """List repository snapshots."""
-    operation(lambda: workflow.run_restic(["snapshots"]))
+    repository_id = choose_repository(repository_id)
+    operation(lambda: workflow.run_restic(["snapshots"], repository_id=repository_id))
 
 
 @cli.command("check")
-def check_repository() -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def check_repository(repository_id: str | None) -> None:
     """Verify repository structure and metadata."""
-    operation(lambda: workflow.run_restic(["check"]))
+    repository_id = choose_repository(repository_id)
+    operation(lambda: workflow.run_restic(["check"], repository_id=repository_id))
 
 
 @cli.command()
-def stats() -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def stats(repository_id: str | None) -> None:
     """Show size and file count for the latest Voice Memos snapshot."""
-    operation(lambda: workflow.run_restic(["stats", "latest"], tagged=True))
+    repository_id = choose_repository(repository_id)
+    operation(
+        lambda: workflow.run_restic(
+            ["stats", "latest"], tagged=True, repository_id=repository_id
+        )
+    )
 
 
 @cli.command("files")
 @click.argument("snapshot", default="latest")
-def list_files(snapshot: str) -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def list_files(snapshot: str, repository_id: str | None) -> None:
     """List files in a snapshot."""
-    operation(lambda: workflow.run_restic(["ls", snapshot]))
+    repository_id = choose_repository(repository_id)
+    operation(
+        lambda: workflow.run_restic(["ls", snapshot], repository_id=repository_id)
+    )
 
 
 @cli.command()
 @click.argument("snapshot", default="latest")
 @click.option("--target", type=click.Path(path_type=Path), required=True)
-def restore(snapshot: str, target: Path) -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def restore(snapshot: str, target: Path, repository_id: str | None) -> None:
     """Restore a snapshot to a target directory."""
+    repository_id = choose_repository(repository_id)
     operation(
-        lambda: workflow.run_restic(["restore", snapshot, "--target", str(target)])
+        lambda: workflow.run_restic(
+            ["restore", snapshot, "--target", str(target)],
+            repository_id=repository_id,
+        )
     )
 
 
@@ -216,10 +263,19 @@ def restore(snapshot: str, target: Path) -> None:
 @click.option("--restore", "restore_missing", is_flag=True)
 @click.option("--target", type=click.Path(path_type=Path), default=None)
 @click.option("--reveal/--no-reveal", default=True, show_default=True)
-def get(query: str, restore_missing: bool, target: Path | None, reveal: bool) -> None:
+@click.option("--repository", "repository_id", default=None, help="Repository ID.")
+def get(
+    query: str,
+    restore_missing: bool,
+    target: Path | None,
+    reveal: bool,
+    repository_id: str | None,
+) -> None:
     """Resolve a summary UUID to its recording and reveal it in Finder."""
     try:
-        path = workflow.find_audio(query, restore_missing, target)
+        if restore_missing:
+            repository_id = choose_repository(repository_id)
+        path = workflow.find_audio(query, restore_missing, target, repository_id)
         click.echo(path)
         if reveal and path.exists():
             workflow.reveal(path)

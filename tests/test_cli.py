@@ -399,6 +399,28 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(choices[-2].value, "dry-run")
         self.assertEqual(main.call_args.kwargs["args"], ["prune-index", "--dry-run"])
 
+    def test_voice_memos_selects_repository_before_final_screen(self) -> None:
+        with (
+            patch.dict("os.environ", {"RESTIC_BACKUPS_CONFIG": "/tmp/config.yaml"}),
+            patch("restic_backups.voice_memos.cli.select") as select,
+            patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
+            patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
+            patch(
+                "restic_backups.voice_memos.cli.choose_repository",
+                return_value="second",
+            ) as choose_repository,
+            patch("restic_backups.voice_memos.cli.click.echo") as echo,
+        ):
+            select.return_value.unsafe_ask.side_effect = ["snapshots", "run"]
+            arguments.return_value.unsafe_ask.return_value = ""
+            checkbox.return_value.unsafe_ask.return_value = ["print"]
+
+            voice_memos_menu()
+
+        choose_repository.assert_called_once_with()
+        output = "\n".join(str(item.args[0]) for item in echo.call_args_list)
+        self.assertIn("voice-memos snapshots --repository second", output)
+
     @patch("restic_backups.cli.generic_cli.print_typer_help")
     @patch("restic_backups.cli.select")
     def test_root_help_returns_to_root_menu(self, select, print_help) -> None:

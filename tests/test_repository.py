@@ -13,9 +13,37 @@ from restic_backups import config
 from restic_backups.errors import BackupError
 from restic_backups.generic import repository, restic
 from restic_backups.jobs import workflow as job_workflow
+from restic_backups.voice_memos import workflow as voice_workflow
 
 
 class ConfigLoadingTest(unittest.TestCase):
+    def test_voice_memos_restic_uses_selected_repository(self) -> None:
+        jobs = {
+            "memos": {
+                "type": "voice-memos",
+                "restic-repository-ids": ["first", "second"],
+            }
+        }
+        with (
+            patch(
+                "restic_backups.voice_memos.workflow.config.load_validated",
+                return_value=({}, {}, {}, jobs),
+            ),
+            patch(
+                "restic_backups.voice_memos.workflow.restic.command", return_value=0
+            ) as command,
+        ):
+            voice_workflow.run_restic(["snapshots"], repository_id="second")
+
+        command.assert_called_once_with(
+            "memos",
+            ["snapshots"],
+            {},
+            {},
+            jobs,
+            repository_id="second",
+        )
+
     def test_files_job_snapshots_every_selected_repository(self) -> None:
         job = {"type": "files", "source": {"paths": ["~/Documents"]}}
         with patch(
