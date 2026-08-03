@@ -25,6 +25,7 @@ from restic_backups.generic.cli import (
     run_args,
 )
 from restic_backups.generic.cli import menu as generic_menu
+from restic_backups.jobs.cli import choose_job
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
 
@@ -115,6 +116,28 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertTrue(choices[0].checked)
         self.assertEqual(choices[1].disabled, "storage disabled")
         self.assertIn("storage disabled", choice_title(choices[1]))
+
+    def test_job_without_available_repositories_is_visible_but_disabled(self) -> None:
+        repositories = {
+            "available": {"enabled": True},
+            "offline": {"enabled": True, "_storage-enabled": False},
+        }
+        jobs = {
+            "active": {"type": "files", "restic-repository-ids": ["available"]},
+            "offline": {"type": "files", "restic-repository-ids": ["offline"]},
+        }
+        with (
+            patch("restic_backups.jobs.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.jobs.cli.select") as select,
+        ):
+            select.return_value.unsafe_ask.return_value = "active"
+            selected = choose_job(None, jobs, repositories)
+
+        self.assertEqual(selected, "active")
+        choices = select.call_args.kwargs["choices"]
+        self.assertIsNone(choices[0].disabled)
+        self.assertEqual(choices[1].disabled, "no available repositories")
+        self.assertIn("offline", choice_title(choices[1]))
 
     def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
         repositories = {"disabled": {"enabled": False}}

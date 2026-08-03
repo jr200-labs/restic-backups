@@ -30,10 +30,16 @@ error_console = Console(stderr=True)
 
 
 def menu_choice(
-    label: str, description: str, value: str, width: int = 20
+    label: str,
+    description: str,
+    value: str,
+    width: int = 20,
+    disabled: str | None = None,
 ) -> questionary.Choice:
     return questionary.Choice(
-        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)], value
+        [("fg:ansicyan bold", f"{label:<{width}}"), ("", description)],
+        value,
+        disabled=disabled,
     )
 
 
@@ -54,7 +60,11 @@ def validated() -> tuple[
         fail(str(exc))
 
 
-def choose_job(job_id: str | None, jobs: dict[str, dict[str, Any]]) -> str:
+def choose_job(
+    job_id: str | None,
+    jobs: dict[str, dict[str, Any]],
+    repositories: dict[str, dict[str, Any]],
+) -> str:
     if job_id is not None:
         if job_id not in jobs:
             fail(f"job '{job_id}' not found in {config.config_path()}")
@@ -69,12 +79,21 @@ def choose_job(job_id: str | None, jobs: dict[str, dict[str, Any]]) -> str:
                 f"[{job['type']}]  {job.get('description', '')}",
                 job_id,
                 max(20, max(map(len, jobs))),
+                disabled=(
+                    None
+                    if any(
+                        config.repository_is_enabled(repositories[value])
+                        for value in config.job_repository_ids(job, job_id)
+                    )
+                    else "no available repositories"
+                ),
             )
             for job_id, job in jobs.items()
         ]
+        + [menu_choice("Back", "Return to the Jobs menu", "back")]
         + [questionary.Separator(" ")],
     ).unsafe_ask()
-    if selected is None:
+    if selected in {None, "back"}:
         raise typer.Abort()
     return str(selected)
 
@@ -112,9 +131,9 @@ def interactive_menu() -> None:
         elif selected == "help":
             generic_cli.print_typer_help(app, "restic-backups job")
         else:
-            _, _, _, jobs = validated()
+            _, _, repositories, jobs = validated()
             try:
-                job_menu(choose_job(None, jobs))
+                job_menu(choose_job(None, jobs, repositories))
             except typer.Abort:
                 continue
 
@@ -238,7 +257,7 @@ def run_command(
 ) -> None:
     """Run any configured job type."""
     _, storage, repositories, jobs = validated()
-    job_id = choose_job(job, jobs)
+    job_id = choose_job(job, jobs, repositories)
     selected = generic_cli.choose_repositories(
         job_id, repository_ids, repositories, jobs
     )
@@ -294,7 +313,7 @@ def status_command(job: str | None = typer.Argument(None)) -> None:
     _, storage, repositories, jobs = validated()
     selected_jobs = jobs
     if job is not None:
-        job_id = choose_job(job, jobs)
+        job_id = choose_job(job, jobs, repositories)
         selected_jobs = {job_id: jobs[job_id]}
     snapshots_by_repository: dict[str, list[dict[str, Any]] | None] = {}
     table = Table(title="Job status", box=box.ROUNDED)
