@@ -38,18 +38,6 @@ def data_dir(job_id: str) -> Path:
     )
 
 
-def _secret(source: Mapping[str, str], name: str) -> str:
-    if "env" in source:
-        value = os.environ.get(source["env"])
-        if value is None:
-            fail(f"{name} environment variable '{source['env']}' is not set")
-        return value
-    try:
-        return Path(source["file"]).expanduser().read_text()
-    except OSError as exc:
-        fail(f"could not read {name} file: {exc}")
-
-
 @contextmanager
 def authentication(
     github: Mapping[str, Any], *, git: bool = True, api: bool = True
@@ -66,8 +54,12 @@ def authentication(
             ssh = git_auth["ssh"]
             key = directory / "private-key"
             hosts = directory / "known-hosts"
-            key.write_text(_secret(ssh["private-key"], "Git SSH private key"))
-            hosts.write_text(_secret(ssh["known-hosts"], "Git SSH known-hosts"))
+            key.write_text(
+                config.credential_value(ssh["private-key"], "Git SSH private key")
+            )
+            hosts.write_text(
+                config.credential_value(ssh["known-hosts"], "Git SSH known-hosts")
+            )
             key.chmod(stat.S_IRUSR | stat.S_IWUSR)
             hosts.chmod(stat.S_IRUSR | stat.S_IWUSR)
             env["GIT_SSH_COMMAND"] = (
@@ -83,12 +75,14 @@ def authentication(
             askpass.chmod(stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
             env.update(
                 GIT_ASKPASS=str(askpass),
-                GIT_AUTH_TOKEN=_secret(
+                GIT_AUTH_TOKEN=config.credential_value(
                     git_auth["https"]["token"], "Git HTTPS token"
                 ).strip(),
             )
         if api and "api" in auth:
-            env["GH_TOKEN"] = _secret(auth["api"]["token"], "GitHub API token").strip()
+            env["GH_TOKEN"] = config.credential_value(
+                auth["api"]["token"], "GitHub API token"
+            ).strip()
         yield env
 
 
