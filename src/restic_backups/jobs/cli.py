@@ -76,7 +76,7 @@ def choose_job(
         choices=[
             menu_choice(
                 job_id,
-                f"[{job['type']}]  {job.get('description', '')}",
+                f"[{job['type']}]  {str(job.get('description', '')).strip()}",
                 job_id,
                 max(20, max(map(len, jobs))),
                 disabled=(

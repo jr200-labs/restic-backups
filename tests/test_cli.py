@@ -123,7 +123,11 @@ class VoiceMemosCliTest(unittest.TestCase):
             "offline": {"enabled": True, "_storage-enabled": False},
         }
         jobs = {
-            "active": {"type": "files", "restic-repository-ids": ["available"]},
+            "active": {
+                "type": "files",
+                "description": "Active job.\n",
+                "restic-repository-ids": ["available"],
+            },
             "offline": {"type": "files", "restic-repository-ids": ["offline"]},
         }
         with (
@@ -136,6 +140,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(selected, "active")
         choices = select.call_args.kwargs["choices"]
         self.assertIsNone(choices[0].disabled)
+        self.assertNotIn("\n", choice_title(choices[0]))
         self.assertEqual(choices[1].disabled, "no available repositories")
         self.assertIn("offline", choice_title(choices[1]))
 
