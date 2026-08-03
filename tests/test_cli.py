@@ -25,6 +25,7 @@ from restic_backups.generic.cli import (
     run_args,
 )
 from restic_backups.generic.cli import menu as generic_menu
+from restic_backups.jobs import cli as jobs_cli
 from restic_backups.jobs.cli import choose_job
 from restic_backups.voice_memos.cli import cli as voice_memos_cli
 from restic_backups.voice_memos.cli import interactive_menu as voice_memos_menu
@@ -38,6 +39,38 @@ def choice_title(choice: questionary.Choice) -> str:
 
 
 class VoiceMemosCliTest(unittest.TestCase):
+    def test_job_menus_follow_workflow_order_and_snapshots_return(self) -> None:
+        prompt = Mock()
+        with patch("restic_backups.jobs.cli.select", return_value=prompt) as select:
+            prompt.unsafe_ask.return_value = "back"
+            jobs_cli.interactive_menu()
+        top_values = [
+            choice.value
+            for choice in select.call_args.kwargs["choices"]
+            if isinstance(choice, questionary.Choice)
+        ]
+        self.assertEqual(top_values[:3], ["select", "list", "status"])
+
+        prompt.unsafe_ask.side_effect = ["snapshots", "back"]
+        jobs = {"github": {"type": "github-owner"}}
+        with (
+            patch("restic_backups.jobs.cli.select", return_value=prompt) as select,
+            patch("restic_backups.jobs.cli.validated", return_value=({}, {}, {}, jobs)),
+            patch("restic_backups.jobs.cli.generic_cli.snapshots_command") as snapshots,
+        ):
+            jobs_cli.job_menu("github")
+
+        first_values = [
+            choice.value
+            for choice in select.call_args_list[0].kwargs["choices"]
+            if isinstance(choice, questionary.Choice)
+        ]
+        self.assertEqual(
+            first_values[:4], ["run", "github-restore", "status", "snapshots"]
+        )
+        snapshots.assert_called_once_with("github")
+        self.assertEqual(select.call_count, 2)
+
     def test_voice_memos_uses_configured_summary_directory(self) -> None:
         from restic_backups.voice_memos import pipeline, workflow
 

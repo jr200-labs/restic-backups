@@ -36,7 +36,7 @@ def menu_choice(
     label: str,
     description: str,
     value: str,
-    width: int = 17,
+    width: int = 20,
     disabled: str | None = None,
 ) -> questionary.Choice:
     return tui_menu_choice(
@@ -121,12 +121,12 @@ def interactive_menu() -> None:
         selected = select(
             "Jobs:",
             choices=[
+                menu_choice(
+                    "Select job", "Run or inspect one configured job", "select", 10
+                ),
                 menu_choice("List jobs", "Show every configured job", "list", 10),
                 menu_choice(
                     "Status", "Show latest snapshots for every job", "status", 10
-                ),
-                menu_choice(
-                    "Select job", "Run or inspect one configured job", "select", 10
                 ),
                 menu_choice("Help", "Show job commands and flags", "help", 10),
                 menu_choice("Back", "Return to the top-level menu", "back", 10),
@@ -155,24 +155,31 @@ def job_menu(job_id: str) -> None:
         job = jobs[job_id]
         choices = [
             menu_choice("Run backup", "Prepare and snapshot this job", "run"),
-            menu_choice("Status", "Show latest snapshots and job details", "status"),
-            menu_choice("Snapshots", "List immutable restore points", "snapshots"),
-            menu_choice("Advanced restic", "Run a native Restic command", "restic"),
         ]
         if job["type"] in {"github-owner", "github-repository"}:
-            choices.extend(
-                [
-                    menu_choice(
-                        "Restore repository",
-                        "Recover a bare repository or working clone",
-                        "github-restore",
-                    ),
-                    menu_choice(
-                        "Data directory",
-                        "Show the managed GitHub workspace",
-                        "data-dir",
-                    ),
-                ]
+            choices.append(
+                menu_choice(
+                    "Restore repository",
+                    "Recover a bare repository or working clone",
+                    "github-restore",
+                )
+            )
+        choices.extend(
+            [
+                menu_choice(
+                    "Status", "Show latest snapshots and job details", "status"
+                ),
+                menu_choice(
+                    "Show snapshots", "List immutable restore points", "snapshots"
+                ),
+                menu_choice("Advanced restic", "Run a native Restic command", "restic"),
+            ]
+        )
+        if job["type"] in {"github-owner", "github-repository"}:
+            choices.append(
+                menu_choice(
+                    "Data directory", "Show the managed GitHub workspace", "data-dir"
+                )
             )
         if job["type"] == "voice-memos":
             choices.append(
@@ -202,7 +209,11 @@ def job_menu(job_id: str) -> None:
         elif selected == "status":
             status_command(job_id)
         elif selected == "snapshots":
-            generic_cli.snapshots_command(job_id)
+            try:
+                generic_cli.snapshots_command(job_id)
+            except typer.Abort:
+                continue
+            continue
         elif selected == "restic":
             generic_cli.restic_menu(job_id)
         elif selected == "data-dir":
