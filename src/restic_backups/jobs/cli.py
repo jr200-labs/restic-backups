@@ -320,15 +320,18 @@ def run_command(
             if sys.stdin.isatty()
             else False
         )
-    event_id = audit.record(
-        "restic-backups",
-        [
-            "job",
-            "run",
-            job_id,
-            *[v for r in selected for v in ("--repository", r)],
-            *(["--dry-run"] if dry_run else []),
-        ],
+    event_id = (
+        audit.record_repository_write(
+            "restic-backups",
+            [
+                "job",
+                "run",
+                job_id,
+                *[v for r in selected for v in ("--repository", r)],
+            ],
+        )
+        if not dry_run
+        else None
     )
     started = time.monotonic()
     try:

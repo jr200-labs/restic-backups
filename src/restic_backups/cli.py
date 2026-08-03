@@ -164,7 +164,6 @@ def validated(
 @app.command("check-config")
 def check_config_command() -> None:
     """Validate configuration without contacting remote storage."""
-    audit.record("restic-backups", ["check-config"])
     validated(check_placeholders=True)
     typer.echo("config ok")
 
@@ -238,13 +237,8 @@ def prepare_voice_memos() -> None:
 
 
 def main() -> None:
-    """Audit and run the installed command."""
+    """Run the installed command."""
     successful = False
-    try:
-        audit.record("restic-backups", list(sys.argv[1:]))
-    except BackupError as exc:
-        error_console.print(Text(f"restic-backups: {exc}", style="bold red"))
-        raise SystemExit(1) from exc
     try:
         app()
         successful = True

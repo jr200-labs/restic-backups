@@ -1,4 +1,4 @@
-"""Append-only command audit logging."""
+"""Append-only Restic repository-write audit logging."""
 
 from __future__ import annotations
 
@@ -70,7 +70,8 @@ def _append(event: Mapping[str, object]) -> None:
         raise BackupError(f"could not append {AUDIT_LOG}: {exc}") from exc
 
 
-def record(command: str, args: list[str]) -> str | None:
+def record_repository_write(command: str, args: list[str]) -> str | None:
+    """Record a command that can change a Restic repository."""
     if not enabled():
         return None
     event_id = uuid4().hex

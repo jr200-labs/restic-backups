@@ -10,7 +10,7 @@ from pathlib import Path
 import click
 import questionary
 
-from .. import audit, config
+from .. import config
 from ..errors import BackupError
 from ..generic import cli as generic_cli
 from ..generic import sops
@@ -43,13 +43,6 @@ def operation(action: Callable[[], int | None]) -> None:
         raise click.ClickException(str(exc)) from exc
     if code:
         raise click.exceptions.Exit(code)
-
-
-def audit_command(*args: str) -> None:
-    try:
-        audit.record("restic-backups", ["voice-memos", *args])
-    except BackupError as exc:
-        raise click.ClickException(str(exc)) from exc
 
 
 def choose_repository(requested: str | None = None) -> str:
@@ -184,7 +177,6 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
                 args.append("--dry-run")
             if "print" in options:
                 return
-            audit_command(str(selected), *args)
             if before_run is not None:
                 before_run()
             try:

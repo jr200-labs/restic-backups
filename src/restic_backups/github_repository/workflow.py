@@ -99,7 +99,6 @@ def _run(
     output: BinaryIO | None = None,
     check: bool = True,
 ) -> subprocess.CompletedProcess[str]:
-    event_id = audit.record(args[0], args[1:])
     try:
         result = subprocess.run(
             args,
@@ -110,9 +109,7 @@ def _run(
             check=False,
         )
     except FileNotFoundError:
-        audit.finish(event_id, False)
         fail(f"{args[0]} is not installed")
-    audit.finish(event_id, result.returncode == 0)
     if check and result.returncode:
         message = f"{' '.join(args[:2])} failed with exit code {result.returncode}"
         if result.stderr:

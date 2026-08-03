@@ -455,7 +455,7 @@ def test_multiple_repositories_use_independent_workspace_directories(
     assert str(root / "second/shared-name/repository.git") in args
 
 
-def test_secret_values_never_enter_audit_log(
+def test_git_reads_do_not_enter_audit_log(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.chdir(tmp_path)
@@ -471,9 +471,7 @@ def test_secret_values_never_enter_audit_log(
         ),
     ):
         workflow._run(["git", "fetch"], env=env)
-    contents = (tmp_path / "audit-log.json").read_text()
-    assert "top-secret-value" not in contents
-    assert '"command":"git"' in contents
+    assert not (tmp_path / "audit-log.json").exists()
 
 
 def test_command_failure_includes_redacted_stderr() -> None:

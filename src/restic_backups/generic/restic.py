@@ -13,6 +13,22 @@ from . import repository
 
 logger = logging.getLogger(__name__)
 
+MUTATING_COMMANDS = {
+    "backup",
+    "copy",
+    "forget",
+    "init",
+    "migrate",
+    "prune",
+    "rebuild-index",
+    "recover",
+    "repair",
+    "rewrite",
+    "tag",
+    "unlock",
+}
+MUTATING_KEY_COMMANDS = {"add", "passwd", "remove"}
+
 
 def fail(message: str) -> NoReturn:
     raise BackupError(message)
@@ -25,9 +41,17 @@ def log_output(repository_id: str, stream: str, output: str, level: int) -> None
             logger.log(level, "%s: restic %s: %s", repository_id, stream, line)
 
 
+def mutates_repository(args: list[str]) -> bool:
+    """Return whether Restic arguments can change repository data."""
+    if not args or "--dry-run" in args:
+        return False
+    return args[0] in MUTATING_COMMANDS or (
+        args[0] == "key" and len(args) > 1 and args[1] in MUTATING_KEY_COMMANDS
+    )
+
+
 def available_commands() -> list[tuple[str, str]]:
     """Read command names and descriptions from the installed restic."""
-    event_id = audit.record("restic", ["help"])
     try:
         result = subprocess.run(
             ["restic", "help"], check=True, capture_output=True, text=True
@@ -36,9 +60,6 @@ def available_commands() -> list[tuple[str, str]]:
         fail("restic is not installed")
     except subprocess.CalledProcessError as exc:
         fail(exc.stderr.strip() or "could not read restic help")
-    finally:
-        audit.finish(event_id, "result" in locals() and result.returncode == 0)
-
     commands: list[tuple[str, str]] = []
     reading = False
     for line in result.stdout.splitlines():
@@ -62,7 +83,6 @@ def available_commands() -> list[tuple[str, str]]:
 
 def command_help(command: str) -> str:
     """Read a command's help from the installed restic."""
-    event_id = audit.record("restic", [command, "--help"])
     try:
         result = subprocess.run(
             ["restic", command, "--help"],
@@ -74,8 +94,6 @@ def command_help(command: str) -> str:
         fail("restic is not installed")
     except subprocess.CalledProcessError as exc:
         fail(exc.stderr.strip() or f"could not read restic {command} help")
-    finally:
-        audit.finish(event_id, "result" in locals() and result.returncode == 0)
     return result.stdout
 
 
@@ -397,7 +415,11 @@ def repository_run(
 
     try:
         raw_command = ["restic", *options, *args]
-        event_id = audit.record(raw_command[0], raw_command[1:])
+        event_id = (
+            audit.record_repository_write(raw_command[0], raw_command[1:])
+            if mutates_repository(args)
+            else None
+        )
         if live:
             result = subprocess.run(
                 raw_command,

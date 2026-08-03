@@ -68,9 +68,15 @@ labels, Pushgateway behavior, and a Prometheus scrape example.
 
 ## Audit log
 
-Command auditing is enabled by default. `restic-backups` appends compact JSON
-objects to `audit-log.json` in the directory where it was started. Each command
-has two linked records:
+Repository-write auditing is enabled by default. `restic-backups` appends
+compact JSON objects to `audit-log.json` in the directory where it was started.
+Only operations that can initialize or change a Restic repository are audited,
+including backup, copy, forget, initialize, migrate, prune, recover, repair,
+rewrite, tag, unlock, key changes, and repository destruction. Read-only
+operations such as list, snapshots, status, stats, check, help, restore, GitHub
+discovery, and Git preparation are not recorded. Dry runs are not recorded.
+
+Each audited write has two linked records:
 
 - a `started` event containing an `id`, `start-time`, `hostname`, `command`, and
   its exact `args`;
@@ -82,10 +88,10 @@ The `started-id` links completion to the corresponding `started` event. A
 `started` event without a matching `finished` event indicates an interrupted
 process. The file is append-only: existing records are never rewritten. It is
 created with owner-only permissions (`0600`).
-Interactive selections are recorded when run, and restic subprocess records
-contain the exact raw restic arguments, including generated repository options.
-GitHub repository jobs likewise record every raw `git`, `git lfs`, `gh`, and
-`restic` command.
+Job writes include their selected destinations and result details. Restic write
+records contain the exact raw Restic arguments, including generated repository
+options. Direct repository destruction is recorded as a `restic-backups`
+command because it intentionally bypasses Restic.
 Credentials and repository passwords are passed through the environment rather
 than arguments. Values attached to password-, secret-, token-, credential-, and
 key-like arguments are replaced with `[REDACTED]`.
