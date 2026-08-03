@@ -1,20 +1,21 @@
 # Restic Backups
 
-YAML configuration and a Python CLI for running multiple restic repositories,
-with optional SOPS decryption. The package currently includes a complete macOS
-Voice Memos workflow for backup, transcription, summarisation, and speaker
-diarization, plus managed backups of explicit GitHub repositories or every
-repository owned by a GitHub organization or user.
+Config-driven **incremental** Restic backups with built-in SOPS support.
 
-## Why
+[🚀 Quick Start](https://jr200-labs.github.io/restic-backups/quick-start.html) ·
+[📚 Documentation](https://jr200-labs.github.io/restic-backups/)
 
-Create encrypted, deduplicated **incremental backups** that upload only new or
-changed data. This makes reliable off-site backups practical with
-[cheaper storage options](docs/storage-costs.qmd), without maintaining a
-separate backup script for every repository.
+## Why Restic Backups?
 
-Backup payloads, generated metadata, model caches, and restores are excluded
-from Git by a default-deny `.gitignore`.
+- 💸 **Reduce costs** by sending deduplicated backups to lower-cost S3,
+  S3-compatible, Glacier, or local storage. See the
+  [storage cost comparison](https://jr200-labs.github.io/restic-backups/storage-costs.html).
+- 🐙 Back up GitHub at organization or individual repository level,
+  including full Git history and optional LFS, metadata, wikis, and releases.
+- 🎙️ Back up iOS Voice Memos on macOS, with optional transcription,
+  summarisation, and speaker diarization.
+- 🔐 Keep credentials and repository passwords encrypted in a SOPS-managed YAML
+  configuration.
 
 ## Install
 
@@ -27,34 +28,26 @@ make install       # uv sync, including the dev group and Quarto
 repository that does not already exist. It reports and skips disabled or
 initialized repositories, and does not back up files.
 
-## CLI
+## Run backups
 
-Use the built-in help for available commands and options:
+Run without arguments for a friendly interactive TUI. Navigate with the arrow
+keys, select destinations with Space, and use the described menus to manage
+jobs, repositories, and snapshots:
 
 ```sh
-uv run restic-backups  # interactive arrow-key menu
-uv run restic-backups --help
-uv run restic-backups job --help
-uv run restic-backups github-repository --help
-uv run restic-backups generic --help
-uv run restic-backups voice-memos --help
+uv run restic-backups
 ```
 
-The interactive menus include **Help** and **Back** at every level. Press
-Escape to go back or Ctrl+C to exit. Help stays at the current level and does
-not load configuration or access a repository.
-Generic write actions also offer a Space-toggleable **Dry run** checkbox so the
-operation can be inspected without changing repository data.
+For cron, containers, and other batch jobs, use the same operations as explicit
+CLI commands:
 
-Command auditing is enabled by default and appends JSON records to
-`audit-log.json` in the current directory. Set `RESTIC_BACKUPS_AUDIT=0` to
-disable it. Passwords and other secret-like argument values are redacted.
-GitHub jobs also audit their raw `git`, `git lfs`, `gh`, and `restic` commands;
-tokens and temporary credential paths remain outside those arguments.
+```sh
+uv run restic-backups job run documents --repository personal-b2
+uv run restic-backups --help
+```
 
-Logs use standard Python logging with timestamps. To publish job result and
-duration metrics, set `RESTIC_BACKUPS_PROMETHEUS_PUSHGATEWAY_URL` to a
-Prometheus Pushgateway URL. See the CLI documentation for the metric names.
+See the [CLI guide](https://jr200-labs.github.io/restic-backups/cli.html) for
+commands, dry runs, audit logs, timestamped logging, and Prometheus metrics.
 
 ## Configuration
 
