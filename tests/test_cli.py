@@ -97,6 +97,19 @@ class VoiceMemosCliTest(unittest.TestCase):
         self.assertEqual(selected, ["only"])
         self.assertTrue(checkbox.call_args.kwargs["choices"][0].checked)
 
+    def test_backup_with_no_enabled_repositories_fails_before_prompt(self) -> None:
+        repositories = {"disabled": {"enabled": False}}
+        jobs = {"documents": {"restic-repository-ids": ["disabled"]}}
+        with (
+            patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True),
+            patch("restic_backups.generic.cli.questionary.checkbox") as checkbox,
+            self.assertRaises(typer.Exit) as raised,
+        ):
+            choose_repositories("documents", None, repositories, jobs)
+
+        self.assertEqual(raised.exception.exit_code, 1)
+        checkbox.assert_not_called()
+
     def test_root_and_generic_help_expose_subcommands(self) -> None:
         runner = CliRunner()
         root = runner.invoke(app, ["--help"])

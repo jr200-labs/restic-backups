@@ -492,6 +492,8 @@ def choose_repositories(
         fail("at least one --repository is required when stdin is not interactive")
     else:
         enabled = [value for value in configured if repositories[value]["enabled"]]
+        if not enabled:
+            fail(f"backup job '{backup_id}' has no enabled repositories")
         selected = questionary.checkbox(
             "Repositories (Space to toggle, Enter to continue):",
             choices=[
