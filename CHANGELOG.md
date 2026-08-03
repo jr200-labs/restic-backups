@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.12](https://github.com/jr200-labs/restic-backups/compare/v0.1.11...v0.1.12) (2026-08-03)
+
+
+### Features
+
+* configure Voice Memos model credentials ([#50](https://github.com/jr200-labs/restic-backups/issues/50)) ([0ec90f9](https://github.com/jr200-labs/restic-backups/commit/0ec90f9682b3451a72bce3f4ffef7b728e01c58c))
+* support SOPS-encrypted secret values ([#52](https://github.com/jr200-labs/restic-backups/issues/52)) ([b4032a0](https://github.com/jr200-labs/restic-backups/commit/b4032a0eefbbf32269e2ef491837ae93f6c29af3))
+
+
+### Bug Fixes
+
+* audit repository writes only ([#49](https://github.com/jr200-labs/restic-backups/issues/49)) ([585238d](https://github.com/jr200-labs/restic-backups/commit/585238dbe21b6523638157b17ef5edb0fc24c2ac))
+
 ## [0.1.11](https://github.com/jr200-labs/restic-backups/compare/v0.1.10...v0.1.11) (2026-08-03)
 
 
