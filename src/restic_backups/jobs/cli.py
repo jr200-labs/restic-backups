@@ -203,7 +203,7 @@ def job_menu(job_id: str) -> None:
             return
         if selected == "run":
             try:
-                run_command(job_id, generic_cli.choose_dry_run(), None)
+                run_command(job_id, None, None)
             except typer.Abort:
                 continue
         elif selected == "status":
@@ -291,7 +291,7 @@ def run_command(
     job: Annotated[
         str | None, typer.Argument(help="Job ID; prompts when omitted.")
     ] = None,
-    dry_run: Annotated[bool, typer.Option("--dry-run")] = False,
+    dry_run: Annotated[bool | None, typer.Option("--dry-run")] = None,
     repository_ids: Annotated[
         list[str] | None,
         typer.Option("--repository", "-r", help="Repeat for each destination."),
@@ -303,6 +303,19 @@ def run_command(
     selected = generic_cli.choose_repositories(
         job_id, repository_ids, repositories, jobs
     )
+    if dry_run is None:
+        dry_run = (
+            generic_cli.choose_dry_run(
+                generic_cli.copyable_cli_command(
+                    "job",
+                    "run",
+                    job_id,
+                    *[value for item in selected for value in ("--repository", item)],
+                )
+            )
+            if sys.stdin.isatty()
+            else False
+        )
     event_id = audit.record(
         "restic-backups",
         [

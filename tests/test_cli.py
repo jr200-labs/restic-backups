@@ -119,7 +119,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         with patch("restic_backups.generic.cli.checkbox") as prompt:
             prompt.return_value.unsafe_ask.return_value = ["dry-run"]
 
-            self.assertTrue(choose_dry_run())
+            self.assertTrue(choose_dry_run("restic backup /data"))
 
         self.assertEqual(prompt.call_args.args[0], "Options:")
         self.assertEqual(prompt.call_args.kwargs["choices"][0].value, "dry-run")
@@ -129,7 +129,7 @@ class VoiceMemosCliTest(unittest.TestCase):
         with patch("restic_backups.generic.cli.checkbox") as prompt:
             prompt.return_value.unsafe_ask.return_value = None
             with self.assertRaises(typer.Abort):
-                choose_dry_run()
+                choose_dry_run("restic backup /data")
 
     def test_backup_repositories_are_explicit_unchecked_choices(self) -> None:
         repositories = {
@@ -341,11 +341,13 @@ class VoiceMemosCliTest(unittest.TestCase):
                 },
             ),
             patch("restic_backups.voice_memos.cli.select") as select,
+            patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
             patch("restic_backups.voice_memos.cli.click.echo") as echo,
             patch.object(voice_memos_cli, "main") as main,
         ):
-            select.return_value.unsafe_ask.side_effect = ["status", "run", "print"]
+            select.return_value.unsafe_ask.side_effect = ["status", "run"]
+            checkbox.return_value.unsafe_ask.return_value = ["print"]
             arguments.return_value.unsafe_ask.return_value = ""
 
             voice_memos_menu()
@@ -365,22 +367,37 @@ class VoiceMemosCliTest(unittest.TestCase):
     def test_voice_memos_status_returns_to_voice_menu(self) -> None:
         with (
             patch("restic_backups.voice_memos.cli.select") as select,
+            patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
             patch("restic_backups.voice_memos.cli.audit_command"),
             patch.object(voice_memos_cli, "main") as main,
         ):
-            select.return_value.unsafe_ask.side_effect = [
-                "status",
-                "run",
-                "run",
-                "back",
-            ]
+            select.return_value.unsafe_ask.side_effect = ["status", "run", "back"]
+            checkbox.return_value.unsafe_ask.return_value = []
             arguments.return_value.unsafe_ask.return_value = ""
 
             voice_memos_menu()
 
         main.assert_called_once()
-        self.assertEqual(select.call_count, 4)
+        self.assertEqual(select.call_count, 3)
+
+    def test_voice_memos_dry_run_is_last_on_final_screen(self) -> None:
+        with (
+            patch("restic_backups.voice_memos.cli.select") as select,
+            patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
+            patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
+            patch("restic_backups.voice_memos.cli.audit_command"),
+            patch.object(voice_memos_cli, "main") as main,
+        ):
+            select.return_value.unsafe_ask.side_effect = ["prune-index", "run"]
+            arguments.return_value.unsafe_ask.return_value = ""
+            checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
+
+            voice_memos_menu()
+
+        choices = checkbox.call_args.kwargs["choices"]
+        self.assertEqual(choices[-2].value, "dry-run")
+        self.assertEqual(main.call_args.kwargs["args"], ["prune-index", "--dry-run"])
 
     @patch("restic_backups.cli.generic_cli.print_typer_help")
     @patch("restic_backups.cli.select")
@@ -586,13 +603,13 @@ jobs:
                 ),
             ) as command_output,
             patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.choose_dry_run", return_value=False),
             patch("restic_backups.generic.cli.questionary.confirm") as confirm,
             patch(
                 "restic_backups.generic.cli.restic.command", return_value=0
             ) as command,
         ):
             select.return_value.unsafe_ask.return_value = snapshot_id
-            confirm.return_value.unsafe_ask.return_value = True
 
             forget_command("backup")
             forget_command("backup", dry_run=True)
@@ -639,10 +656,7 @@ jobs:
                 ),
             ],
         )
-        confirm.assert_called_once_with(
-            "Forget snapshot 'aaaaaaaa' and prune its unreferenced data?",
-            default=False,
-        )
+        confirm.assert_not_called()
 
     def test_snapshots_lists_configured_tag_as_table(self) -> None:
         storage: dict[str, dict[str, object]] = {"storage": {}}
@@ -810,7 +824,6 @@ jobs:
         with (
             patch("restic_backups.generic.cli.select") as select,
             patch("restic_backups.generic.cli.questionary.text") as size,
-            patch("restic_backups.generic.cli.choose_dry_run", return_value=True),
             patch("restic_backups.generic.cli.prune_command") as prune,
         ):
             select.return_value.unsafe_ask.side_effect = ["prune", "small-packs"]
@@ -818,7 +831,7 @@ jobs:
 
             repository_menu()
 
-        prune.assert_called_once_with(None, dry_run=True, repack_smaller_than="20M")
+        prune.assert_called_once_with(None, repack_smaller_than="20M")
 
     @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
     @patch("restic_backups.generic.cli.validated")
@@ -879,11 +892,11 @@ jobs:
                     "RESTIC_BACKUPS_SOPS": "1",
                 },
             ),
-            patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
             patch("restic_backups.generic.cli.console.print") as print_line,
             patch("restic_backups.generic.cli.restic.command") as command,
         ):
-            select.return_value.unsafe_ask.return_value = "print"
+            checkbox.return_value.unsafe_ask.return_value = ["print"]
             run_args("documents", ["list", "snapshots"], interactive=True)
 
         command.assert_not_called()
@@ -892,6 +905,39 @@ jobs:
             f"uv run restic-backups --config {Path('/tmp/config.sops.yaml').resolve()} "
             "--sops generic restic run --backup documents --repository store list snapshots",
             output,
+        )
+
+    def test_advanced_restic_dry_run_is_selected_on_final_screen(self) -> None:
+        storage: dict[str, dict[str, object]] = {"storage": {}}
+        repositories = {"store": {"enabled": True}}
+        jobs = {"documents": {"restic-repository-ids": ["store"]}}
+        with (
+            patch(
+                "restic_backups.generic.cli.validated",
+                return_value=({}, storage, repositories, jobs),
+            ),
+            patch.dict("os.environ", {"RESTIC_BACKUPS_CONFIG": "/tmp/config.yaml"}),
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
+            patch(
+                "restic_backups.generic.cli.restic.command", return_value=0
+            ) as command,
+        ):
+            checkbox.return_value.unsafe_ask.return_value = ["dry-run"]
+            with self.assertRaises(typer.Exit):
+                run_args(
+                    "documents",
+                    ["backup", "/data"],
+                    interactive=True,
+                    allow_dry_run=True,
+                )
+
+        command.assert_called_once_with(
+            "documents",
+            ["backup", "--dry-run", "/data"],
+            storage,
+            repositories,
+            jobs,
+            repository_id="store",
         )
 
     def test_advanced_restic_ls_prompts_for_a_snapshot(self) -> None:
@@ -920,10 +966,12 @@ jobs:
                 ),
             ),
             patch("restic_backups.generic.cli.select") as select,
+            patch("restic_backups.generic.cli.checkbox") as checkbox,
             patch("restic_backups.generic.cli.console.print") as print_line,
             patch("restic_backups.generic.cli.restic.command") as command,
         ):
-            select.return_value.unsafe_ask.side_effect = [snapshot_id, "print"]
+            select.return_value.unsafe_ask.return_value = snapshot_id
+            checkbox.return_value.unsafe_ask.return_value = ["print"]
             run_args("documents", ["ls"], interactive=True)
 
         command.assert_not_called()
@@ -982,9 +1030,6 @@ jobs:
                 "restic_backups.generic.cli.restic.supports_dry_run",
                 return_value=True,
             ),
-            patch(
-                "restic_backups.generic.cli.choose_dry_run", return_value=True
-            ) as dry_run,
             patch("restic_backups.generic.cli.select") as select,
             patch("restic_backups.generic.cli.questionary.text") as arguments,
             patch("restic_backups.generic.cli.run_args") as run,
@@ -994,9 +1039,11 @@ jobs:
 
             restic_menu()
 
-        dry_run.assert_called_once_with()
         run.assert_called_once_with(
-            None, ["backup", "--dry-run", "/data"], interactive=True
+            None,
+            ["backup", "/data"],
+            interactive=True,
+            allow_dry_run=True,
         )
 
     @patch("restic_backups.generic.cli.restic.repository_command")
@@ -1124,10 +1171,13 @@ jobs:
         confirm.assert_not_called()
 
     @patch("restic_backups.generic.cli.sys.stdin.isatty", return_value=True)
+    @patch("restic_backups.generic.cli.choose_dry_run", return_value=False)
     @patch("restic_backups.generic.cli.select")
     @patch("restic_backups.generic.cli.restic.repository_command", return_value=0)
     @patch("restic_backups.generic.cli.validated")
-    def test_init_prompt_lists_all_first(self, validated, command, select, _) -> None:
+    def test_init_prompt_lists_all_first(
+        self, validated, command, select, choose_dry_run, _
+    ) -> None:
         storage = {"id": "storage", "type": "s3"}
         restic_repository = {
             "id": "store",
@@ -1155,6 +1205,7 @@ jobs:
         self.assertIn("─ Disabled repositories ─", choice_title(choices[2]))
         self.assertIn("offline", choice_title(choices[3]))
         self.assertIn("(storage disabled)", choice_title(choices[3]))
+        self.assertIn("generic repository init store", choose_dry_run.call_args.args[0])
         command.assert_called_once_with(
             restic_repository, storage, ["cat", "config"], quiet=True
         )

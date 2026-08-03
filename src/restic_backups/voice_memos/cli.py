@@ -13,8 +13,8 @@ import questionary
 from .. import audit, config
 from ..errors import BackupError
 from ..generic import sops
+from ..generic.tui import checkbox, select
 from ..generic.tui import menu_choice as tui_menu_choice
-from ..generic.tui import select
 from . import parallel, pipeline, workflow
 
 READ_ONLY_COMMANDS = {
@@ -130,43 +130,43 @@ def interactive_menu(before_run: Callable[[], None] | None = None) -> None:
             copyable.extend(["voice-memos", str(selected), *args])
             click.echo("Command:")
             click.echo(shlex.join(copyable))
-            while True:
-                action = select(
-                    "Action:",
-                    choices=[
-                        questionary.Choice("Run", "run"),
-                        questionary.Choice("Print only", "print"),
-                        menu_choice(
-                            "Help", "Show full flags for this command", "help", 12
-                        ),
-                        menu_choice("Back", "Change the command arguments", "back", 12),
-                        questionary.Choice("Cancel", "cancel"),
-                        questionary.Separator(" "),
-                    ],
-                ).unsafe_ask()
-                if action is None:
-                    break
-                if action == "help":
-                    click.echo(command.get_help(context))
-                    continue
-                if action == "back":
-                    break
-                if action != "run":
-                    if action == "cancel":
-                        click.echo("Cancelled; nothing was run.", err=True)
-                    return
-                audit_command(str(selected), *args)
-                if before_run is not None:
-                    before_run()
-                cli.main(
-                    args=[str(selected), *args],
-                    prog_name="restic-backups voice-memos",
-                    standalone_mode=False,
-                )
-                if selected in READ_ONLY_COMMANDS:
-                    completed = True
-                    break
+            options = checkbox(
+                "Options:",
+                choices=[
+                    menu_choice("Print only", "Do not execute the command", "print"),
+                    *(
+                        [
+                            menu_choice(
+                                "Dry run",
+                                "Show what would happen without writing",
+                                "dry-run",
+                            )
+                        ]
+                        if "--dry-run" not in args
+                        and any(param.name == "dry_run" for param in command.params)
+                        else []
+                    ),
+                    questionary.Separator(" "),
+                ],
+            ).unsafe_ask()
+            if options is None:
+                continue
+            if "dry-run" in options:
+                args.append("--dry-run")
+            if "print" in options:
                 return
+            audit_command(str(selected), *args)
+            if before_run is not None:
+                before_run()
+            cli.main(
+                args=[str(selected), *args],
+                prog_name="restic-backups voice-memos",
+                standalone_mode=False,
+            )
+            if selected in READ_ONLY_COMMANDS:
+                completed = True
+                break
+            return
             if completed:
                 break
 

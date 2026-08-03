@@ -75,7 +75,22 @@ def repository_choices(
     )
 
 
-def choose_dry_run() -> bool:
+def copyable_cli_command(*args: str) -> str:
+    command = [
+        "uv",
+        "run",
+        "restic-backups",
+        "--config",
+        str(config.config_path().resolve()),
+    ]
+    if os.environ.get(sops.SOPS_ENV) == "1":
+        command.append("--sops")
+    return shlex.join([*command, *args])
+
+
+def choose_dry_run(command: str) -> bool:
+    console.print(Text("Command:", style="bold"))
+    console.print(Text(command, style="cyan"))
     selected = checkbox(
         "Options:",
         choices=[
@@ -136,7 +151,7 @@ def repository_menu() -> None:
             elif selected == "list":
                 repository_list_command()
             elif selected == "init":
-                init_command(dry_run=choose_dry_run())
+                init_command()
                 return
             elif selected == "prime-cache":
                 prime_cache_command(None)
@@ -145,7 +160,7 @@ def repository_menu() -> None:
                 prune_menu()
                 return
             elif selected == "destroy":
-                destroy_command(None, choose_dry_run())
+                destroy_command()
                 return
         except (typer.Abort, typer.Exit):
             continue
@@ -222,11 +237,7 @@ def prune_menu() -> None:
                 else "max_repack_size"
             )
             options[key] = size.strip()
-        try:
-            dry_run = choose_dry_run()
-        except typer.Abort:
-            continue
-        prune_command(None, dry_run=dry_run, **options)
+        prune_command(None, **options)
         return
 
 
@@ -299,15 +310,15 @@ def restic_menu(backup_id: str | None = None) -> None:
                 except BackupError as exc:
                     fail(str(exc))
                 continue
-            if "--dry-run" not in args and restic.supports_dry_run(command):
-                try:
-                    dry_run = choose_dry_run()
-                except typer.Abort:
-                    continue
-                if dry_run:
-                    args.insert(0, "--dry-run")
             try:
-                run_args(backup_id, [command, *args], interactive=True)
+                run_args(
+                    backup_id,
+                    [command, *args],
+                    interactive=True,
+                    allow_dry_run=(
+                        "--dry-run" not in args and restic.supports_dry_run(command)
+                    ),
+                )
                 return
             except typer.Abort:
                 continue
@@ -505,9 +516,9 @@ def init_command(
         typer.Option("--all", help="Initialize every available repository."),
     ] = False,
     dry_run: Annotated[
-        bool,
+        bool | None,
         typer.Option("--dry-run", help="Check without initializing repositories."),
-    ] = False,
+    ] = None,
 ) -> None:
     """Initialize one repository, or every available repository with --all."""
     _, storage, repositories, _ = validated()
@@ -534,20 +545,31 @@ def init_command(
 
     if all_repositories:
         selected_repositories = list(repositories.items())
-        audit_command(
-            "repository", "init", "--all", *(["--dry-run"] if dry_run else [])
-        )
     else:
         restic_repository = repositories.get(str(repository_id))
         if restic_repository is None:
             fail(f"repository '{repository_id}' not found in {config.config_path()}")
         selected_repositories = [(str(repository_id), restic_repository)]
-        audit_command(
-            "repository",
-            "init",
-            str(repository_id),
-            *(["--dry-run"] if dry_run else []),
+
+    if dry_run is None:
+        dry_run = (
+            choose_dry_run(
+                copyable_cli_command(
+                    "generic",
+                    "repository",
+                    "init",
+                    *(["--all"] if all_repositories else [str(repository_id)]),
+                )
+            )
+            if sys.stdin.isatty()
+            else False
         )
+    audit_command(
+        "repository",
+        "init",
+        *(["--all"] if all_repositories else [str(repository_id)]),
+        *(["--dry-run"] if dry_run else []),
+    )
 
     for repository_id, restic_repository in selected_repositories:
         reason = config.repository_disabled_reason(restic_repository)
@@ -647,9 +669,9 @@ def prune_command(
         typer.Argument(help="Repository ID; prompts when omitted."),
     ] = None,
     dry_run: Annotated[
-        bool,
+        bool | None,
         typer.Option("--dry-run", help="Show what prune would do without writing."),
-    ] = False,
+    ] = None,
     max_unused: Annotated[
         str | None,
         typer.Option("--max-unused", help="Restic's allowed unused-data limit."),
@@ -714,10 +736,21 @@ def prune_command(
             args.extend((flag, value))
     if repack_cacheable_only:
         args.append("--repack-cacheable-only")
+    prompted = dry_run is None and sys.stdin.isatty()
+    if dry_run is None:
+        dry_run = (
+            choose_dry_run(
+                copyable_cli_command(
+                    "generic", "repository", "prune", repository_id, *args[1:]
+                )
+            )
+            if prompted
+            else False
+        )
     if dry_run:
         args.append("--dry-run")
 
-    if not dry_run and not yes:
+    if not dry_run and not yes and not prompted:
         if not sys.stdin.isatty():
             fail("prune requires --yes when stdin is not interactive")
         confirmed = questionary.confirm(
@@ -853,11 +886,11 @@ def forget_command(
         typer.Argument(help="Job ID; prompts when omitted.", metavar="JOB_ID"),
     ] = None,
     dry_run: Annotated[
-        bool,
+        bool | None,
         typer.Option(
             "--dry-run", help="Show what would be forgotten without deleting."
         ),
-    ] = False,
+    ] = None,
     repository_id: Annotated[
         str | None,
         typer.Option("--repository", "-r", help="Repository ID."),
@@ -884,7 +917,20 @@ def forget_command(
         snapshot_by_id[snapshot_id] = snapshot
     snapshot_id = choose_snapshot(snapshots, "Snapshot to forget:")
     short_id = str(snapshot_by_id[snapshot_id].get("short_id", snapshot_id[:8]))
-    if not dry_run:
+    prompted = dry_run is None
+    if dry_run is None:
+        dry_run = choose_dry_run(
+            copyable_cli_command(
+                "generic",
+                "snapshot",
+                "forget",
+                backup_id,
+                "--repository",
+                repository_id,
+                snapshot_id,
+            )
+        )
+    if not dry_run and not prompted:
         confirmed = questionary.confirm(
             f"Forget snapshot '{short_id}' and prune its unreferenced data?",
             default=False,
@@ -932,9 +978,9 @@ def destroy_command(
         typer.Argument(help="Repository ID; prompts when omitted."),
     ] = None,
     dry_run: Annotated[
-        bool,
+        bool | None,
         typer.Option("--dry-run", help="Show the target without deleting objects."),
-    ] = False,
+    ] = None,
 ) -> None:
     """Permanently erase a configured restic repository."""
     if not sys.stdin.isatty():
@@ -967,6 +1013,10 @@ def destroy_command(
     if not backend.get("enabled", True):
         fail(f"storage '{backend['id']}' is disabled")
     target = repository.location(restic_repository, backend)
+    if dry_run is None:
+        dry_run = choose_dry_run(
+            copyable_cli_command("generic", "repository", "destroy", repository_id)
+        )
     if dry_run:
         audit_command("repository", "destroy", repository_id, "--dry-run")
         error_console.print(
@@ -1028,17 +1078,8 @@ def run_command(
 
 
 def copyable_command(backup_id: str, repository_id: str, args: list[str]) -> str:
-    command = [
-        "uv",
-        "run",
-        "restic-backups",
-        "--config",
-        str(config.config_path().resolve()),
-    ]
-    if os.environ.get(sops.SOPS_ENV) == "1":
-        command.append("--sops")
-    command.extend(
-        [
+    return copyable_cli_command(
+        *[
             "generic",
             "restic",
             "run",
@@ -1049,7 +1090,6 @@ def copyable_command(backup_id: str, repository_id: str, args: list[str]) -> str
             *args,
         ]
     )
-    return shlex.join(command)
 
 
 def run_args(
@@ -1058,6 +1098,7 @@ def run_args(
     *,
     interactive: bool = False,
     repository_id: str | None = None,
+    allow_dry_run: bool = False,
 ) -> None:
     _, storage, repositories, backups = validated()
     backup_id = choose_backup(backup, repositories, backups)
@@ -1076,20 +1117,29 @@ def run_args(
         console.print(
             Text(copyable_command(backup_id, repository_id, args), style="cyan")
         )
-        action = select(
-            "Action:",
+        options = checkbox(
+            "Options:",
             choices=[
-                questionary.Choice("Run", "run"),
-                questionary.Choice("Print only", "print"),
-                questionary.Choice("Cancel", "cancel"),
+                menu_choice("Print only", "Do not execute the command", "print"),
+                *(
+                    [
+                        menu_choice(
+                            "Dry run",
+                            "Show what would happen without writing",
+                            "dry-run",
+                        )
+                    ]
+                    if allow_dry_run
+                    else []
+                ),
                 questionary.Separator(" "),
             ],
         ).unsafe_ask()
-        if action is None:
+        if options is None:
             raise typer.Abort()
-        if action != "run":
-            if action == "cancel":
-                error_console.print(Text("Cancelled; nothing was run.", style="yellow"))
+        if "dry-run" in options:
+            args.insert(1, "--dry-run")
+        if "print" in options:
             return
     audit_command(
         "restic",
