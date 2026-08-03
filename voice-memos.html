@@ -328,7 +328,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>Give the terminal Full Disk Access.</li>
 <li>Open Voice Memos and wait for iCloud synchronization.</li>
 <li>Run LM Studio at <code>http://localhost:1234/v1</code> when producing summaries.</li>
-<li>Set <code>HF_TOKEN</code> for speaker diarization.</li>
+<li>Configure a Hugging Face token source for speaker diarization, or set <code>HF_TOKEN</code> directly.</li>
 </ul>
 <p>The default recording source is:</p>
 <pre class="text"><code>~/Library/Group Containers/group.com.apple.VoiceMemos.shared/Recordings</code></pre>
@@ -446,8 +446,15 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <h2 class="anchored" data-anchor-id="parallel-diarization">Parallel diarization</h2>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb7"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb7-1"><a href="#cb7-1" aria-hidden="true" tabindex="-1"></a><span class="bu">export</span> <span class="va">HF_TOKEN</span><span class="op">=</span>hf_...</span>
 <span id="cb7-2"><a href="#cb7-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos diarize-parallel <span class="at">--workers</span> 3 <span class="at">--dashboard</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>To make the credential part of the Voice Memos job definition while keeping its value outside YAML, configure an environment variable or mounted file:</p>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode yaml code-with-copy"><code class="sourceCode yaml"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="fu">source</span><span class="kw">:</span></span>
+<span id="cb8-2"><a href="#cb8-2" aria-hidden="true" tabindex="-1"></a><span class="at">  </span><span class="fu">authentication</span><span class="kw">:</span></span>
+<span id="cb8-3"><a href="#cb8-3" aria-hidden="true" tabindex="-1"></a><span class="at">    </span><span class="fu">hugging-face</span><span class="kw">:</span></span>
+<span id="cb8-4"><a href="#cb8-4" aria-hidden="true" tabindex="-1"></a><span class="at">      </span><span class="fu">token</span><span class="kw">:</span></span>
+<span id="cb8-5"><a href="#cb8-5" aria-hidden="true" tabindex="-1"></a><span class="at">        </span><span class="fu">env</span><span class="kw">:</span><span class="at"> HF_TOKEN</span></span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<p>Use <code>file: /var/run/secrets/hugging-face/token</code> instead in a container or Kubernetes workload with a mounted Secret. This credential is used only by <code>diarize</code> and <code>diarize-parallel</code>.</p>
 <p>Workers write logs beneath a temporary <code>diarize-chunks-*</code> directory. Use <code>--detach</code> to leave them running without the dashboard, then attach with:</p>
-<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb8"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb8-1"><a href="#cb8-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos dashboard</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
+<div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb9"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb9-1"><a href="#cb9-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups voice-memos dashboard</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 </section>
 <section id="generated-data" class="level2">
 <h2 class="anchored" data-anchor-id="generated-data">Generated data</h2>
