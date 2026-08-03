@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.1.11](https://github.com/jr200-labs/restic-backups/compare/v0.1.10...v0.1.11) (2026-08-03)
+
+
+### Features
+
+* copy snapshots between repositories ([#48](https://github.com/jr200-labs/restic-backups/issues/48)) ([80dcded](https://github.com/jr200-labs/restic-backups/commit/80dcded1ceb1e522363e78b94c7a9691c774bdbf))
+
+
+### Bug Fixes
+
+* disable unavailable repositories in tui ([#47](https://github.com/jr200-labs/restic-backups/issues/47)) ([31c184d](https://github.com/jr200-labs/restic-backups/commit/31c184d06cd38a8b793cad62d73dc155ebdcc3d7))
+* select voice memo repository ([#45](https://github.com/jr200-labs/restic-backups/issues/45)) ([a147c05](https://github.com/jr200-labs/restic-backups/commit/a147c050bccce6050fd9ec9102abb47c2b1ada05))
+
 ## [0.1.10](https://github.com/jr200-labs/restic-backups/compare/v0.1.9...v0.1.10) (2026-08-03)
 
 
