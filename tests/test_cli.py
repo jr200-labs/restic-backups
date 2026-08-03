@@ -396,6 +396,13 @@ class VoiceMemosCliTest(unittest.TestCase):
         repository_menu()
 
         list_command.assert_called_once_with()
+        self.assertEqual(
+            [
+                choice.value
+                for choice in select.call_args_list[0].kwargs["choices"][:-1]
+            ],
+            ["list", "prime-cache", "prune", "init", "destroy", "help", "back"],
+        )
 
     def test_restic_help_does_not_load_configuration(self) -> None:
         with (

@@ -99,32 +99,32 @@ def repository_menu() -> None:
             "Repository command:",
             choices=[
                 menu_choice(
-                    "List repositories",
+                    "List",
                     "Show configured storage destinations",
                     "list",
                 ),
                 menu_choice(
-                    "Initialize repository",
-                    "Create one repository, or explicitly all",
-                    "init",
-                ),
-                menu_choice(
-                    "Prime local cache",
+                    "Prime cache",
                     "Download and validate repository metadata",
                     "prime-cache",
                 ),
                 menu_choice(
-                    "Prune / compact",
+                    "Compact",
                     "Remove unused data or repack repository files",
                     "prune",
                 ),
                 menu_choice(
-                    "Destroy repository",
+                    "Initialize",
+                    "Create one destination, or explicitly all",
+                    "init",
+                ),
+                menu_choice(
+                    "Destroy",
                     "Permanently erase repository objects",
                     "destroy",
                 ),
-                menu_choice("Help", "Show repository command flags", "help"),
-                menu_choice("Back", "Return to Generic sections", "back"),
+                menu_choice("Help", "Show command flags", "help"),
+                menu_choice("Back", "Return to the main menu", "back"),
                 questionary.Separator(" "),
             ],
         ).unsafe_ask()
