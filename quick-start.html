@@ -291,13 +291,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb2"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="fu">cp</span> config.template.yaml config.yaml</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
 <p>Edit its first storage, restic repository, and job entries:</p>
 <ul>
-<li>replace every <code>CHANGE_ME</code> used by the enabled repository;</li>
+<li>replace every <code>CHANGE_ME</code> used by the available repository;</li>
 <li>configure either S3 storage and credentials or an absolute local storage path;</li>
 <li>configure the repository bucket and <code>key_prefix</code> for S3, or relative <code>path</code> for local storage;</li>
 <li>give the backup job a useful <code>job-id</code> such as <code>documents</code>;</li>
 <li>use <code>type: files</code> and list local files or directories under <code>source.paths</code>;</li>
 <li>omit <code>tag</code> unless it should differ from the job ID;</li>
-<li>list one or more enabled repository IDs under <code>restic-repository-ids</code>;</li>
+<li>list one or more available repository IDs under <code>restic-repository-ids</code>;</li>
 <li>delete unused example entries if desired.</li>
 </ul>
 <p>Keep the repository password safe: restic cannot decrypt snapshots without it.</p>
@@ -315,7 +315,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <p>Then create a snapshot from the paths configured for <code>documents</code>:</p>
 <div class="code-copy-outer-scaffold"><div class="sourceCode" id="cb5"><pre class="sourceCode sh code-with-copy"><code class="sourceCode bash"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups job run documents</span>
 <span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a><span class="ex">uv</span> run restic-backups generic snapshot list documents</span></code></pre></div><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></div>
-<p>Running <code>generic repository init</code> again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass <code>--all</code> to initialize every enabled repository. <code>job run</code> preselects a sole enabled destination; when several are available, use Space to choose one or more. The job’s paths and default or configured tag are used for every selected repository.</p>
+<p>Running <code>generic repository init</code> again is safe: an existing repository is detected and skipped. Omit the repository ID to choose interactively, or pass <code>--all</code> to initialize every available repository. <code>job run</code> preselects a sole available destination; when several are available, use Space to choose one or more. Disabled storage and its repositories remain visible but unselectable. The job’s paths and default or configured tag are used for every selected repository.</p>
 </section>
 <section id="verify-a-restore" class="level2">
 <h2 class="anchored" data-anchor-id="verify-a-restore">4. Verify a restore</h2>
