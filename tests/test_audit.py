@@ -13,7 +13,7 @@ def test_audit_appends_json_and_redacts_secrets(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv(audit.AUDIT_ENV)
     monkeypatch.setattr(audit.socket, "gethostname", lambda: "backup-host")
 
-    first_id = audit.record(
+    first_id = audit.record_repository_write(
         "restic-backups",
         [
             "backup",
@@ -26,11 +26,9 @@ def test_audit_appends_json_and_redacts_secrets(tmp_path, monkeypatch) -> None:
         ],
     )
     audit.finish(first_id, True)
-    second_id = audit.record("restic", ["snapshots"])
-    audit.finish(second_id, False)
 
     events = [json.loads(line) for line in audit.AUDIT_LOG.read_text().splitlines()]
-    assert len(events) == 4
+    assert len(events) == 2
     assert events[0] == {
         "args": [
             "backup",
@@ -53,9 +51,6 @@ def test_audit_appends_json_and_redacts_secrets(tmp_path, monkeypatch) -> None:
         "started-id": first_id,
         "successful": True,
     }
-    assert events[2]["command"] == "restic"
-    assert events[3]["started-id"] == second_id
-    assert events[3]["successful"] is False
     assert stat.S_IMODE(audit.AUDIT_LOG.stat().st_mode) == 0o600
 
 
@@ -63,20 +58,18 @@ def test_audit_can_be_disabled(tmp_path, monkeypatch) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.setenv(audit.AUDIT_ENV, "false")
 
-    audit.finish(audit.record("restic-backups", ["check-config"]), True)
+    audit.finish(audit.record_repository_write("restic", ["backup", "/data"]), True)
 
     assert not audit.AUDIT_LOG.exists()
 
 
-def test_installed_entrypoint_and_restic_log_exact_commands(monkeypatch) -> None:
+def test_only_mutating_restic_commands_are_audited(monkeypatch) -> None:
     monkeypatch.setattr(root_cli.sys, "argv", ["restic-backups", "--help"])
     with (
-        patch.object(root_cli.audit, "record") as record,
         patch.object(root_cli.audit, "finish_all") as finish_all,
         patch.object(root_cli, "app") as app,
     ):
         root_cli.main()
-    record.assert_called_once_with("restic-backups", ["--help"])
     finish_all.assert_called_once_with(True)
     app.assert_called_once_with()
 
@@ -100,16 +93,25 @@ def test_installed_entrypoint_and_restic_log_exact_commands(monkeypatch) -> None
     }
     result = subprocess.CompletedProcess([], 0, stdout="", stderr="")
     with (
-        patch.object(restic.audit, "record", return_value="event-id") as record,
+        patch.object(
+            restic.audit, "record_repository_write", return_value="event-id"
+        ) as record,
         patch.object(restic.audit, "finish") as finish,
         patch.object(restic.subprocess, "run", return_value=result),
     ):
         restic.repository_command(restic_repository, storage, ["snapshots", "--json"])
+        record.assert_not_called()
+        restic.repository_command(restic_repository, storage, ["backup", "/data"])
 
     record.assert_called_once_with(
-        "restic", ["-o", "s3.region=region", "snapshots", "--json"]
+        "restic", ["-o", "s3.region=region", "backup", "/data"]
     )
-    finish.assert_called_once_with("event-id", True)
+    assert finish.call_args_list[-1].args == ("event-id", True)
+    assert restic.mutates_repository(["backup", "/data"])
+    assert restic.mutates_repository(["key", "add"])
+    assert not restic.mutates_repository(["key", "list"])
+    assert not restic.mutates_repository(["prune", "--dry-run"])
+    assert not restic.mutates_repository(["snapshots"])
 
 
 def test_unfinished_event_identifies_an_interrupted_command(
@@ -117,7 +119,7 @@ def test_unfinished_event_identifies_an_interrupted_command(
 ) -> None:
     monkeypatch.chdir(tmp_path)
     monkeypatch.delenv(audit.AUDIT_ENV)
-    event_id = audit.record("restic-backups", ["generic", "backup", "run"])
+    event_id = audit.record_repository_write("restic-backups", ["job", "run", "photos"])
 
     event = json.loads(audit.AUDIT_LOG.read_text())
     assert event["event"] == "started"

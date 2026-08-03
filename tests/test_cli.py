@@ -454,7 +454,6 @@ class VoiceMemosCliTest(unittest.TestCase):
             patch("restic_backups.voice_memos.cli.select") as select,
             patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
-            patch("restic_backups.voice_memos.cli.audit_command"),
             patch.object(voice_memos_cli, "main") as main,
         ):
             select.return_value.unsafe_ask.side_effect = ["status", "run", "back"]
@@ -471,7 +470,6 @@ class VoiceMemosCliTest(unittest.TestCase):
             patch("restic_backups.voice_memos.cli.select") as select,
             patch("restic_backups.voice_memos.cli.checkbox") as checkbox,
             patch("restic_backups.voice_memos.cli.questionary.text") as arguments,
-            patch("restic_backups.voice_memos.cli.audit_command"),
             patch.object(voice_memos_cli, "main") as main,
         ):
             select.return_value.unsafe_ask.side_effect = ["prune-index", "run"]

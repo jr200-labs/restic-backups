@@ -31,7 +31,6 @@ def test_escape_goes_back_and_ctrl_c_exits_cleanly() -> None:
     event.app.exit.assert_called_once_with(result=None)
 
     with (
-        patch.object(cli.audit, "record"),
         patch.object(cli, "app", side_effect=KeyboardInterrupt),
         pytest.raises(SystemExit) as stopped,
     ):

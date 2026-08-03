@@ -12,7 +12,6 @@ import typer
 from rich.console import Console
 from rich.text import Text
 
-from .. import audit
 from ..errors import BackupError
 from ..generic.cli import choose_repository, load_snapshots
 from ..generic.tui import menu_choice, select
@@ -127,24 +126,6 @@ def run(
             raise typer.Abort()
         target = Path(str(selected_target))
 
-    event_id = audit.record(
-        "restic-backups",
-        [
-            "job",
-            "restore",
-            job_id,
-            "--repository",
-            repository_id,
-            "--snapshot",
-            snapshot["id"],
-            "--github-repository",
-            label,
-            "--mode",
-            mode.value,
-            "--target",
-            str(target),
-        ],
-    )
     try:
         workflow.restore_repository(
             job_id,
@@ -158,9 +139,7 @@ def run(
             jobs,
         )
     except (BackupError, OSError) as exc:
-        audit.finish(event_id, False)
         fail(str(exc))
-    audit.finish(event_id, True)
     console.print(
         Text(f"Restored {label} as {mode.value} to {target}", style="bold green")
     )

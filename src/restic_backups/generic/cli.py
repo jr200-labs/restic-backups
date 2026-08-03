@@ -560,9 +560,9 @@ def validated() -> tuple[
         fail(str(exc))
 
 
-def audit_command(*args: str) -> None:
+def audit_repository_write(*args: str) -> None:
     try:
-        audit.record("restic-backups", ["generic", *args])
+        audit.record_repository_write("restic-backups", ["generic", *args])
     except BackupError as exc:
         fail(str(exc))
 
@@ -717,7 +717,6 @@ def show_repositories(
 @repository_app.command("list")
 def repository_list_command() -> None:
     """Show configured restic repositories."""
-    audit_command("repository", "list")
     _, storage, repositories, _ = validated()
     probe_repository_initialization(storage, repositories)
     show_repositories(storage, repositories)
@@ -805,15 +804,6 @@ def init_command(
         )
         if dry_run is None:
             dry_run = choose_dry_run(command) if sys.stdin.isatty() else False
-        audit_command(
-            "repository",
-            "init",
-            repository_id,
-            "--from-repository",
-            from_repository,
-            *copy_args,
-            *(["--dry-run"] if dry_run else []),
-        )
         try:
             if copy_all_snapshots or copy_snapshots:
                 code = restic.copy_repository(
@@ -896,13 +886,6 @@ def init_command(
             if sys.stdin.isatty()
             else False
         )
-    audit_command(
-        "repository",
-        "init",
-        *(["--all"] if all_repositories else [str(repository_id)]),
-        *(["--dry-run"] if dry_run else []),
-    )
-
     for repository_id, restic_repository in selected_repositories:
         reason = config.repository_disabled_reason(restic_repository)
         if reason is not None:
@@ -980,7 +963,6 @@ def prime_cache_command(
     if not restic_repository.get("_storage-enabled", True):
         fail(f"storage '{restic_repository['storage-id']}' is disabled")
 
-    audit_command("repository", "prime-cache", repository_id)
     error_console.print(Text(f"{repository_id}: priming local cache", style="cyan"))
     try:
         code = restic.repository_command(
@@ -1141,14 +1123,6 @@ def copy_command(
     )
     if dry_run is None:
         dry_run = choose_dry_run(command) if sys.stdin.isatty() else False
-    audit_command(
-        "repository",
-        "copy",
-        source_id,
-        destination_id,
-        *selected_snapshots,
-        *(["--dry-run"] if dry_run else []),
-    )
     if not dry_run:
         error_console.print(
             Text(
@@ -1277,7 +1251,6 @@ def prune_command(
             )
             return
 
-    audit_command("repository", "prune", repository_id, *args[1:])
     mode = "previewing prune" if dry_run else "pruning repository"
     error_console.print(Text(f"{repository_id}: {mode}", style="cyan"))
     try:
@@ -1363,7 +1336,6 @@ def snapshots_command(
         probe_repository_initialization(storage, repositories)
     backup_id = choose_backup(backup, repositories, backups)
     repository_id = choose_repository(backup_id, repository_id, repositories, backups)
-    audit_command("snapshot", "list", backup_id, "--repository", repository_id)
     tag, snapshots = load_snapshots(
         backup_id, repository_id, storage, repositories, backups
     )
@@ -1459,15 +1431,6 @@ def forget_command(
             )
             return
     args = ["forget", snapshot_id, "--prune", *(["--dry-run"] if dry_run else [])]
-    audit_command(
-        "snapshot",
-        "forget",
-        backup_id,
-        "--repository",
-        repository_id,
-        snapshot_id,
-        *(["--dry-run"] if dry_run else []),
-    )
     try:
         code = restic.command(
             backup_id,
@@ -1539,7 +1502,6 @@ def destroy_command(
             copyable_cli_command("generic", "repository", "destroy", repository_id)
         )
     if dry_run:
-        audit_command("repository", "destroy", repository_id, "--dry-run")
         error_console.print(
             Text(
                 f"{repository_id}: dry run complete; nothing deleted at {target}",
@@ -1564,7 +1526,7 @@ def destroy_command(
     if typed != repository_id:
         fail("repository ID did not match; nothing was destroyed")
 
-    audit_command("repository", "destroy", repository_id)
+    audit_repository_write("repository", "destroy", repository_id)
     delete_repository = (
         local.delete_repository if backend["type"] == "local" else s3.delete_repository
     )
@@ -1664,15 +1626,6 @@ def run_args(
             args.insert(1, "--dry-run")
         if "print" in options:
             return
-    audit_command(
-        "restic",
-        "run",
-        "--backup",
-        backup_id,
-        "--repository",
-        repository_id,
-        *args,
-    )
     try:
         raise typer.Exit(
             restic.command(
