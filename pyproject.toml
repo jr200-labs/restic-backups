@@ -5,7 +5,7 @@ description = "Restic backup CLI with optional SOPS configuration."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3>=1.43.62",
+    "boto3>=1.43.63",
     "click>=8.4.2",
     "mlx-whisper>=0.4.3; platform_system == 'Darwin' and platform_machine == 'arm64'",
     "prometheus-client>=0.26.0",
