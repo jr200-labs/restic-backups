@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.1.13](https://github.com/jr200-labs/restic-backups/compare/v0.1.12...v0.1.13) (2026-08-08)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#56](https://github.com/jr200-labs/restic-backups/issues/56)) ([ffc84a0](https://github.com/jr200-labs/restic-backups/commit/ffc84a029aa53494af7ce7a5a8212a96095a345a))
+* **deps:** update dependency boto3 to &gt;=1.43.63 ([#55](https://github.com/jr200-labs/restic-backups/issues/55)) ([561bd7b](https://github.com/jr200-labs/restic-backups/commit/561bd7b1fe6d7a7c2f7253cfb23c158b6718fca3))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.36 ([#57](https://github.com/jr200-labs/restic-backups/issues/57)) ([340d1a1](https://github.com/jr200-labs/restic-backups/commit/340d1a193d1dd48d7650178bb8cc36f06af0adfb))
+* **deps:** update dependency typer to &gt;=0.27.1 ([#53](https://github.com/jr200-labs/restic-backups/issues/53)) ([e8cbe27](https://github.com/jr200-labs/restic-backups/commit/e8cbe2770ccdb58f1431a282a6f38b1cba41cc98))
+
 ## [0.1.12](https://github.com/jr200-labs/restic-backups/compare/v0.1.11...v0.1.12) (2026-08-03)
 
 
