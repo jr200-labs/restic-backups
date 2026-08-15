@@ -26,18 +26,18 @@ Repository = "https://github.com/jr200-labs/restic-backups"
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.0",
+    "mypy>=2.3.1",
     "pytest>=9.1.1",
     "quarto-cli>=1.10.18",
     "ruff>=0.16.3",
-    "types-pyyaml>=6.0.12.20260724",
+    "types-pyyaml>=6.0.12.20260815",
 ]
 
 [project.scripts]
 restic-backups = "restic_backups.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.12.4,<0.13.0"]
+requires = ["uv_build>=0.12.5,<0.13.0"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
