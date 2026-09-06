@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.1.14](https://github.com/jr200-labs/restic-backups/compare/v0.1.13...v0.1.14) (2026-09-06)
+
+
+### Bug Fixes
+
+* **deps:** update all non-major dependencies ([#63](https://github.com/jr200-labs/restic-backups/issues/63)) ([38b20cd](https://github.com/jr200-labs/restic-backups/commit/38b20cdbc83606b502c8dccd87891b6bea35fac1))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.38 ([#64](https://github.com/jr200-labs/restic-backups/issues/64)) ([d0232bd](https://github.com/jr200-labs/restic-backups/commit/d0232bd5ba213b7add9d31df26775f60b12da0b9))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.46 ([#66](https://github.com/jr200-labs/restic-backups/issues/66)) ([5f678ae](https://github.com/jr200-labs/restic-backups/commit/5f678ae068f313e05e6756e8fa3156b8f96d54e0))
+* **deps:** update dependency ruff to &gt;=0.16.3 ([#60](https://github.com/jr200-labs/restic-backups/issues/60)) ([d334e0d](https://github.com/jr200-labs/restic-backups/commit/d334e0db311348b52bbe06955663f2f06926872d))
+* **deps:** update dependency uv_build to &gt;=0.12.4,&lt;0.13.0 ([#62](https://github.com/jr200-labs/restic-backups/issues/62)) ([8c31b96](https://github.com/jr200-labs/restic-backups/commit/8c31b96742113d9f5a8b839d883828122ffcdb82))
+
 ## [0.1.13](https://github.com/jr200-labs/restic-backups/compare/v0.1.12...v0.1.13) (2026-08-12)
 
 
