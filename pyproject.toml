@@ -5,8 +5,8 @@ description = "Restic backup CLI with optional SOPS configuration."
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "boto3>=1.43.66",
-    "click>=8.4.2",
+    "boto3>=1.44.3",
+    "click>=8.5.1",
     "mlx-whisper>=0.4.3; platform_system == 'Darwin' and platform_machine == 'arm64'",
     "prometheus-client>=0.26.0",
     "pyannote.audio>=4.0.7",
@@ -15,9 +15,9 @@ dependencies = [
     "requests>=2.34.2",
     "rich>=15.0.0",
     "textual>=8.2.8",
-    "torch>=2.13.0",
-    "torchaudio>=2.11.0",
-    "typer>=0.27.1",
+    "torch>=2.15.0",
+    "torchaudio>=2.11.1",
+    "typer>=0.29.1",
 ]
 
 [project.urls]
@@ -26,18 +26,18 @@ Repository = "https://github.com/jr200-labs/restic-backups"
 
 [dependency-groups]
 dev = [
-    "mypy>=2.3.1",
-    "pytest>=9.1.1",
-    "quarto-cli>=1.10.18",
-    "ruff>=0.16.3",
-    "types-pyyaml>=6.0.12.20260815",
+    "mypy>=2.4.1",
+    "pytest>=9.2.0",
+    "quarto-cli>=1.11.9",
+    "ruff>=0.17.5",
+    "types-pyyaml>=6.0.12.20261113",
 ]
 
 [project.scripts]
 restic-backups = "restic_backups.cli:main"
 
 [build-system]
-requires = ["uv_build>=0.12.5,<0.13.0"]
+requires = ["uv_build>=0.13.8,<0.13.9"]
 build-backend = "uv_build"
 
 [tool.uv.build-backend]
