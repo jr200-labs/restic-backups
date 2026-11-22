@@ -4,18 +4,11 @@ name: renovate
 
 on:
   schedule:
-    - cron: "0 17 * * *"
+    # sync-shared renders a stable owner/repo slot at 16:01–16:59 UTC (01:01–01:59 JST).
+    # Native schedule events can still be delayed by GitHub.
+    - cron: "1 16 * * *"
   workflow_dispatch:
     inputs:
-      runner:
-        description: Runner pool
-        required: false
-        type: choice
-        default: configured
-        options:
-          - configured
-          - self-hosted
-          - github-hosted
       repair-lockfiles:
         description: Overwrite stale pnpm lockfiles on existing Renovate branches
         required: false
@@ -44,7 +37,7 @@ jobs:
   renovate:
     uses: jr200-labs/github-action-templates/.github/workflows/renovate.yaml@master
     with:
-      runner: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'self-hosted' && 'self-hosted' || github.event_name == 'workflow_dispatch' && github.event.inputs.runner == 'github-hosted' && 'ubuntu-latest' || fromJSON(vars.RUNNER_PROFILES)[vars.RUNNER_PROFILE].default }}
+      runner: ${{ fromJSON(vars.RUNNER_PROFILES)[vars.RUNNER_PROFILE].default }}
       renovate-image: ${{ vars.RENOVATE_IMAGE }}
       repair-lockfiles: ${{ github.event_name == 'workflow_dispatch' && inputs.repair-lockfiles }}
       rebase-branches: ${{ github.event_name == 'workflow_dispatch' && inputs.rebase-branches }}
