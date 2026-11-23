@@ -9,7 +9,7 @@ dependencies = [
     "click>=8.5.1",
     "mlx-whisper>=0.4.3; platform_system == 'Darwin' and platform_machine == 'arm64'",
     "prometheus-client>=0.26.0",
-    "pyannote.audio>=4.0.7",
+    "pyannote.audio>=4.1.1",
     "pyyaml>=6.0.4",
     "questionary>=2.1.1",
     "requests>=2.34.2",
