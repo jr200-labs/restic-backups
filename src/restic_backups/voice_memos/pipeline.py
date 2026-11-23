@@ -1221,10 +1221,12 @@ def diarize_audio(
             preload_max_s = 90 * 60
         try:
             import torchaudio
+            from pyannote.audio import Audio
 
-            info = torchaudio.info(str(audio_path))
-            est_dur = info.num_frames / info.sample_rate if info.sample_rate else 0
-            if est_dur > preload_max_s:
+            est_dur = Audio().get_duration(audio_path)
+            if est_dur is None:
+                click.echo("  preload skipped (unknown duration)", err=True)
+            elif est_dur > preload_max_s:
                 click.echo(
                     f"  preload skipped (dur {est_dur / 60:.0f}min > {preload_max_s / 60:.0f}min cap) → file-path mode",
                     err=True,
