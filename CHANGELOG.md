@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.1.14](https://github.com/jr200-labs/restic-backups/compare/v0.1.13...v0.1.14) (2026-11-25)
+
+
+### Bug Fixes
+
+* **deps:** adopt Optuna 5 and restore release workflow inputs ([#71](https://github.com/jr200-labs/restic-backups/issues/71)) ([d8a3272](https://github.com/jr200-labs/restic-backups/commit/d8a32729b0df9f9b0b96238ac99a0543812c4c67))
+* **deps:** lock file maintenance ([#72](https://github.com/jr200-labs/restic-backups/issues/72)) ([99f0a7b](https://github.com/jr200-labs/restic-backups/commit/99f0a7bd37a62e15e231e8c7689fd64f003191f0))
+* **deps:** refresh compatible restic lockfile dependencies ([#73](https://github.com/jr200-labs/restic-backups/issues/73)) ([8675829](https://github.com/jr200-labs/restic-backups/commit/8675829d30b3edcf2ede8b77745cb6228723b4ba))
+* **deps:** update actions/create-github-app-token action to v3.3.0 ([#68](https://github.com/jr200-labs/restic-backups/issues/68)) ([62661d8](https://github.com/jr200-labs/restic-backups/commit/62661d8b2e79b0748383eec1990f43132a40289c))
+* **deps:** update all non-major dependencies ([#63](https://github.com/jr200-labs/restic-backups/issues/63)) ([38b20cd](https://github.com/jr200-labs/restic-backups/commit/38b20cdbc83606b502c8dccd87891b6bea35fac1))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.103 ([#69](https://github.com/jr200-labs/restic-backups/issues/69)) ([b654f08](https://github.com/jr200-labs/restic-backups/commit/b654f08b08bff07a668ef4d11c9d6cda297b1961))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.38 ([#64](https://github.com/jr200-labs/restic-backups/issues/64)) ([d0232bd](https://github.com/jr200-labs/restic-backups/commit/d0232bd5ba213b7add9d31df26775f60b12da0b9))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.46 ([#66](https://github.com/jr200-labs/restic-backups/issues/66)) ([5f678ae](https://github.com/jr200-labs/restic-backups/commit/5f678ae068f313e05e6756e8fa3156b8f96d54e0))
+* **deps:** update dependency jr200-labs/github-action-templates to shared-v0.1.54 ([#67](https://github.com/jr200-labs/restic-backups/issues/67)) ([36c1cc3](https://github.com/jr200-labs/restic-backups/commit/36c1cc3df6b88ae5902bb59e56de816f9922d866))
+* **deps:** update dependency ruff to &gt;=0.16.3 ([#60](https://github.com/jr200-labs/restic-backups/issues/60)) ([d334e0d](https://github.com/jr200-labs/restic-backups/commit/d334e0db311348b52bbe06955663f2f06926872d))
+* **deps:** update dependency uv_build to &gt;=0.12.4,&lt;0.13.0 ([#62](https://github.com/jr200-labs/restic-backups/issues/62)) ([8c31b96](https://github.com/jr200-labs/restic-backups/commit/8c31b96742113d9f5a8b839d883828122ffcdb82))
+
 ## [0.1.13](https://github.com/jr200-labs/restic-backups/compare/v0.1.12...v0.1.13) (2026-08-12)
 
 
